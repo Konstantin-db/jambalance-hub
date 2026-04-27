@@ -5,21 +5,47 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Рабочая среда</title>
   <style>
+    :root{
+      --accent:#df8f4a;
+      --accent-dark:#b86f29;
+      --text:#1f1f1f;
+      --muted:#666;
+      --bg:#f7f7f7;
+      --card:#fff;
+    }
+    *{box-sizing:border-box}
     body{
       margin:0;
       font-family:Arial, sans-serif;
-      background:#f7f7f7;
-      color:#1f1f1f;
+      background:var(--bg);
+      color:var(--text);
     }
     .wrap{
       max-width:1100px;
       margin:0 auto;
       padding:40px 20px;
     }
+    .topbar{
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      gap:16px;
+      margin-bottom:24px;
+    }
     h1{
-      margin:0 0 24px;
+      margin:0;
       font-size:32px;
     }
+    .logoutBtn{
+      border:1px solid #e5d2c1;
+      background:#fff;
+      color:#5f4128;
+      border-radius:999px;
+      padding:10px 15px;
+      cursor:pointer;
+      font-weight:700;
+    }
+    .logoutBtn:hover{border-color:var(--accent);}
     .grid{
       display:grid;
       grid-template-columns:repeat(auto-fit,minmax(240px,1fr));
@@ -30,15 +56,15 @@
       padding:22px;
       border-radius:18px;
       text-decoration:none;
-      color:#1f1f1f;
-      background:white;
+      color:var(--text);
+      background:var(--card);
       border:1px solid #ececec;
       box-shadow:0 8px 20px rgba(0,0,0,.05);
       transition:.2s ease;
     }
     .card:hover{
       transform:translateY(-2px);
-      border-color:#df8f4a;
+      border-color:var(--accent);
     }
     .title{
       font-size:22px;
@@ -47,14 +73,143 @@
     }
     .desc{
       font-size:14px;
-      color:#666;
+      color:var(--muted);
       line-height:1.45;
+    }
+
+    body.locked .wrap{display:none;}
+    .loginScreen{
+      min-height:100vh;
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      padding:24px;
+      background:
+        radial-gradient(circle at 20% 20%, rgba(223,143,74,.16), transparent 32%),
+        radial-gradient(circle at 80% 70%, rgba(223,143,74,.12), transparent 34%),
+        #f7f7f7;
+    }
+    body:not(.locked) .loginScreen{display:none;}
+    .loginCard{
+      width:100%;
+      max-width:430px;
+      background:#fff;
+      border:1px solid #ead8c8;
+      border-radius:24px;
+      box-shadow:0 24px 60px rgba(51,32,16,.12);
+      padding:30px;
+    }
+    .loginBadge{
+      display:inline-block;
+      padding:7px 12px;
+      border-radius:999px;
+      background:#fff3e8;
+      border:1px solid #f1d2b5;
+      color:#8a531f;
+      font-size:12px;
+      font-weight:800;
+      letter-spacing:.05em;
+      text-transform:uppercase;
+      margin-bottom:16px;
+    }
+    .loginCard h2{
+      margin:0 0 8px;
+      font-size:28px;
+      line-height:1.15;
+    }
+    .loginCard p{
+      margin:0 0 22px;
+      color:#6b6b6b;
+      line-height:1.45;
+      font-size:14px;
+    }
+    .field{margin-bottom:14px;}
+    .field label{
+      display:block;
+      margin-bottom:6px;
+      font-size:13px;
+      font-weight:700;
+      color:#3a2a1f;
+    }
+    .field input{
+      width:100%;
+      border:1px solid #dbcabb;
+      border-radius:14px;
+      padding:13px 14px;
+      font-size:16px;
+      outline:none;
+    }
+    .field input:focus{
+      border-color:var(--accent);
+      box-shadow:0 0 0 3px rgba(223,143,74,.16);
+    }
+    .loginBtn{
+      width:100%;
+      margin-top:8px;
+      border:0;
+      border-radius:14px;
+      padding:14px 16px;
+      background:linear-gradient(180deg,#f5a34b,#df8f4a);
+      color:#1f1308;
+      font-weight:800;
+      font-size:16px;
+      cursor:pointer;
+    }
+    .loginBtn:hover{filter:brightness(.98);}
+    .loginError{
+      display:none;
+      margin-top:12px;
+      padding:10px 12px;
+      border-radius:12px;
+      background:#fff0f0;
+      border:1px solid #f0b6b6;
+      color:#8a1f1f;
+      font-size:13px;
+      line-height:1.35;
+    }
+    .loginError.show{display:block;}
+    .loginHint{
+      margin-top:16px;
+      font-size:12px;
+      line-height:1.4;
+      color:#777;
+    }
+    @media (max-width:640px){
+      .topbar{align-items:flex-start;flex-direction:column;}
+      h1{font-size:26px;}
+      .loginCard{padding:24px;}
     }
   </style>
 </head>
-<body>
+<body class="locked">
+  <section class="loginScreen" aria-label="Вход в рабочую среду">
+    <form class="loginCard" id="loginForm">
+      <div class="loginBadge">Доступ ограничен</div>
+      <h2>Рабочая среда «ДжемБаланс»</h2>
+      <p>Введите общий логин и пароль для доступа к внутренним инструментам.</p>
+
+      <div class="field">
+        <label for="loginInput">Логин</label>
+        <input id="loginInput" name="login" autocomplete="username" required>
+      </div>
+
+      <div class="field">
+        <label for="passwordInput">Пароль</label>
+        <input id="passwordInput" name="password" type="password" autocomplete="current-password" required>
+      </div>
+
+      <button class="loginBtn" type="submit">Войти</button>
+      <div class="loginError" id="loginError">Неверный логин или пароль. Проверьте данные и попробуйте ещё раз.</div>
+      <div class="loginHint">Временная защита для внутреннего сайта. Для строгой защиты позже лучше подключить полноценную серверную авторизацию.</div>
+    </form>
+  </section>
+
   <div class="wrap">
-    <h1>Рабочая среда «ДжемБаланс»</h1>
+    <div class="topbar">
+      <h1>Рабочая среда «ДжемБаланс»</h1>
+      <button class="logoutBtn" type="button" id="logoutBtn">Выйти</button>
+    </div>
+
     <div class="grid">
       <a class="card" href="tools/DB_dogovornoi-centr.html">
         <div class="title">ДжемБаланс</div>
@@ -77,5 +232,75 @@
       </a>
     </div>
   </div>
+
+  <script>
+    // Текущие данные для входа:
+    // логин: jambalance
+    // пароль: JamBalance2026!
+    // Чтобы сменить логин/пароль, замените HASH ниже на новые SHA-256 значения.
+    const AUTH_LOGIN_HASH = '3fe7939a8a66e0ec58f4d48ef7a521922d87bf7b9757ad3380cf7ef3b68d9506';
+    const AUTH_PASSWORD_HASH = '7cfe48bc58f9253b430b2bf9b67c4c57396f4cbf516bf60bd1702d35a8884894';
+    const AUTH_STORAGE_KEY = 'jambalance_hub_auth_until';
+    const AUTH_TTL_HOURS = 12;
+
+    async function sha256(text){
+      const data = new TextEncoder().encode(text);
+      const digest = await crypto.subtle.digest('SHA-256', data);
+      return Array.from(new Uint8Array(digest)).map(b => b.toString(16).padStart(2,'0')).join('');
+    }
+
+    function isLoggedIn(){
+      const until = Number(localStorage.getItem(AUTH_STORAGE_KEY) || 0);
+      return Date.now() < until;
+    }
+
+    function unlock(){
+      document.body.classList.remove('locked');
+    }
+
+    function lock(){
+      localStorage.removeItem(AUTH_STORAGE_KEY);
+      document.body.classList.add('locked');
+      setTimeout(() => document.getElementById('loginInput')?.focus(), 50);
+    }
+
+    function rememberLogin(){
+      const ttlMs = AUTH_TTL_HOURS * 60 * 60 * 1000;
+      localStorage.setItem(AUTH_STORAGE_KEY, String(Date.now() + ttlMs));
+    }
+
+    if(isLoggedIn()) unlock();
+    else lock();
+
+    document.getElementById('loginForm').addEventListener('submit', async (event) => {
+      event.preventDefault();
+      const login = document.getElementById('loginInput').value.trim();
+      const password = document.getElementById('passwordInput').value;
+      const loginOk = await sha256(login) === AUTH_LOGIN_HASH;
+      const passOk = await sha256(password) === AUTH_PASSWORD_HASH;
+      const error = document.getElementById('loginError');
+
+      if(loginOk && passOk){
+        error.classList.remove('show');
+        rememberLogin();
+        unlock();
+      }else{
+        error.classList.add('show');
+        document.getElementById('passwordInput').value = '';
+        document.getElementById('passwordInput').focus();
+      }
+    });
+
+    document.getElementById('logoutBtn').addEventListener('click', lock);
+
+    document.querySelectorAll('a.card').forEach(link => {
+      link.addEventListener('click', (event) => {
+        if(!isLoggedIn()){
+          event.preventDefault();
+          lock();
+        }
+      });
+    });
+  </script>
 </body>
 </html>
