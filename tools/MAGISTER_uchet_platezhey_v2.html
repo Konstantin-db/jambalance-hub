@@ -1,0 +1,6193 @@
+<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>MAGISTER — учёт платежей и закрывающих документов</title>
+  <link rel="icon" type="image/png" href="/favicon.png">
+  <link rel="shortcut icon" href="/favicon.png">
+  <link rel="apple-touch-icon" href="/favicon.png">
+  <style>
+    :root{
+      --bg:#eef5ff;
+      --bg2:#f7fbff;
+      --card:#ffffff;
+      --line:#d7e6fb;
+      --line-strong:#b6d0f8;
+      --text:#17304f;
+      --muted:#5f7694;
+      --blue:#2f74d0;
+      --blue-dark:#1857ab;
+      --blue-soft:#e8f2ff;
+      --green:#26a269;
+      --green-soft:#eaf8f1;
+      --yellow:#d29b1b;
+      --yellow-soft:#fff7df;
+      --row-blue:#e8f1ff;
+      --row-green:#ebf8f1;
+      --row-yellow:#fff8de;
+      --danger:#c93b3b;
+      --shadow:0 18px 45px rgba(28,76,146,.10);
+      --radius:20px;
+    }
+    *{box-sizing:border-box}
+    body{
+      margin:0;
+      font-family:Inter, Arial, sans-serif;
+      color:var(--text);
+      background:
+        radial-gradient(circle at 8% 12%, rgba(64,128,255,.10), transparent 20%),
+        radial-gradient(circle at 88% 18%, rgba(64,128,255,.09), transparent 18%),
+        linear-gradient(180deg, var(--bg2), var(--bg));
+    }
+    .shell{max-width:100%; margin:0 auto; padding:18px;}
+    .hero{display:flex; justify-content:space-between; align-items:flex-start; gap:18px; margin-bottom:18px;}
+    .heroMain{max-width:880px;}
+    .eyebrow{display:inline-flex; align-items:center; padding:7px 12px; border-radius:999px; background:var(--blue-soft); border:1px solid var(--line-strong); color:var(--blue-dark); font-size:12px; font-weight:800; letter-spacing:.06em; text-transform:uppercase; margin-bottom:12px;}
+    h1{margin:0; font-size:34px; line-height:1.08; letter-spacing:-.02em;}
+    .subtitle{margin-top:10px; color:var(--muted); line-height:1.6; font-size:15px;}
+    .heroActions{display:flex; flex-wrap:wrap; gap:10px; justify-content:flex-end;}
+    .btn, .ghostBtn, .subtleBtn, .dangerBtn{
+      appearance:none; border:0; border-radius:14px; padding:12px 16px; cursor:pointer; font-weight:800; font-size:14px; line-height:1; transition:.18s ease;
+    }
+    .btn{background:linear-gradient(180deg, #4e8ff1, var(--blue)); color:#fff; box-shadow:0 12px 22px rgba(47,116,208,.24);}
+    .btn:hover{transform:translateY(-1px); filter:brightness(.98)}
+    .ghostBtn{background:#fff; color:var(--blue-dark); border:1px solid var(--line-strong)}
+    .ghostBtn:hover,.subtleBtn:hover{border-color:var(--blue); color:var(--blue-dark)}
+    .subtleBtn{background:#f9fbff; color:var(--muted); border:1px solid var(--line)}
+    .dangerBtn{background:#fff1f1; color:var(--danger); border:1px solid #f1c6c6}
+    .panel{background:rgba(255,255,255,.86); border:1px solid var(--line); border-radius:var(--radius); box-shadow:var(--shadow); backdrop-filter:blur(6px);}
+    .topGrid{display:grid; grid-template-columns:1.2fr .8fr; gap:18px; margin-bottom:18px;}
+    .summaryWrap{padding:18px 18px 16px;}
+    .summaryGrid{display:grid; grid-template-columns:repeat(5,minmax(0,1fr)); gap:12px;}
+    .stat{padding:16px 16px 14px; border-radius:18px; background:#fff; border:1px solid var(--line);}
+    .statLabel{font-size:12px; color:var(--muted); text-transform:uppercase; letter-spacing:.06em; font-weight:700; margin-bottom:8px;}
+    .statValue{font-size:28px; font-weight:900; letter-spacing:-.02em;}
+    .statHint{margin-top:6px; color:var(--muted); font-size:12px;}
+    .controlsWrap{padding:18px; display:flex; flex-direction:column; gap:14px;}
+    .toggleRow{display:flex; flex-wrap:wrap; gap:12px; align-items:center;}
+    .switch{display:inline-flex; align-items:center; gap:10px; color:var(--muted); font-weight:700; font-size:14px;}
+    .switch input{width:18px; height:18px; accent-color:var(--blue)}
+    .legend{display:flex; flex-wrap:wrap; gap:10px;}
+    .legendItem{display:inline-flex; align-items:center; gap:8px; padding:8px 10px; border-radius:12px; background:#fff; border:1px solid var(--line); color:var(--muted); font-size:13px; font-weight:700;}
+    .dot{width:11px; height:11px; border-radius:50%;}
+    .dot.green{background:var(--green)}
+    .dot.blue{background:var(--blue)}
+    .dot.yellow{background:var(--yellow)}
+    .toolbarSecondary{display:flex; gap:10px; flex-wrap:wrap;}
+    .tabs{display:flex; gap:10px; margin:0 0 16px; flex-wrap:wrap;}
+    .tab{border:1px solid var(--line-strong); background:#fff; color:var(--muted); border-radius:999px; padding:10px 14px; font-weight:800; cursor:pointer;}
+    .tab.active{background:var(--blue); color:#fff; border-color:var(--blue)}
+    .cardPanel{padding:16px;}
+    .tableToolbar{display:flex; justify-content:space-between; gap:14px; align-items:center; margin-bottom:12px; flex-wrap:wrap;}
+    .searchBox{display:flex; gap:10px; align-items:center; background:#fff; border:1px solid var(--line); border-radius:14px; padding:10px 12px; min-width:320px;}
+    .searchBox input{border:0; outline:none; width:100%; font-size:14px; background:transparent; color:var(--text)}
+    .tableFilters{display:flex; flex-wrap:wrap; gap:8px; align-items:center;}
+    .filterControl{display:flex; align-items:center; gap:7px; padding:8px 10px; border-radius:14px; background:#fff; border:1px solid var(--line); color:var(--muted); font-size:12px; font-weight:700;}
+    .filterControl select{border:0; background:transparent; color:var(--text); font-size:13px; outline:none; max-width:220px;}
+    .filterControl button{appearance:none; border:0; background:transparent; color:var(--blue-dark); cursor:pointer; font-weight:800; padding:0;}
+    .tableWrap{overflow-x:hidden; overflow-y:auto; border:1px solid var(--line); border-radius:18px; background:#fff;}
+    table{width:100%; border-collapse:separate; border-spacing:0; table-layout:fixed;}
+    thead th{position:sticky; top:0; z-index:2; background:#f6faff; color:var(--blue-dark); font-size:11px; text-transform:uppercase; letter-spacing:.04em; text-align:left; padding:12px 8px; border-bottom:1px solid var(--line-strong);}
+    tbody td{padding:8px 7px; border-bottom:1px solid #edf3fb; vertical-align:top; background:#fff; overflow-wrap:anywhere;}
+    tbody tr.status-matched td{background:var(--row-green)}
+    tbody tr.status-done td{background:var(--row-blue)}
+    tbody tr.status-disputed td{background:var(--row-yellow)}
+    tbody tr:hover td{filter:brightness(.995)}
+    .cellInput,.cellDate,.cellAmount,.cellComment{width:100%; border:1px solid #dce8f8; background:#fff; border-radius:10px; padding:8px 9px; color:var(--text); font-size:13px; outline:none;}
+    .cellInput:focus,.cellDate:focus,.cellAmount:focus,.cellComment:focus{border-color:var(--blue); box-shadow:0 0 0 3px rgba(47,116,208,.12)}
+    .cellComment{min-height:42px; resize:vertical;}
+    .cellAmount{text-align:right; min-width:0;}
+    .cellDate{min-width:0;}
+    .docStack{display:flex; flex-direction:column; gap:7px; min-width:0;}
+    .docTitleInput{width:100%; border:1px solid #dce8f8; background:#fff; border-radius:10px; padding:8px 9px; color:var(--text); font-size:13px; outline:none;}
+    .docPills{display:flex; flex-wrap:wrap; gap:8px;}
+    .docPill{display:inline-flex; align-items:center; gap:5px; padding:6px 8px; border-radius:999px; background:#f6faff; border:1px solid var(--line); color:var(--blue-dark); font-size:11px; font-weight:700; max-width:100%;}
+    .pillStatus{padding:2px 6px; border-radius:999px; font-size:10px; font-weight:800; text-transform:uppercase; letter-spacing:.04em;}
+    .pillStatus.matched{background:var(--green-soft); color:var(--green)}
+    .pillStatus.disputed{background:var(--yellow-soft); color:var(--yellow)}
+    .pillStatus.manual{background:var(--blue-soft); color:var(--blue)}
+    .pillBtn{appearance:none; border:0; background:transparent; color:var(--blue-dark); cursor:pointer; font-size:11px; font-weight:800; padding:0;}
+    .pillBtn.remove{color:var(--danger)}
+    .rowActions{display:flex; flex-direction:column; gap:6px;}
+    .miniBtn{appearance:none; border:1px solid var(--line-strong); background:#fff; color:var(--blue-dark); border-radius:10px; padding:7px 8px; cursor:pointer; font-size:11px; font-weight:800;}
+    .miniBtn:hover{border-color:var(--blue)}
+    .miniBtn.warn{border-color:#efdb9d; color:#946200; background:#fffdf1}
+    .checkCell{display:flex; justify-content:center; align-items:center; min-height:42px;}
+    .checkCell input{width:19px; height:19px; accent-color:var(--blue)}
+    .emptyState{padding:34px 18px; text-align:center; color:var(--muted);}
+    .cardsGrid{display:grid; grid-template-columns:repeat(auto-fit, minmax(300px,1fr)); gap:14px;}
+    .docCard{padding:16px; background:#fff; border:1px solid var(--line); border-radius:18px; box-shadow:0 10px 24px rgba(28,76,146,.06);}
+    .docCardHeader{display:flex; justify-content:space-between; gap:12px; align-items:flex-start; margin-bottom:10px;}
+    .docName{font-weight:900; line-height:1.35;}
+    .badge{display:inline-flex; align-items:center; padding:6px 10px; border-radius:999px; font-size:11px; font-weight:800; text-transform:uppercase; letter-spacing:.05em;}
+    .badge.matched{background:var(--green-soft); color:var(--green)}
+    .badge.disputed{background:var(--yellow-soft); color:#a16f00}
+    .badge.unmatched{background:#eef4ff; color:var(--blue-dark)}
+    .docMeta{font-size:13px; color:var(--muted); line-height:1.5; margin-bottom:12px;}
+    .docMeta strong{color:var(--text)}
+    .docActions{display:flex; flex-wrap:wrap; gap:8px; margin-top:12px;}
+    .docTextPreview{padding:10px 12px; border-radius:14px; background:#f7fbff; border:1px dashed var(--line-strong); color:#4e6582; font-size:13px; line-height:1.55; white-space:pre-wrap; max-height:120px; overflow:auto;}
+    .assignRow{display:flex; gap:8px; margin-top:10px;}
+    .assignRow select{flex:1; min-width:0; border:1px solid #dce8f8; background:#fff; color:var(--text); border-radius:12px; padding:10px 11px; font-size:13px;}
+    .statusLine{font-size:13px; color:var(--muted); display:flex; gap:8px; flex-wrap:wrap; align-items:center;}
+    .toast{position:fixed; right:18px; bottom:18px; z-index:50; background:#123d78; color:#fff; padding:14px 16px; border-radius:16px; box-shadow:0 18px 40px rgba(18,61,120,.35); max-width:360px; opacity:0; transform:translateY(12px); pointer-events:none; transition:.2s ease;}
+    .toast.show{opacity:1; transform:translateY(0)}
+    .overlay{position:fixed; inset:0; background:rgba(9,28,58,.45); display:none; align-items:center; justify-content:center; z-index:60; padding:18px;}
+    .overlay.show{display:flex}
+    .modal{width:min(920px, 100%); max-height:86vh; overflow:auto; background:#fff; border-radius:24px; border:1px solid var(--line); box-shadow:0 24px 60px rgba(10,36,77,.24); padding:22px;}
+    .modalHead{display:flex; justify-content:space-between; gap:12px; align-items:flex-start; margin-bottom:14px;}
+    .modalTitle{font-size:22px; font-weight:900; letter-spacing:-.02em; margin:0;}
+    .modalText{white-space:pre-wrap; font-family:ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; font-size:13px; line-height:1.55; background:#f7fbff; border:1px solid var(--line); border-radius:18px; padding:16px; color:#324e73;}
+    .progress{display:none; margin-bottom:12px; padding:14px 16px; background:#f4f9ff; border:1px solid var(--line-strong); border-radius:16px;}
+    .progress.show{display:block}
+    .progressTitle{font-weight:900; margin-bottom:6px;}
+    .progressLog{font-size:13px; color:var(--muted);}
+    .hintPanel{margin-top:12px; padding:14px 16px; border-radius:16px; background:#f8fbff; border:1px dashed var(--line-strong); color:var(--muted); font-size:13px; line-height:1.6;}
+    .footerNote{margin-top:14px; color:var(--muted); font-size:12px; line-height:1.55;}
+    @media (max-width:1180px){
+      .topGrid{grid-template-columns:1fr;}
+      .summaryGrid{grid-template-columns:repeat(2,minmax(0,1fr));}
+    }
+    @media (max-width:760px){
+      .shell{padding:16px;}
+      .hero{flex-direction:column;}
+      .heroActions{justify-content:flex-start;}
+      h1{font-size:28px;}
+      .summaryGrid{grid-template-columns:1fr 1fr;}
+      .searchBox{min-width:0; width:100%;}
+      .cardsGrid{grid-template-columns:1fr;}
+      .assignRow{flex-direction:column;}
+    }
+  </style>
+  <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.16.105/pdf.min.js"></script>
+  <script>pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.16.105/pdf.worker.min.js';</script>
+  <script src="https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js"></script>
+</head>
+<body>
+  <div class="shell">
+    <section class="hero">
+      <div class="heroMain">
+        <div class="eyebrow">MAGISTER · контроль оплат и закрывашек</div>
+        <h1>Учёт платежей и закрывающих документов</h1>
+        <div class="subtitle">Загружайте банковский реестр, автоматически пополняйте журнал оплат, подбирайте чеки и акты по контрагенту и сумме, отмечайте заведённые в 1C строки и выгружайте готовую сверку в XLSX.</div>
+      </div>
+      <div class="heroActions">
+        <button class="btn" id="loadRegistryBtn">Загрузить реестр</button>
+        <button class="ghostBtn" id="loadDocsBtn">Загрузить закрывашки</button>
+        <button class="ghostBtn" id="exportXlsxBtn">Скачать XLSX</button>
+      </div>
+    </section>
+
+    <div class="topGrid">
+      <section class="panel summaryWrap">
+        <div class="summaryGrid" id="summaryGrid"></div>
+        <div class="hintPanel">Автосопоставление работает по названию контрагента, сумме, номеру счёта и распознанному тексту документа. Спорные совпадения помечаются жёлтым и выносятся в отдельную вкладку, чтобы их можно было быстро проверить вручную.</div>
+      </section>
+      <section class="panel controlsWrap">
+        <div class="toggleRow">
+          <label class="switch"><input type="checkbox" id="hideDoneToggle"> Скрывать заведённые в 1C</label>
+          <label class="switch"><input type="checkbox" id="showOnlyNoDocsToggle"> Показывать только строки без документа</label>
+        </div>
+        <div class="legend">
+          <div class="legendItem"><span class="dot green"></span>есть документ и не заведено</div>
+          <div class="legendItem"><span class="dot blue"></span>заведено</div>
+          <div class="legendItem"><span class="dot yellow"></span>спорное совпадение</div>
+        </div>
+        <div class="toolbarSecondary">
+          <button class="subtleBtn" id="restoreXlsxBtn">Восстановить из XLSX</button>
+          <button class="dangerBtn" id="resetDocsBtn">Очистить только загруженные документы</button>
+        </div>
+        <div class="footerNote">Файлы и журнал сохраняются локально в этом браузере. При работе на другом компьютере журнал не синхронизируется автоматически — для переноса используйте экспорт XLSX и восстановление из XLSX.</div>
+      </section>
+    </div>
+
+    <div class="progress" id="progressBox">
+      <div class="progressTitle" id="progressTitle">Обработка…</div>
+      <div class="progressLog" id="progressLog"></div>
+    </div>
+
+    <div class="tabs">
+      <button class="tab active" data-tab="all">Все платежи</button>
+      <button class="tab" data-tab="disputed">Спорные</button>
+      <button class="tab" data-tab="unmatched">Несопоставленные документы</button>
+    </div>
+
+    <section class="panel cardPanel" id="allTab"></section>
+    <section class="panel cardPanel" id="disputedTab" style="display:none"></section>
+    <section class="panel cardPanel" id="unmatchedTab" style="display:none"></section>
+  </div>
+
+  <input type="file" id="registryInput" accept=".xls,.xlsx,.xlsm" hidden>
+  <input type="file" id="docsInput" accept=".pdf,.png,.jpg,.jpeg,.webp" multiple hidden>
+  <input type="file" id="rowDocInput" accept=".pdf,.png,.jpg,.jpeg,.webp" multiple hidden>
+  <input type="file" id="restoreInput" accept=".xls,.xlsx,.xlsm" hidden>
+
+  <div class="overlay" id="textModalOverlay">
+    <div class="modal">
+      <div class="modalHead">
+        <div>
+          <h2 class="modalTitle" id="textModalTitle">Распознанный текст</h2>
+        </div>
+        <button class="ghostBtn" id="closeTextModalBtn">Закрыть</button>
+      </div>
+      <div class="modalText" id="textModalBody"></div>
+    </div>
+  </div>
+
+  <div class="toast" id="toast"></div>
+
+  <script>
+    const SEED_ROWS = [
+  {
+    "id": "seed-1",
+    "invoice": "Счет-Оферта № 0238149540-0001 от 25.12.2025",
+    "counterparty": "ООО Интернет Решения",
+    "date": "2025-12-25",
+    "amountText": "6263",
+    "amount": 6263.0,
+    "closingDocName": "1692662/682 от 31.12.2025",
+    "comment": "",
+    "in1c": true,
+    "statusHint": "done",
+    "docIds": [],
+    "manual": false,
+    "source": "seed"
+  },
+  {
+    "id": "seed-2",
+    "invoice": "Счёт_№25192580",
+    "counterparty": "ПАНФИЛОВ КОНСТАНТИН КОНСТАНТИНОВИЧ",
+    "date": "2025-12-27",
+    "amountText": "50000",
+    "amount": 50000.0,
+    "closingDocName": "Чек №203mmfx8ea",
+    "comment": "",
+    "in1c": true,
+    "statusHint": "done",
+    "docIds": [],
+    "manual": false,
+    "source": "seed"
+  },
+  {
+    "id": "seed-3",
+    "invoice": "Счет на оплату № 1",
+    "counterparty": "ООО Ассет Легал",
+    "date": "2025-12-28",
+    "amountText": "50000",
+    "amount": 50000.0,
+    "closingDocName": "Акт № 1 от 12 января 2026 г.",
+    "comment": "",
+    "in1c": false,
+    "statusHint": "matched",
+    "docIds": [],
+    "manual": false,
+    "source": "seed"
+  },
+  {
+    "id": "seed-4",
+    "invoice": "Счёт на оплату №000535964_2025",
+    "counterparty": "Макарова Елена Викторовна",
+    "date": "2025-12-30",
+    "amountText": "15000",
+    "amount": 15000.0,
+    "closingDocName": "Чек №2016sg1m3s",
+    "comment": "",
+    "in1c": true,
+    "statusHint": "done",
+    "docIds": [],
+    "manual": false,
+    "source": "seed"
+  },
+  {
+    "id": "seed-5",
+    "invoice": "Счёт на оплату №25306831",
+    "counterparty": "Эсауленко Анастасия Евгеньевна",
+    "date": "2025-12-30",
+    "amountText": "10000",
+    "amount": 10000.0,
+    "closingDocName": "чек 2008e4kec5 от 11.01.2026",
+    "comment": "",
+    "in1c": true,
+    "statusHint": "done",
+    "docIds": [],
+    "manual": false,
+    "source": "seed"
+  },
+  {
+    "id": "seed-6",
+    "invoice": "Счёт на оплату №25319320",
+    "counterparty": "Егорин Сергей Михайлович",
+    "date": "2025-12-30",
+    "amountText": "11500",
+    "amount": 11500.0,
+    "closingDocName": "Чек №201rdcd62г",
+    "comment": "",
+    "in1c": true,
+    "statusHint": "done",
+    "docIds": [],
+    "manual": false,
+    "source": "seed"
+  },
+  {
+    "id": "seed-7",
+    "invoice": "Счет №25332281",
+    "counterparty": "Дунина Алена Павловна",
+    "date": "2025-12-30",
+    "amountText": "25000",
+    "amount": 25000.0,
+    "closingDocName": "Чек №201u1qgktn",
+    "comment": "",
+    "in1c": true,
+    "statusHint": "done",
+    "docIds": [],
+    "manual": false,
+    "source": "seed"
+  },
+  {
+    "id": "seed-8",
+    "invoice": "Счет на оплату №1",
+    "counterparty": "ООО Ассет Легал",
+    "date": "2025-12-31",
+    "amountText": "50000",
+    "amount": 50000.0,
+    "closingDocName": "Акт № 2 от 13 января 2026 г.",
+    "comment": "",
+    "in1c": false,
+    "statusHint": "matched",
+    "docIds": [],
+    "manual": false,
+    "source": "seed"
+  },
+  {
+    "id": "seed-9",
+    "invoice": "Счёт_№25351670",
+    "counterparty": "ПАНФИЛОВ КОНСТАНТИН КОНСТАНТИНОВИЧ",
+    "date": "2025-12-31",
+    "amountText": "45000",
+    "amount": 45000.0,
+    "closingDocName": "Чек №203qoi1ib5",
+    "comment": "",
+    "in1c": true,
+    "statusHint": "done",
+    "docIds": [],
+    "manual": false,
+    "source": "seed"
+  },
+  {
+    "id": "seed-10",
+    "invoice": "Счёт_№25352392",
+    "counterparty": "Коротких Никита Александрович",
+    "date": "2025-12-31",
+    "amountText": "6400",
+    "amount": 6400.0,
+    "closingDocName": "чек 201f20879m от 31.12.2025",
+    "comment": "",
+    "in1c": true,
+    "statusHint": "done",
+    "docIds": [],
+    "manual": false,
+    "source": "seed"
+  },
+  {
+    "id": "seed-11",
+    "invoice": "Счёт_№25351055",
+    "counterparty": "Музин Станислав Андреевич",
+    "date": "2025-12-31",
+    "amountText": "500",
+    "amount": 500.0,
+    "closingDocName": "Чек №2003a4o42z",
+    "comment": "В «Мой налог» счёт аннулирован!",
+    "in1c": true,
+    "statusHint": "done",
+    "docIds": [],
+    "manual": false,
+    "source": "seed"
+  },
+  {
+    "id": "seed-12",
+    "invoice": "Счёт_№25351367",
+    "counterparty": "Фролов Александр Александрович",
+    "date": "2025-12-31",
+    "amountText": "12750",
+    "amount": 12750.0,
+    "closingDocName": "Чек №202fe65d4l",
+    "comment": "",
+    "in1c": true,
+    "statusHint": "done",
+    "docIds": [],
+    "manual": false,
+    "source": "seed"
+  },
+  {
+    "id": "seed-13",
+    "invoice": "ДОГОВОР № 1 от 29.12.2025 г.",
+    "counterparty": "ИП Прошкин Владислав Владимирович",
+    "date": "2025-12-31",
+    "amountText": "28000",
+    "amount": 28000.0,
+    "closingDocName": "Акт от 31.12.2025",
+    "comment": "",
+    "in1c": true,
+    "statusHint": "done",
+    "docIds": [],
+    "manual": false,
+    "source": "seed"
+  },
+  {
+    "id": "seed-14",
+    "invoice": "Счёт на оплату №25355405",
+    "counterparty": "САРЫЧЕВ РОМАН ВЛАДИМИРОВИЧ",
+    "date": "2026-01-01",
+    "amountText": "13000",
+    "amount": 13000.0,
+    "closingDocName": "Чек №201k5goqr4",
+    "comment": "",
+    "in1c": true,
+    "statusHint": "done",
+    "docIds": [],
+    "manual": false,
+    "source": "seed"
+  },
+  {
+    "id": "seed-15",
+    "invoice": "Счёт_№25355398",
+    "counterparty": "Васильев Денис Сергеевич",
+    "date": "2026-01-01",
+    "amountText": "6360",
+    "amount": 6360.0,
+    "closingDocName": "Чек №24igljywg0",
+    "comment": "",
+    "in1c": true,
+    "statusHint": "done",
+    "docIds": [],
+    "manual": false,
+    "source": "seed"
+  },
+  {
+    "id": "seed-16",
+    "invoice": "Счет на оплату № 59",
+    "counterparty": "ИП КУРНОСОВА ОЛЕСЯ АЛЕКСАНДРОВНА",
+    "date": "2026-01-01",
+    "amountText": "10000",
+    "amount": 10000.0,
+    "closingDocName": "акт 14 от 20.01.2026",
+    "comment": "",
+    "in1c": true,
+    "statusHint": "done",
+    "docIds": [],
+    "manual": false,
+    "source": "seed"
+  },
+  {
+    "id": "seed-17",
+    "invoice": "Счет на оплату № 13",
+    "counterparty": "ИП ЛЫСЕНКО ПОЛИНА ЕВГЕНЬЕВНА",
+    "date": "2026-01-01",
+    "amountText": "18000",
+    "amount": 18000.0,
+    "closingDocName": "Акт № 2 от 14 января 2026 г.",
+    "comment": "",
+    "in1c": true,
+    "statusHint": "done",
+    "docIds": [],
+    "manual": false,
+    "source": "seed"
+  },
+  {
+    "id": "seed-18",
+    "invoice": "Счет на оплату № 86",
+    "counterparty": "ИП КУРИЛКИН КИРИЛЛ АНДРЕЕВИЧ",
+    "date": "2026-01-01",
+    "amountText": "4000",
+    "amount": 4000.0,
+    "closingDocName": "56",
+    "comment": "диадок",
+    "in1c": true,
+    "statusHint": "done",
+    "docIds": [],
+    "manual": false,
+    "source": "seed"
+  },
+  {
+    "id": "seed-19",
+    "invoice": "СЧЁТ № 217",
+    "counterparty": "ИП НИКАНОВА ОЛЕСЯ АЛЕКСЕЕВНА",
+    "date": "2026-01-01",
+    "amountText": "51000",
+    "amount": 51000.0,
+    "closingDocName": "1",
+    "comment": "диадок",
+    "in1c": true,
+    "statusHint": "done",
+    "docIds": [],
+    "manual": false,
+    "source": "seed"
+  },
+  {
+    "id": "seed-20",
+    "invoice": "Счет № 1",
+    "counterparty": "ИП Ключенков Сергей Александрович",
+    "date": "2026-01-01",
+    "amountText": "35000",
+    "amount": 35000.0,
+    "closingDocName": "1 от 20.01.2026",
+    "comment": "",
+    "in1c": true,
+    "statusHint": "done",
+    "docIds": [],
+    "manual": false,
+    "source": "seed"
+  },
+  {
+    "id": "seed-21",
+    "invoice": "Счёт №18",
+    "counterparty": "ИП Мусатов Никита Андреевич",
+    "date": "2026-01-01",
+    "amountText": "31000",
+    "amount": 31000.0,
+    "closingDocName": "18",
+    "comment": "диадок",
+    "in1c": true,
+    "statusHint": "done",
+    "docIds": [],
+    "manual": false,
+    "source": "seed"
+  },
+  {
+    "id": "seed-22",
+    "invoice": "Счёт на оплату_№25355570",
+    "counterparty": "ЛАЗАРЕВ ИВАН ВЛАДИМИРОВИЧ",
+    "date": "2026-01-01",
+    "amountText": "22000",
+    "amount": 22000.0,
+    "closingDocName": "Чек №201isk7gbh",
+    "comment": "",
+    "in1c": true,
+    "statusHint": "done",
+    "docIds": [],
+    "manual": false,
+    "source": "seed"
+  },
+  {
+    "id": "seed-23",
+    "invoice": "Счёт на оплату_№25355376",
+    "counterparty": "МОЛОКАНЦЕВ ДМИТРИЙ СЕРГЕЕВИЧ",
+    "date": "2026-01-01",
+    "amountText": "7500",
+    "amount": 7500.0,
+    "closingDocName": "Чек №20kdavmwnh",
+    "comment": "В «Мой налог» счёт аннулирован!",
+    "in1c": true,
+    "statusHint": "done",
+    "docIds": [],
+    "manual": false,
+    "source": "seed"
+  },
+  {
+    "id": "seed-24",
+    "invoice": "Счёт на оплату № 1",
+    "counterparty": "ИП Новожилов Роман Равильевич",
+    "date": "2026-01-01",
+    "amountText": "15000",
+    "amount": 15000.0,
+    "closingDocName": "1 от 20.01.2026",
+    "comment": "",
+    "in1c": true,
+    "statusHint": "done",
+    "docIds": [],
+    "manual": false,
+    "source": "seed"
+  },
+  {
+    "id": "seed-25",
+    "invoice": "Счёт на оплату №25355702",
+    "counterparty": "БОБЫЛЕВА ПОЛИНА ОЛЕГОВНА",
+    "date": "2026-01-01",
+    "amountText": "19080",
+    "amount": 19080.0,
+    "closingDocName": "чек 200vyiyogc от 01.01.2026",
+    "comment": "",
+    "in1c": true,
+    "statusHint": "done",
+    "docIds": [],
+    "manual": false,
+    "source": "seed"
+  },
+  {
+    "id": "seed-26",
+    "invoice": "Счет на оплату № 5",
+    "counterparty": "ИП ЧЕРКАССКИЙ СЕРГЕЙ АЛЕКСАНДРОВИЧ",
+    "date": "2026-01-01",
+    "amountText": "12500",
+    "amount": 12500.0,
+    "closingDocName": "Акт № 1 от 11 января 2026 г.",
+    "comment": "",
+    "in1c": true,
+    "statusHint": "done",
+    "docIds": [],
+    "manual": false,
+    "source": "seed"
+  },
+  {
+    "id": "seed-27",
+    "invoice": "Счёт на оплату № 86",
+    "counterparty": "ИП ЯРЕМКЕВИЧ АНДРЕЙ АНДРЕЕВИЧ",
+    "date": "2026-01-01",
+    "amountText": "78500",
+    "amount": 78500.0,
+    "closingDocName": "36",
+    "comment": "диадок",
+    "in1c": true,
+    "statusHint": "done",
+    "docIds": [],
+    "manual": false,
+    "source": "seed"
+  },
+  {
+    "id": "seed-28",
+    "invoice": "Счет на оплату №1",
+    "counterparty": "ИП Перевалова Екатерина Евгеньевна",
+    "date": "2026-01-01",
+    "amountText": "35000",
+    "amount": 35000.0,
+    "closingDocName": "1",
+    "comment": "диадок",
+    "in1c": true,
+    "statusHint": "done",
+    "docIds": [],
+    "manual": false,
+    "source": "seed"
+  },
+  {
+    "id": "seed-29",
+    "invoice": "Счет на оплату № 28",
+    "counterparty": "ИП БОБКИНА ЕЛЕНА ВАЛЕРЬЕВНА",
+    "date": "2026-01-02",
+    "amountText": "40000",
+    "amount": 40000.0,
+    "closingDocName": "Акт № 18 от 13 января 2026 г.",
+    "comment": "",
+    "in1c": true,
+    "statusHint": "done",
+    "docIds": [],
+    "manual": false,
+    "source": "seed"
+  },
+  {
+    "id": "seed-30",
+    "invoice": "Счет на оплату № 20",
+    "counterparty": "ИП ЕРМАКОВ ТИМОФЕЙ АНДРЕЕВИЧ",
+    "date": "2026-01-02",
+    "amountText": "6000",
+    "amount": 6000.0,
+    "closingDocName": "акт 1 от 20.01.2026",
+    "comment": "",
+    "in1c": true,
+    "statusHint": "done",
+    "docIds": [],
+    "manual": false,
+    "source": "seed"
+  },
+  {
+    "id": "seed-31",
+    "invoice": "Счет на оплату № 2",
+    "counterparty": "ИП Романова Людмила Владимировна",
+    "date": "2026-01-02",
+    "amountText": "11000",
+    "amount": 11000.0,
+    "closingDocName": "2 от 03.01.",
+    "comment": "",
+    "in1c": true,
+    "statusHint": "done",
+    "docIds": [],
+    "manual": false,
+    "source": "seed"
+  },
+  {
+    "id": "seed-32",
+    "invoice": "Счёт на оплату № 1",
+    "counterparty": "ИП СИДОРЕЦ ТАРАС ВАЛЕРЬЕВИЧ",
+    "date": "2026-01-02",
+    "amountText": "10000",
+    "amount": 10000.0,
+    "closingDocName": "",
+    "comment": "",
+    "in1c": false,
+    "statusHint": "open",
+    "docIds": [],
+    "manual": false,
+    "source": "seed"
+  },
+  {
+    "id": "seed-33",
+    "invoice": "Счёт на оплату № 1",
+    "counterparty": "ИП Алехина Юлия Петровна",
+    "date": "2026-01-02",
+    "amountText": "15000",
+    "amount": 15000.0,
+    "closingDocName": "1 от 02.01.2026",
+    "comment": "",
+    "in1c": true,
+    "statusHint": "done",
+    "docIds": [],
+    "manual": false,
+    "source": "seed"
+  },
+  {
+    "id": "seed-34",
+    "invoice": "Счёт на оплату №25356784",
+    "counterparty": "ФИЛАТКИНА ЮЛИЯ МУХАМЕДГУЛЫЕВНА",
+    "date": "2026-01-02",
+    "amountText": "6970",
+    "amount": 6970.0,
+    "closingDocName": "чек 2025gvo94m от 05.01.2026",
+    "comment": "",
+    "in1c": true,
+    "statusHint": "done",
+    "docIds": [],
+    "manual": false,
+    "source": "seed"
+  },
+  {
+    "id": "seed-35",
+    "invoice": "Счёт на оплату № 87",
+    "counterparty": "ИП ЯРЕМКЕВИЧ АНДРЕЙ АНДРЕЕВИЧ",
+    "date": "2026-01-04",
+    "amountText": "9500",
+    "amount": 9500.0,
+    "closingDocName": "35",
+    "comment": "диадок",
+    "in1c": true,
+    "statusHint": "done",
+    "docIds": [],
+    "manual": false,
+    "source": "seed"
+  },
+  {
+    "id": "seed-36",
+    "invoice": "Счет на оплату № 23",
+    "counterparty": "ИП ВАСИЛЬЕВ АНДРЕЙ СЕРГЕЕВИЧ",
+    "date": "2026-01-04",
+    "amountText": "13700",
+    "amount": 13700.0,
+    "closingDocName": "Акт № 4 от 11 января 2026 г.",
+    "comment": "",
+    "in1c": true,
+    "statusHint": "done",
+    "docIds": [],
+    "manual": false,
+    "source": "seed"
+  },
+  {
+    "id": "seed-37",
+    "invoice": "Счет на оплату №3",
+    "counterparty": "ИП Романова Людмила Владимировна",
+    "date": "2026-01-04",
+    "amountText": "18000",
+    "amount": 18000.0,
+    "closingDocName": "Акт выполненных работ и оказанных услуг №3 от 11.01.2026",
+    "comment": "",
+    "in1c": true,
+    "statusHint": "done",
+    "docIds": [],
+    "manual": false,
+    "source": "seed"
+  },
+  {
+    "id": "seed-38",
+    "invoice": "СЧЁТ № 219",
+    "counterparty": "ИП НИКАНОВА ОЛЕСЯ АЛЕКСЕЕВНА",
+    "date": "2026-01-04",
+    "amountText": "88000",
+    "amount": 88000.0,
+    "closingDocName": "б/н от 20.01.2026",
+    "comment": "диадок",
+    "in1c": true,
+    "statusHint": "done",
+    "docIds": [],
+    "manual": false,
+    "source": "seed"
+  },
+  {
+    "id": "seed-39",
+    "invoice": "Счёт на оплату №25367835",
+    "counterparty": "ИВАЩЕНКО ПАВЕЛ ВЛАДИМИРОВИЧ",
+    "date": "2026-01-04",
+    "amountText": "45600",
+    "amount": 45600.0,
+    "closingDocName": "Чек №205uvdcs3q",
+    "comment": "",
+    "in1c": true,
+    "statusHint": "done",
+    "docIds": [],
+    "manual": false,
+    "source": "seed"
+  },
+  {
+    "id": "seed-40",
+    "invoice": "Счет на оплату № 3478839847",
+    "counterparty": "ИП ГРАНЕНКО АНДРЕЙ АЛЕКСАНДРОВИЧ",
+    "date": "2026-01-04",
+    "amountText": "14000",
+    "amount": 14000.0,
+    "closingDocName": "Акт № 8619744603 от 11 января 2026 г.",
+    "comment": "",
+    "in1c": true,
+    "statusHint": "done",
+    "docIds": [],
+    "manual": false,
+    "source": "seed"
+  },
+  {
+    "id": "seed-41",
+    "invoice": "Счёт на оплату № 1",
+    "counterparty": "ИП ВОЛКОВА АННА СЕРГЕЕВНА",
+    "date": "2026-01-04",
+    "amountText": "17000",
+    "amount": 17000.0,
+    "closingDocName": "",
+    "comment": "",
+    "in1c": false,
+    "statusHint": "open",
+    "docIds": [],
+    "manual": false,
+    "source": "seed"
+  },
+  {
+    "id": "seed-42",
+    "invoice": "Счет на оплату № 39",
+    "counterparty": "ИП ЯКИМОВ АЛЕКСЕЙ АЛЕКСАНДРОВИЧ",
+    "date": "2026-01-04",
+    "amountText": "60500",
+    "amount": 60500.0,
+    "closingDocName": "",
+    "comment": "",
+    "in1c": false,
+    "statusHint": "open",
+    "docIds": [],
+    "manual": false,
+    "source": "seed"
+  },
+  {
+    "id": "seed-43",
+    "invoice": "Счёт на оплату №25376648",
+    "counterparty": "ПОПОВ ИЛЬЯ ВАСИЛЬЕВИЧ",
+    "date": "2026-01-05",
+    "amountText": "26820",
+    "amount": 26820.0,
+    "closingDocName": "Чек №2030klkky3",
+    "comment": "",
+    "in1c": true,
+    "statusHint": "done",
+    "docIds": [],
+    "manual": false,
+    "source": "seed"
+  },
+  {
+    "id": "seed-44",
+    "invoice": "Счёт на оплату №25376705",
+    "counterparty": "ЖИНКОВ ГРИГОРИЙ БОРИСОВИЧ",
+    "date": "2026-01-05",
+    "amountText": "58000",
+    "amount": 58000.0,
+    "closingDocName": "Чек №202axivsw1",
+    "comment": "",
+    "in1c": true,
+    "statusHint": "done",
+    "docIds": [],
+    "manual": false,
+    "source": "seed"
+  },
+  {
+    "id": "seed-45",
+    "invoice": "Счёт на оплату №25378454",
+    "counterparty": "СМИРНОВ ВЛАДИСЛАВ АНДРЕЕВИЧ",
+    "date": "2026-01-05",
+    "amountText": "19000",
+    "amount": 19000.0,
+    "closingDocName": "Чек №201agnevwn",
+    "comment": "",
+    "in1c": true,
+    "statusHint": "done",
+    "docIds": [],
+    "manual": false,
+    "source": "seed"
+  },
+  {
+    "id": "seed-46",
+    "invoice": "Счёт на оплату №25378553",
+    "counterparty": "СЕНЦОВА МАРИАННА ИГОРЕВНА",
+    "date": "2026-01-05",
+    "amountText": "4000",
+    "amount": 4000.0,
+    "closingDocName": "Чек №203pll1416",
+    "comment": "",
+    "in1c": true,
+    "statusHint": "done",
+    "docIds": [],
+    "manual": false,
+    "source": "seed"
+  },
+  {
+    "id": "seed-47",
+    "invoice": "Счёт на оплату № 3",
+    "counterparty": "ИП ЗВАРЧУК ВЛАДИСЛАВ СЕРГЕЕВИЧ",
+    "date": "2026-01-05",
+    "amountText": "253260",
+    "amount": 253260.0,
+    "closingDocName": "Акт № 6 от 05.01.2026",
+    "comment": "",
+    "in1c": true,
+    "statusHint": "done",
+    "docIds": [],
+    "manual": false,
+    "source": "seed"
+  },
+  {
+    "id": "seed-48",
+    "invoice": "Счёт №19",
+    "counterparty": "ИП Мусатов Никита Андреевич",
+    "date": "2026-01-05",
+    "amountText": "15500",
+    "amount": 15500.0,
+    "closingDocName": "19",
+    "comment": "диадок",
+    "in1c": true,
+    "statusHint": "done",
+    "docIds": [],
+    "manual": false,
+    "source": "seed"
+  },
+  {
+    "id": "seed-49",
+    "invoice": "Счёт_№25378764",
+    "counterparty": "ШВЕЦОВ ПАВЕЛ ДМИТРИЕВИЧ",
+    "date": "2026-01-05",
+    "amountText": "5000",
+    "amount": 5000.0,
+    "closingDocName": "Чек №2053icheu4",
+    "comment": "",
+    "in1c": true,
+    "statusHint": "done",
+    "docIds": [],
+    "manual": false,
+    "source": "seed"
+  },
+  {
+    "id": "seed-50",
+    "invoice": "Счет на оплату № 1",
+    "counterparty": "ИП ВИНОГРАДОВ АЛЕКСАНДР АНДРЕЕВИЧ",
+    "date": "2026-01-05",
+    "amountText": "20000",
+    "amount": 20000.0,
+    "closingDocName": "акт 1",
+    "comment": "",
+    "in1c": true,
+    "statusHint": "done",
+    "docIds": [],
+    "manual": false,
+    "source": "seed"
+  },
+  {
+    "id": "seed-51",
+    "invoice": "Счёт на оплату № 90",
+    "counterparty": "ИП ЯРЕМКЕВИЧ АНДРЕЙ АНДРЕЕВИЧ",
+    "date": "2026-01-05",
+    "amountText": "5000",
+    "amount": 5000.0,
+    "closingDocName": "34",
+    "comment": "диадок",
+    "in1c": true,
+    "statusHint": "done",
+    "docIds": [],
+    "manual": false,
+    "source": "seed"
+  },
+  {
+    "id": "seed-52",
+    "invoice": "Счёт на оплату №25379224",
+    "counterparty": "Кучумова Светлана Николаевна",
+    "date": "2026-01-05",
+    "amountText": "8000",
+    "amount": 8000.0,
+    "closingDocName": "205oras4ei",
+    "comment": "",
+    "in1c": true,
+    "statusHint": "done",
+    "docIds": [],
+    "manual": false,
+    "source": "seed"
+  },
+  {
+    "id": "seed-53",
+    "invoice": "Счёт на оплату № 287",
+    "counterparty": "ИП Андрианова Мария Александровна",
+    "date": "2026-01-05",
+    "amountText": "13000",
+    "amount": 13000.0,
+    "closingDocName": "287",
+    "comment": "диадок",
+    "in1c": true,
+    "statusHint": "done",
+    "docIds": [],
+    "manual": false,
+    "source": "seed"
+  },
+  {
+    "id": "seed-54",
+    "invoice": "Счёт на оплату № 5",
+    "counterparty": "ИП ЗВАРЧУК ВЛАДИСЛАВ СЕРГЕЕВИЧ",
+    "date": "2026-01-06",
+    "amountText": "20200",
+    "amount": 20200.0,
+    "closingDocName": "Акт № 7 от 06.01.2026",
+    "comment": "",
+    "in1c": true,
+    "statusHint": "done",
+    "docIds": [],
+    "manual": false,
+    "source": "seed"
+  },
+  {
+    "id": "seed-55",
+    "invoice": "СЧЁТ № 221",
+    "counterparty": "ИП НИКАНОВА ОЛЕСЯ АЛЕКСЕЕВНА",
+    "date": "2026-01-06",
+    "amountText": "22000",
+    "amount": 22000.0,
+    "closingDocName": "б/н от 20.01.2026",
+    "comment": "диадок",
+    "in1c": true,
+    "statusHint": "done",
+    "docIds": [],
+    "manual": false,
+    "source": "seed"
+  },
+  {
+    "id": "seed-56",
+    "invoice": "Счёт №127",
+    "counterparty": "ИП Сажин Михаил Михайлович",
+    "date": "2026-01-06",
+    "amountText": "18000",
+    "amount": 18000.0,
+    "closingDocName": "127",
+    "comment": "диадок",
+    "in1c": true,
+    "statusHint": "done",
+    "docIds": [],
+    "manual": false,
+    "source": "seed"
+  },
+  {
+    "id": "seed-57",
+    "invoice": "Счет на оплату № 57",
+    "counterparty": "ИП КОРОЛЕВ ОЛЕГ АНАТОЛЬЕВИЧ",
+    "date": "2026-01-06",
+    "amountText": "10000",
+    "amount": 10000.0,
+    "closingDocName": "акт 14 от 23.01",
+    "comment": "",
+    "in1c": true,
+    "statusHint": "done",
+    "docIds": [],
+    "manual": false,
+    "source": "seed"
+  },
+  {
+    "id": "seed-58",
+    "invoice": "Счёт на оплату №25384059",
+    "counterparty": "Васильев Алексей Юрьевич",
+    "date": "2026-01-06",
+    "amountText": "15000",
+    "amount": 15000.0,
+    "closingDocName": "Чек №203xn4cvro",
+    "comment": "",
+    "in1c": true,
+    "statusHint": "done",
+    "docIds": [],
+    "manual": false,
+    "source": "seed"
+  },
+  {
+    "id": "seed-59",
+    "invoice": "Счёт на оплату №25387318",
+    "counterparty": "Карпушенко Алексей Дмитриевич",
+    "date": "2026-01-06",
+    "amountText": "58300",
+    "amount": 58300.0,
+    "closingDocName": "чек 2007ep0wcr от 06.01.2026",
+    "comment": "",
+    "in1c": true,
+    "statusHint": "done",
+    "docIds": [],
+    "manual": false,
+    "source": "seed"
+  },
+  {
+    "id": "seed-60",
+    "invoice": "Счёт на оплату №25386962",
+    "counterparty": "РАССКАЗОВА АННА СЕРГЕЕВНА",
+    "date": "2026-01-06",
+    "amountText": "6000",
+    "amount": 6000.0,
+    "closingDocName": "Чек №20drzulc39",
+    "comment": "",
+    "in1c": true,
+    "statusHint": "done",
+    "docIds": [],
+    "manual": false,
+    "source": "seed"
+  },
+  {
+    "id": "seed-61",
+    "invoice": "Счёт на оплату №25389613",
+    "counterparty": "Ерохин Виктор Викторович",
+    "date": "2026-01-07",
+    "amountText": "8500",
+    "amount": 8500.0,
+    "closingDocName": "Чек №200brg7zag",
+    "comment": "",
+    "in1c": true,
+    "statusHint": "done",
+    "docIds": [],
+    "manual": false,
+    "source": "seed"
+  },
+  {
+    "id": "seed-62",
+    "invoice": "Счет на оплату №1",
+    "counterparty": "ИП Дудник Егор Анатольевич",
+    "date": "2026-01-07",
+    "amountText": "34200",
+    "amount": 34200.0,
+    "closingDocName": "акт 1 от 07.01.2026",
+    "comment": "",
+    "in1c": true,
+    "statusHint": "done",
+    "docIds": [],
+    "manual": false,
+    "source": "seed"
+  },
+  {
+    "id": "seed-63",
+    "invoice": "Счёт на оплату №25391494",
+    "counterparty": "АРУТЮНЯН ЮЛИЯ ВИКТОРОВНА",
+    "date": "2026-01-07",
+    "amountText": "15000",
+    "amount": 15000.0,
+    "closingDocName": "Чек №201s315x47",
+    "comment": "",
+    "in1c": true,
+    "statusHint": "done",
+    "docIds": [],
+    "manual": false,
+    "source": "seed"
+  },
+  {
+    "id": "seed-64",
+    "invoice": "Счёт на оплату № 91",
+    "counterparty": "ИП ЯРЕМКЕВИЧ АНДРЕЙ АНДРЕЕВИЧ",
+    "date": "2026-01-07",
+    "amountText": "30500",
+    "amount": 30500.0,
+    "closingDocName": "33",
+    "comment": "диадок",
+    "in1c": true,
+    "statusHint": "done",
+    "docIds": [],
+    "manual": false,
+    "source": "seed"
+  },
+  {
+    "id": "seed-65",
+    "invoice": "Счет на оплату № 5806882387",
+    "counterparty": "ИП ПЛАТОВ НИКИТА АЛЕКСЕЕВИЧ",
+    "date": "2026-01-07",
+    "amountText": "22000",
+    "amount": 22000.0,
+    "closingDocName": "5806882326",
+    "comment": "диадок",
+    "in1c": true,
+    "statusHint": "done",
+    "docIds": [],
+    "manual": false,
+    "source": "seed"
+  },
+  {
+    "id": "seed-66",
+    "invoice": "Счет на оплату №25391861",
+    "counterparty": "СМИРНОВ ВЛАДИСЛАВ АНДРЕЕВИЧ",
+    "date": "2026-01-07",
+    "amountText": "21000",
+    "amount": 21000.0,
+    "closingDocName": "Чек №201bo3qm45",
+    "comment": "",
+    "in1c": true,
+    "statusHint": "done",
+    "docIds": [],
+    "manual": false,
+    "source": "seed"
+  },
+  {
+    "id": "seed-67",
+    "invoice": "",
+    "counterparty": "ИП НЕКРЫЛОВ МАКСИМ ЮРЬЕВИЧ",
+    "date": "2026-01-07",
+    "amountText": "4300",
+    "amount": 4300.0,
+    "closingDocName": "Акт №1 от 13 января 2026 г.",
+    "comment": "Как такового счёта не было, Александр в чат прислал реквизиты и сумму для оплаты. Если понадобится найти, см. 7 января 2026 года, 20:22\n\nАкт не подписан",
+    "in1c": true,
+    "statusHint": "disputed",
+    "docIds": [],
+    "manual": false,
+    "source": "seed"
+  },
+  {
+    "id": "seed-68",
+    "invoice": "Счет № 2",
+    "counterparty": "ИП Царёв Олег Анатольевич",
+    "date": "2026-01-07",
+    "amountText": "50000",
+    "amount": 50000.0,
+    "closingDocName": "",
+    "comment": "",
+    "in1c": false,
+    "statusHint": "open",
+    "docIds": [],
+    "manual": false,
+    "source": "seed"
+  },
+  {
+    "id": "seed-69",
+    "invoice": "Счет на оплату №25414156",
+    "counterparty": "ЖИНКОВ ГРИГОРИЙ БОРИСОВИЧ",
+    "date": "2026-01-10",
+    "amountText": "21000",
+    "amount": 21000.0,
+    "closingDocName": "Чек №202bady8n3",
+    "comment": "",
+    "in1c": true,
+    "statusHint": "done",
+    "docIds": [],
+    "manual": false,
+    "source": "seed"
+  },
+  {
+    "id": "seed-70",
+    "invoice": "Счет на оплату №3",
+    "counterparty": "ИП ШИТЕНКОВ ЭДУАРД ЕВГЕНЬЕВИЧ",
+    "date": "2026-01-10",
+    "amountText": "18000",
+    "amount": 18000.0,
+    "closingDocName": "акт 1 от 20.01.2026",
+    "comment": "",
+    "in1c": true,
+    "statusHint": "done",
+    "docIds": [],
+    "manual": false,
+    "source": "seed"
+  },
+  {
+    "id": "seed-71",
+    "invoice": "Счёт на оплату №25414542",
+    "counterparty": "МОЛОКАНЦЕВ ДМИТРИЙ СЕРГЕЕВИЧ",
+    "date": "2026-01-10",
+    "amountText": "4000",
+    "amount": 4000.0,
+    "closingDocName": "Чек №20kekktybo",
+    "comment": "",
+    "in1c": true,
+    "statusHint": "done",
+    "docIds": [],
+    "manual": false,
+    "source": "seed"
+  },
+  {
+    "id": "seed-72",
+    "invoice": "Счёт на оплату №25414591",
+    "counterparty": "ПАНФИЛОВ КОНСТАНТИН КОНСТАНТИНОВИЧ",
+    "date": "2026-01-10",
+    "amountText": "45000",
+    "amount": 45000.0,
+    "closingDocName": "Чек №203u3hx3e0",
+    "comment": "",
+    "in1c": true,
+    "statusHint": "done",
+    "docIds": [],
+    "manual": false,
+    "source": "seed"
+  },
+  {
+    "id": "seed-73",
+    "invoice": "Счёт на оплату № 94",
+    "counterparty": "ИП ЯРЕМКЕВИЧ АНДРЕЙ АНДРЕЕВИЧ",
+    "date": "2026-01-10",
+    "amountText": "55000",
+    "amount": 55000.0,
+    "closingDocName": "32",
+    "comment": "диадок",
+    "in1c": true,
+    "statusHint": "done",
+    "docIds": [],
+    "manual": false,
+    "source": "seed"
+  },
+  {
+    "id": "seed-74",
+    "invoice": "Счёт на оплату №25414617",
+    "counterparty": "Эсауленко Анастасия Евгеньевна",
+    "date": "2026-01-10",
+    "amountText": "10000",
+    "amount": 10000.0,
+    "closingDocName": "чек 200ai3xxox от 19.01.2026",
+    "comment": "",
+    "in1c": true,
+    "statusHint": "done",
+    "docIds": [],
+    "manual": false,
+    "source": "seed"
+  },
+  {
+    "id": "seed-75",
+    "invoice": "Счёт на оплату №25414895",
+    "counterparty": "КОРОТКИХ НИКИТА АЛЕКСАНДРОВИЧ",
+    "date": "2026-01-10",
+    "amountText": "6400",
+    "amount": 6400.0,
+    "closingDocName": "чек 201exhtfk0 от 10.01.2026",
+    "comment": "",
+    "in1c": true,
+    "statusHint": "done",
+    "docIds": [],
+    "manual": false,
+    "source": "seed"
+  },
+  {
+    "id": "seed-76",
+    "invoice": "Счёт на оплату №25414905",
+    "counterparty": "Дунина Алена Павловна",
+    "date": "2026-01-10",
+    "amountText": "25000",
+    "amount": 25000.0,
+    "closingDocName": "Чек 201vjen2uw от 10.01.2026",
+    "comment": "",
+    "in1c": true,
+    "statusHint": "done",
+    "docIds": [],
+    "manual": false,
+    "source": "seed"
+  },
+  {
+    "id": "seed-77",
+    "invoice": "Счёт на оплату №000541497_2026",
+    "counterparty": "МАКАРОВА ЕЛЕНА ВИКТОРОВНА",
+    "date": "2026-01-10",
+    "amountText": "15000",
+    "amount": 15000.0,
+    "closingDocName": "чек 2017ngiqim от 11.01.2026",
+    "comment": "",
+    "in1c": true,
+    "statusHint": "done",
+    "docIds": [],
+    "manual": false,
+    "source": "seed"
+  },
+  {
+    "id": "seed-78",
+    "invoice": "Счёт на оплату №25415609",
+    "counterparty": "Егорин Сергей Михайлович",
+    "date": "2026-01-10",
+    "amountText": "14500",
+    "amount": 14500.0,
+    "closingDocName": "Чек №201sa25yxf",
+    "comment": "",
+    "in1c": true,
+    "statusHint": "done",
+    "docIds": [],
+    "manual": false,
+    "source": "seed"
+  },
+  {
+    "id": "seed-79",
+    "invoice": "Счёт №21",
+    "counterparty": "ИП Мусатов Никита Андреевич",
+    "date": "2026-01-10",
+    "amountText": "21000",
+    "amount": 21000.0,
+    "closingDocName": "акт 21 от 10.01.2026",
+    "comment": "",
+    "in1c": true,
+    "statusHint": "done",
+    "docIds": [],
+    "manual": false,
+    "source": "seed"
+  },
+  {
+    "id": "seed-80",
+    "invoice": "Счёт на оплату №25416832",
+    "counterparty": "САРЫЧЕВ РОМАН ВЛАДИМИРОВИЧ",
+    "date": "2026-01-10",
+    "amountText": "13000",
+    "amount": 13000.0,
+    "closingDocName": "Чек №201l8vx7ho",
+    "comment": "",
+    "in1c": true,
+    "statusHint": "done",
+    "docIds": [],
+    "manual": false,
+    "source": "seed"
+  },
+  {
+    "id": "seed-81",
+    "invoice": "Счет на оплату № 60",
+    "counterparty": "ИП КУРНОСОВА ОЛЕСЯ АЛЕКСАНДРОВНА",
+    "date": "2026-01-10",
+    "amountText": "10000",
+    "amount": 10000.0,
+    "closingDocName": "акт 13 от 20.01.2026",
+    "comment": "",
+    "in1c": true,
+    "statusHint": "done",
+    "docIds": [],
+    "manual": false,
+    "source": "seed"
+  },
+  {
+    "id": "seed-82",
+    "invoice": "Счет на оплату № 5806882388",
+    "counterparty": "ИП ПЛАТОВ НИКИТА АЛЕКСЕЕВИЧ",
+    "date": "2026-01-10",
+    "amountText": "30000",
+    "amount": 30000.0,
+    "closingDocName": "5806882327",
+    "comment": "диадок",
+    "in1c": true,
+    "statusHint": "done",
+    "docIds": [],
+    "manual": false,
+    "source": "seed"
+  },
+  {
+    "id": "seed-83",
+    "invoice": "Счет № 5",
+    "counterparty": "ИП СЛИВКО Максим Александрович",
+    "date": "2026-01-10",
+    "amountText": "14000",
+    "amount": 14000.0,
+    "closingDocName": "акт б/н от 14.01.2026",
+    "comment": "",
+    "in1c": true,
+    "statusHint": "done",
+    "docIds": [],
+    "manual": false,
+    "source": "seed"
+  },
+  {
+    "id": "seed-84",
+    "invoice": "Счёт на оплату № 2",
+    "counterparty": "ИП ВОЛКОВА АННА СЕРГЕЕВНА",
+    "date": "2026-01-11",
+    "amountText": "8500",
+    "amount": 8500.0,
+    "closingDocName": "1",
+    "comment": "диадок",
+    "in1c": true,
+    "statusHint": "done",
+    "docIds": [],
+    "manual": false,
+    "source": "seed"
+  },
+  {
+    "id": "seed-85",
+    "invoice": "",
+    "counterparty": "Егорин Сергей Михайлович",
+    "date": "2026-01-11",
+    "amountText": "21000",
+    "amount": 21000.0,
+    "closingDocName": "Чек №201umps43v",
+    "comment": "Нашёл только чек, но не счёт",
+    "in1c": true,
+    "statusHint": "disputed",
+    "docIds": [],
+    "manual": false,
+    "source": "seed"
+  },
+  {
+    "id": "seed-86",
+    "invoice": "Счет на оплату № 1",
+    "counterparty": "ООО Ассет Легал",
+    "date": "2026-01-11",
+    "amountText": "40000",
+    "amount": 40000.0,
+    "closingDocName": "Акт № 3 от 14 января 2026 г.",
+    "comment": "",
+    "in1c": false,
+    "statusHint": "matched",
+    "docIds": [],
+    "manual": false,
+    "source": "seed"
+  },
+  {
+    "id": "seed-87",
+    "invoice": "Счет на оплату №25508531",
+    "counterparty": "ВАСИЛЬЕВ ДЕНИС СЕРГЕЕВИЧ",
+    "date": "2026-01-13",
+    "amountText": "19928",
+    "amount": 19928.0,
+    "closingDocName": "Чек №24ii5f6n78",
+    "comment": "",
+    "in1c": true,
+    "statusHint": "done",
+    "docIds": [],
+    "manual": false,
+    "source": "seed"
+  },
+  {
+    "id": "seed-88",
+    "invoice": "Счет на оплату № 22",
+    "counterparty": "ИП ЕРМАКОВ ТИМОФЕЙ АНДРЕЕВИЧ",
+    "date": "2026-01-13",
+    "amountText": "12000",
+    "amount": 12000.0,
+    "closingDocName": "акт 2 от 12.01.2026",
+    "comment": "",
+    "in1c": true,
+    "statusHint": "done",
+    "docIds": [],
+    "manual": false,
+    "source": "seed"
+  },
+  {
+    "id": "seed-89",
+    "invoice": "Счёт на оплату № 9",
+    "counterparty": "ИП ЗВАРЧУК ВЛАДИСЛАВ СЕРГЕЕВИЧ",
+    "date": "2026-01-13",
+    "amountText": "163080",
+    "amount": 163080.0,
+    "closingDocName": "акт 9 от 13.01.2026",
+    "comment": "",
+    "in1c": true,
+    "statusHint": "done",
+    "docIds": [],
+    "manual": false,
+    "source": "seed"
+  },
+  {
+    "id": "seed-90",
+    "invoice": "",
+    "counterparty": "СМИРНОВ ВЛАДИСЛАВ АНДРЕЕВИЧ",
+    "date": "2026-01-13",
+    "amountText": "23000",
+    "amount": 23000.0,
+    "closingDocName": "Чек №201cvofcel",
+    "comment": "Счёта нет, только чек",
+    "in1c": true,
+    "statusHint": "disputed",
+    "docIds": [],
+    "manual": false,
+    "source": "seed"
+  },
+  {
+    "id": "seed-91",
+    "invoice": "Счет на оплату № 3478839850",
+    "counterparty": "ИП ГРАНЕНКО АНДРЕЙ АЛЕКСАНДРОВИЧ",
+    "date": "2026-01-13",
+    "amountText": "75000",
+    "amount": 75000.0,
+    "closingDocName": "акт 8619744605 от 15.01.2026",
+    "comment": "",
+    "in1c": true,
+    "statusHint": "done",
+    "docIds": [],
+    "manual": false,
+    "source": "seed"
+  },
+  {
+    "id": "seed-92",
+    "invoice": "Счет на оплату № 394",
+    "counterparty": "ИП РЫЖОВА ЛАРИСА РАФАЭЛЕВНА",
+    "date": "2026-01-13",
+    "amountText": "16200",
+    "amount": 16200.0,
+    "closingDocName": "Акт №1",
+    "comment": "",
+    "in1c": false,
+    "statusHint": "matched",
+    "docIds": [],
+    "manual": false,
+    "source": "seed"
+  },
+  {
+    "id": "seed-93",
+    "invoice": "Счет на оплату №2",
+    "counterparty": "ИП Перевалова Екатерина Евгеньевна",
+    "date": "2026-01-13",
+    "amountText": "70000",
+    "amount": 70000.0,
+    "closingDocName": "",
+    "comment": "",
+    "in1c": false,
+    "statusHint": "open",
+    "docIds": [],
+    "manual": false,
+    "source": "seed"
+  },
+  {
+    "id": "seed-94",
+    "invoice": "Счет на оплату № 7",
+    "counterparty": "ИП ЧЕРКАССКИЙ СЕРГЕЙ АЛЕКСАНДРОВИЧ",
+    "date": "2026-01-13",
+    "amountText": "12500",
+    "amount": 12500.0,
+    "closingDocName": "Акт 2 от 14.01.2026",
+    "comment": "",
+    "in1c": true,
+    "statusHint": "done",
+    "docIds": [],
+    "manual": false,
+    "source": "seed"
+  },
+  {
+    "id": "seed-95",
+    "invoice": "Счет на оплату №25508670",
+    "counterparty": "МОЛОКАНЦЕВ ДМИТРИЙ СЕРГЕЕВИЧ",
+    "date": "2026-01-13",
+    "amountText": "7500",
+    "amount": 7500.0,
+    "closingDocName": "Чек №20kfagetst",
+    "comment": "",
+    "in1c": true,
+    "statusHint": "done",
+    "docIds": [],
+    "manual": false,
+    "source": "seed"
+  },
+  {
+    "id": "seed-96",
+    "invoice": "Счёт на оплату №25508658",
+    "counterparty": "БОБЫЛЕВА ПОЛИНА ОЛЕГОВНА",
+    "date": "2026-01-13",
+    "amountText": "38160",
+    "amount": 38160.0,
+    "closingDocName": "чек 200wn5exwv от 14.01.2026",
+    "comment": "",
+    "in1c": true,
+    "statusHint": "done",
+    "docIds": [],
+    "manual": false,
+    "source": "seed"
+  },
+  {
+    "id": "seed-97",
+    "invoice": "Счёт на оплату №25509250",
+    "counterparty": "ПАНФИЛОВ КОНСТАНТИН КОНСТАНТИНОВИЧ",
+    "date": "2026-01-13",
+    "amountText": "45000",
+    "amount": 45000.0,
+    "closingDocName": "Чек №203v1b0t0w",
+    "comment": "",
+    "in1c": true,
+    "statusHint": "done",
+    "docIds": [],
+    "manual": false,
+    "source": "seed"
+  },
+  {
+    "id": "seed-98",
+    "invoice": "Счёт на оплату №25509252",
+    "counterparty": "КАРПУШЕНКО АЛЕКСЕЙ ДМИТРИЕВИЧ",
+    "date": "2026-01-13",
+    "amountText": "58300",
+    "amount": 58300.0,
+    "closingDocName": "чек 2008u4wkoa  от 13.01.2026",
+    "comment": "",
+    "in1c": true,
+    "statusHint": "done",
+    "docIds": [],
+    "manual": false,
+    "source": "seed"
+  },
+  {
+    "id": "seed-99",
+    "invoice": "Счёт на оплату №000545938_2026",
+    "counterparty": "МАКАРОВА ЕЛЕНА ВИКТОРОВНА",
+    "date": "2026-01-13",
+    "amountText": "24000",
+    "amount": 24000.0,
+    "closingDocName": "чек 2018gqozdm от 14.01.2026",
+    "comment": "",
+    "in1c": true,
+    "statusHint": "done",
+    "docIds": [],
+    "manual": false,
+    "source": "seed"
+  },
+  {
+    "id": "seed-100",
+    "invoice": "Счет на оплату № 143",
+    "counterparty": "ИП АНДРЕЕВ ДЕНИС СТАНИСЛАВОВИЧ",
+    "date": "2026-01-13",
+    "amountText": "27000",
+    "amount": 27000.0,
+    "closingDocName": "",
+    "comment": "",
+    "in1c": false,
+    "statusHint": "open",
+    "docIds": [],
+    "manual": false,
+    "source": "seed"
+  },
+  {
+    "id": "seed-101",
+    "invoice": "Счет на оплату №4",
+    "counterparty": "ИП Романова Людмила Владимировна",
+    "date": "2026-01-13",
+    "amountText": "18000",
+    "amount": 18000.0,
+    "closingDocName": "акт 4 от 13.01.2026",
+    "comment": "",
+    "in1c": true,
+    "statusHint": "done",
+    "docIds": [],
+    "manual": false,
+    "source": "seed"
+  },
+  {
+    "id": "seed-102",
+    "invoice": "Счет на оплату №5",
+    "counterparty": "ИП Романова Людмила Владимировна",
+    "date": "2026-01-13",
+    "amountText": "18000",
+    "amount": 18000.0,
+    "closingDocName": "акт 5 от 13.01.2026",
+    "comment": "",
+    "in1c": true,
+    "statusHint": "done",
+    "docIds": [],
+    "manual": false,
+    "source": "seed"
+  },
+  {
+    "id": "seed-103",
+    "invoice": "Счет на оплату №6",
+    "counterparty": "ИП Романова Людмила Владимировна",
+    "date": "2026-01-13",
+    "amountText": "11000",
+    "amount": 11000.0,
+    "closingDocName": "акт 2 от 13.01.2026",
+    "comment": "",
+    "in1c": true,
+    "statusHint": "done",
+    "docIds": [],
+    "manual": false,
+    "source": "seed"
+  },
+  {
+    "id": "seed-104",
+    "invoice": "Счет на оплату №7",
+    "counterparty": "ИП Романова Людмила Владимировна",
+    "date": "2026-01-13",
+    "amountText": "11000",
+    "amount": 11000.0,
+    "closingDocName": "акт 3 от 13.01.2026",
+    "comment": "",
+    "in1c": true,
+    "statusHint": "done",
+    "docIds": [],
+    "manual": false,
+    "source": "seed"
+  },
+  {
+    "id": "seed-105",
+    "invoice": "Счёт на оплату № 97",
+    "counterparty": "ИП ЯРЕМКЕВИЧ АНДРЕЙ АНДРЕЕВИЧ",
+    "date": "2026-01-13",
+    "amountText": "87000",
+    "amount": 87000.0,
+    "closingDocName": "37",
+    "comment": "диадок",
+    "in1c": true,
+    "statusHint": "done",
+    "docIds": [],
+    "manual": false,
+    "source": "seed"
+  },
+  {
+    "id": "seed-106",
+    "invoice": "Счёт на оплату №25510683",
+    "counterparty": "Эсауленко Анастасия Евгеньевна",
+    "date": "2026-01-13",
+    "amountText": "20000",
+    "amount": 20000.0,
+    "closingDocName": "чек 2009r3bob8 от 19.01.2026",
+    "comment": "",
+    "in1c": true,
+    "statusHint": "done",
+    "docIds": [],
+    "manual": false,
+    "source": "seed"
+  },
+  {
+    "id": "seed-107",
+    "invoice": "СЧЁТ № 574",
+    "counterparty": "ИП СЕЧКО ДЕНИС ИВАНОВИЧ",
+    "date": "2026-01-14",
+    "amountText": "45000",
+    "amount": 45000.0,
+    "closingDocName": "акт 20 от 20.01.2026",
+    "comment": "",
+    "in1c": true,
+    "statusHint": "done",
+    "docIds": [],
+    "manual": false,
+    "source": "seed"
+  },
+  {
+    "id": "seed-108",
+    "invoice": "Счёт на оплату №25514637",
+    "counterparty": "Дунина Алена Павловна",
+    "date": "2026-01-14",
+    "amountText": "75000",
+    "amount": 75000.0,
+    "closingDocName": "Чек 201w9qx9mo  от 14.01.2026",
+    "comment": "",
+    "in1c": true,
+    "statusHint": "done",
+    "docIds": [],
+    "manual": false,
+    "source": "seed"
+  },
+  {
+    "id": "seed-109",
+    "invoice": "Счёт на оплату № 2",
+    "counterparty": "ИП Алехина Юлия Петровна",
+    "date": "2026-01-14",
+    "amountText": "30000",
+    "amount": 30000.0,
+    "closingDocName": "2 от 20.01.2026",
+    "comment": "",
+    "in1c": true,
+    "statusHint": "done",
+    "docIds": [],
+    "manual": false,
+    "source": "seed"
+  },
+  {
+    "id": "seed-110",
+    "invoice": "Счет на оплату № 30",
+    "counterparty": "ИП БОБКИНА ЕЛЕНА ВАЛЕРЬЕВНА",
+    "date": "2026-01-14",
+    "amountText": "133000",
+    "amount": 133000.0,
+    "closingDocName": "19 от 21.01.2026",
+    "comment": "",
+    "in1c": true,
+    "statusHint": "done",
+    "docIds": [],
+    "manual": false,
+    "source": "seed"
+  },
+  {
+    "id": "seed-111",
+    "invoice": "Счет на оплату № 96",
+    "counterparty": "ИП КУРИЛКИН КИРИЛЛ АНДРЕЕВИЧ",
+    "date": "2026-01-14",
+    "amountText": "4000",
+    "amount": 4000.0,
+    "closingDocName": "",
+    "comment": "",
+    "in1c": false,
+    "statusHint": "open",
+    "docIds": [],
+    "manual": false,
+    "source": "seed"
+  },
+  {
+    "id": "seed-112",
+    "invoice": "Счетоферта на оказание услуг № 1501-2",
+    "counterparty": "ИП Осипов Артём Юрьевич",
+    "date": "2026-01-15",
+    "amountText": "90000",
+    "amount": 90000.0,
+    "closingDocName": "",
+    "comment": "",
+    "in1c": false,
+    "statusHint": "open",
+    "docIds": [],
+    "manual": false,
+    "source": "seed"
+  },
+  {
+    "id": "seed-113",
+    "invoice": "Счет №3 от 16 января 2026 г.",
+    "counterparty": "Перевалова Екатерина Евгеньевна",
+    "date": "2026-01-17",
+    "amountText": "35000",
+    "amount": 35000.0,
+    "closingDocName": "2",
+    "comment": "диадок",
+    "in1c": true,
+    "statusHint": "done",
+    "docIds": [],
+    "manual": false,
+    "source": "seed"
+  },
+  {
+    "id": "seed-114",
+    "invoice": "Счет № 63 от 20 января 2026 г.",
+    "counterparty": "Курносова Олеся Александровна",
+    "date": "2026-01-21",
+    "amountText": "10000",
+    "amount": 10000.0,
+    "closingDocName": "",
+    "comment": "",
+    "in1c": false,
+    "statusHint": "open",
+    "docIds": [],
+    "manual": false,
+    "source": "seed"
+  },
+  {
+    "id": "seed-115",
+    "invoice": "Счет 2 от 20.01.2026",
+    "counterparty": "Якимов Алексей Александрович",
+    "date": "2026-01-21",
+    "amountText": "165000",
+    "amount": 165000.0,
+    "closingDocName": "",
+    "comment": "",
+    "in1c": false,
+    "statusHint": "open",
+    "docIds": [],
+    "manual": false,
+    "source": "seed"
+  },
+  {
+    "id": "seed-116",
+    "invoice": "Счет №25727878 от 21 января 2026 г.",
+    "counterparty": "САРЫЧЕВ РОМАН Владимирович",
+    "date": "2026-01-21",
+    "amountText": "13000",
+    "amount": 13000.0,
+    "closingDocName": "чек 201m0nwely",
+    "comment": "",
+    "in1c": true,
+    "statusHint": "done",
+    "docIds": [],
+    "manual": false,
+    "source": "seed"
+  },
+  {
+    "id": "seed-117",
+    "invoice": "Счет №25727664 от 21 января 2026 г.",
+    "counterparty": "Дунина Алена Павловна",
+    "date": "2026-01-21",
+    "amountText": "110000",
+    "amount": 110000.0,
+    "closingDocName": "Чек №201yog1v1j",
+    "comment": "",
+    "in1c": false,
+    "statusHint": "matched",
+    "docIds": [],
+    "manual": false,
+    "source": "seed"
+  },
+  {
+    "id": "seed-118",
+    "invoice": "Счет №000556791_2026 от 21 января 2026 г.",
+    "counterparty": "МАКАРОВА ЕЛЕНА ВИКТОРОВНА",
+    "date": "2026-01-21",
+    "amountText": "40000",
+    "amount": 40000.0,
+    "closingDocName": "чек 201941p5xp",
+    "comment": "",
+    "in1c": true,
+    "statusHint": "done",
+    "docIds": [],
+    "manual": false,
+    "source": "seed"
+  },
+  {
+    "id": "seed-119",
+    "invoice": "Счёт №25727951 от 21 января 2026 г.",
+    "counterparty": "ПАНФИЛОВ КОНСТАНТИН КОНСТАНТИНОВИЧ",
+    "date": "2026-01-21",
+    "amountText": "204500",
+    "amount": 204500.0,
+    "closingDocName": "чек 203xsc1mie",
+    "comment": "",
+    "in1c": true,
+    "statusHint": "done",
+    "docIds": [],
+    "manual": false,
+    "source": "seed"
+  },
+  {
+    "id": "seed-120",
+    "invoice": "Оплата по договору аренды",
+    "counterparty": "Ведмидь Ольга Владимировна",
+    "date": "2026-01-21",
+    "amountText": "228000",
+    "amount": 228000.0,
+    "closingDocName": "",
+    "comment": "",
+    "in1c": false,
+    "statusHint": "open",
+    "docIds": [],
+    "manual": false,
+    "source": "seed"
+  },
+  {
+    "id": "seed-121",
+    "invoice": "Счет 2 от 21.01.2026",
+    "counterparty": "Новожилов Роман Равильевич",
+    "date": "2026-01-21",
+    "amountText": "60000",
+    "amount": 60000.0,
+    "closingDocName": "",
+    "comment": "",
+    "in1c": false,
+    "statusHint": "open",
+    "docIds": [],
+    "manual": false,
+    "source": "seed"
+  },
+  {
+    "id": "seed-122",
+    "invoice": "Счет №25699089 от 20 января 2026 г.",
+    "counterparty": "ЛАЗАРЕВ ИВАН Владимирович",
+    "date": "2026-01-21",
+    "amountText": "73000",
+    "amount": 73000.0,
+    "closingDocName": "чек 201mst00kx",
+    "comment": "",
+    "in1c": true,
+    "statusHint": "done",
+    "docIds": [],
+    "manual": false,
+    "source": "seed"
+  },
+  {
+    "id": "seed-123",
+    "invoice": "Счет № 3 от 21 января 2026 г.",
+    "counterparty": "Алехина Юлия Петровна",
+    "date": "2026-01-21",
+    "amountText": "50000",
+    "amount": 50000.0,
+    "closingDocName": "АКТ № 4",
+    "comment": "",
+    "in1c": false,
+    "statusHint": "matched",
+    "docIds": [],
+    "manual": false,
+    "source": "seed"
+  },
+  {
+    "id": "seed-124",
+    "invoice": "Счет № 10 от 20.01.2026",
+    "counterparty": "Никанова Олеся Алексеевна",
+    "date": "2026-01-21",
+    "amountText": "93500",
+    "amount": 93500.0,
+    "closingDocName": "",
+    "comment": "",
+    "in1c": false,
+    "statusHint": "open",
+    "docIds": [],
+    "manual": false,
+    "source": "seed"
+  },
+  {
+    "id": "seed-125",
+    "invoice": "Счет № 146 от 21 января 2026 г.",
+    "counterparty": "Андреев Денис Станиславович",
+    "date": "2026-01-21",
+    "amountText": "110000",
+    "amount": 110000.0,
+    "closingDocName": "",
+    "comment": "",
+    "in1c": false,
+    "statusHint": "open",
+    "docIds": [],
+    "manual": false,
+    "source": "seed"
+  },
+  {
+    "id": "seed-126",
+    "invoice": "Счет № 3478839854 от 21 января 2026 г.",
+    "counterparty": "Граненко Андрей Александрович",
+    "date": "2026-01-21",
+    "amountText": "215000",
+    "amount": 215000.0,
+    "closingDocName": "акт 8619744607",
+    "comment": "",
+    "in1c": true,
+    "statusHint": "done",
+    "docIds": [],
+    "manual": false,
+    "source": "seed"
+  },
+  {
+    "id": "seed-127",
+    "invoice": "Счёт на оплату №25726890 от 21 января 2026 г.",
+    "counterparty": "КОРОТКИХ НИКИТА Александрович",
+    "date": "2026-01-21",
+    "amountText": "12780",
+    "amount": 12780.0,
+    "closingDocName": "чек 201gnp8nws",
+    "comment": "",
+    "in1c": true,
+    "statusHint": "done",
+    "docIds": [],
+    "manual": false,
+    "source": "seed"
+  },
+  {
+    "id": "seed-128",
+    "invoice": "Счет №25727588 от 21 января 2026 г.",
+    "counterparty": "Бобылева Полина Олеговна",
+    "date": "2026-01-21",
+    "amountText": "71020",
+    "amount": 71020.0,
+    "closingDocName": "чек 200xqu2zqs от 21.01.2026",
+    "comment": "",
+    "in1c": true,
+    "statusHint": "done",
+    "docIds": [],
+    "manual": false,
+    "source": "seed"
+  },
+  {
+    "id": "seed-129",
+    "invoice": "Счет №25727876 от 21 января 2026 г.",
+    "counterparty": "ФИЛАТКИНА ЮЛИЯ МУХАМЕДГУЛЫЕВНА",
+    "date": "2026-01-21",
+    "amountText": "6970",
+    "amount": 6970.0,
+    "closingDocName": "чек 2027a7vtwb",
+    "comment": "",
+    "in1c": true,
+    "statusHint": "done",
+    "docIds": [],
+    "manual": false,
+    "source": "seed"
+  },
+  {
+    "id": "seed-130",
+    "invoice": "Счет № 1 от 21.01.2026 г.",
+    "counterparty": "Прошкин Владислав Владимирович",
+    "date": "2026-01-21",
+    "amountText": "29700",
+    "amount": 29700.0,
+    "closingDocName": "",
+    "comment": "",
+    "in1c": false,
+    "statusHint": "open",
+    "docIds": [],
+    "manual": false,
+    "source": "seed"
+  },
+  {
+    "id": "seed-131",
+    "invoice": "Счет № 1 от 21.01.2026",
+    "counterparty": "ООО Ассет Легал",
+    "date": "2026-01-21",
+    "amountText": "400000",
+    "amount": 400000.0,
+    "closingDocName": "Акт № 4 от 31 января 2026 г.",
+    "comment": "",
+    "in1c": false,
+    "statusHint": "matched",
+    "docIds": [],
+    "manual": false,
+    "source": "seed"
+  },
+  {
+    "id": "seed-132",
+    "invoice": "Счёт №94 от 23.01.2026",
+    "counterparty": "Попов Юрий",
+    "date": "2026-01-23",
+    "amountText": "336375",
+    "amount": 336375.0,
+    "closingDocName": "",
+    "comment": "",
+    "in1c": false,
+    "statusHint": "open",
+    "docIds": [],
+    "manual": false,
+    "source": "seed"
+  },
+  {
+    "id": "seed-133",
+    "invoice": "Перевод собственных средств на счет",
+    "counterparty": "Райхерт Карина Андреевна",
+    "date": "2026-01-24",
+    "amountText": "1200000",
+    "amount": 1200000.0,
+    "closingDocName": "",
+    "comment": "",
+    "in1c": false,
+    "statusHint": "open",
+    "docIds": [],
+    "manual": false,
+    "source": "seed"
+  },
+  {
+    "id": "seed-134",
+    "invoice": "Счёт № 17 от 24.01.2026",
+    "counterparty": "Зварчук Владислав Сергеевич",
+    "date": "2026-01-24",
+    "amountText": "220335",
+    "amount": 220335.0,
+    "closingDocName": "Акт № 12 от 24.01.2026",
+    "comment": "",
+    "in1c": false,
+    "statusHint": "matched",
+    "docIds": [],
+    "manual": false,
+    "source": "seed"
+  },
+  {
+    "id": "seed-135",
+    "invoice": "Счёт на оплату № 31 от 24 января 2026 г.",
+    "counterparty": "Бобкина Елена Валерьевна",
+    "date": "2026-01-24",
+    "amountText": "60000",
+    "amount": 60000.0,
+    "closingDocName": "акт 22 от 27.01.2026",
+    "comment": "",
+    "in1c": true,
+    "statusHint": "done",
+    "docIds": [],
+    "manual": false,
+    "source": "seed"
+  },
+  {
+    "id": "seed-136",
+    "invoice": "Оплата по счету № 8 от 24 января 2026 г.",
+    "counterparty": "Черкасский Сергей Александрович",
+    "date": "2026-01-24",
+    "amountText": "12500",
+    "amount": 12500.0,
+    "closingDocName": "Акт 3 от 23.12.2026",
+    "comment": "",
+    "in1c": true,
+    "statusHint": "done",
+    "docIds": [],
+    "manual": false,
+    "source": "seed"
+  },
+  {
+    "id": "seed-137",
+    "invoice": "Оплата по счету № 99 от 24 января 2026 г.",
+    "counterparty": "Курилкин Кирилл Андреевич",
+    "date": "2026-01-24",
+    "amountText": "4000",
+    "amount": 4000.0,
+    "closingDocName": "",
+    "comment": "",
+    "in1c": false,
+    "statusHint": "open",
+    "docIds": [],
+    "manual": false,
+    "source": "seed"
+  },
+  {
+    "id": "seed-138",
+    "invoice": "Счёт №25805238 от 24 января 2026 г.",
+    "counterparty": "Эсауленко Анастасия Евгеньевна",
+    "date": "2026-01-24",
+    "amountText": "10000",
+    "amount": 10000.0,
+    "closingDocName": "",
+    "comment": "",
+    "in1c": false,
+    "statusHint": "open",
+    "docIds": [],
+    "manual": false,
+    "source": "seed"
+  },
+  {
+    "id": "seed-139",
+    "invoice": "Счёт № 149 от 24 января 2026 г.",
+    "counterparty": "Андреев Денис Станиславович",
+    "date": "2026-01-24",
+    "amountText": "18000",
+    "amount": 18000.0,
+    "closingDocName": "",
+    "comment": "",
+    "in1c": false,
+    "statusHint": "open",
+    "docIds": [],
+    "manual": false,
+    "source": "seed"
+  },
+  {
+    "id": "seed-140",
+    "invoice": "Счёт №25806090 от 24 января 2026 г.",
+    "counterparty": "ШВЕЦОВ ПАВЕЛ Дмитриевич",
+    "date": "2026-01-24",
+    "amountText": "5000",
+    "amount": 5000.0,
+    "closingDocName": "чек 205ew8hymi",
+    "comment": "",
+    "in1c": true,
+    "statusHint": "done",
+    "docIds": [],
+    "manual": false,
+    "source": "seed"
+  },
+  {
+    "id": "seed-141",
+    "invoice": "Счёт №25806835 от 24.01.2026г.",
+    "counterparty": "Мануйлов Евгений Юрьевич",
+    "date": "2026-01-24",
+    "amountText": "8400",
+    "amount": 8400.0,
+    "closingDocName": "Чек 2028a7z5tn",
+    "comment": "",
+    "in1c": true,
+    "statusHint": "done",
+    "docIds": [],
+    "manual": false,
+    "source": "seed"
+  },
+  {
+    "id": "seed-142",
+    "invoice": "Счёт на оплату №25807035 от 24 января 2026 г.",
+    "counterparty": "КОРОТКИХ НИКИТА Александрович",
+    "date": "2026-01-24",
+    "amountText": "6390",
+    "amount": 6390.0,
+    "closingDocName": "Чек 201hwflldu от 24.01.2026",
+    "comment": "",
+    "in1c": true,
+    "statusHint": "done",
+    "docIds": [],
+    "manual": false,
+    "source": "seed"
+  },
+  {
+    "id": "seed-143",
+    "invoice": "Счёт №25807060 от 24 января 2026 г.",
+    "counterparty": "ЗАХАРОВ СЕРГЕЙ Анатольевич",
+    "date": "2026-01-24",
+    "amountText": "10000",
+    "amount": 10000.0,
+    "closingDocName": "чек 201fn0h5y7 от 24.01.2026",
+    "comment": "",
+    "in1c": true,
+    "statusHint": "done",
+    "docIds": [],
+    "manual": false,
+    "source": "seed"
+  },
+  {
+    "id": "seed-144",
+    "invoice": "Счёт № 18 от 24.01.2026",
+    "counterparty": "Зварчук Владислав Сергеевич",
+    "date": "2026-01-24",
+    "amountText": "13320",
+    "amount": 13320.0,
+    "closingDocName": "Акт № 13 от 24.01.2026",
+    "comment": "",
+    "in1c": false,
+    "statusHint": "matched",
+    "docIds": [],
+    "manual": false,
+    "source": "seed"
+  },
+  {
+    "id": "seed-145",
+    "invoice": "Счёт 65 от 24 января 2026 г.",
+    "counterparty": "Курносова Олеся Александровна",
+    "date": "2026-01-24",
+    "amountText": "10000",
+    "amount": 10000.0,
+    "closingDocName": "",
+    "comment": "",
+    "in1c": false,
+    "statusHint": "open",
+    "docIds": [],
+    "manual": false,
+    "source": "seed"
+  },
+  {
+    "id": "seed-146",
+    "invoice": "Счёт №25804798 от 24 января 2026 г.",
+    "counterparty": "ЕГОРИН СЕРГЕЙ МИХАЙЛОВИЧ",
+    "date": "2026-01-24",
+    "amountText": "11500",
+    "amount": 11500.0,
+    "closingDocName": "чек 201wxe78wk",
+    "comment": "",
+    "in1c": true,
+    "statusHint": "done",
+    "docIds": [],
+    "manual": false,
+    "source": "seed"
+  },
+  {
+    "id": "seed-147",
+    "invoice": "Счёт № 112 от 24.01.2026 г.",
+    "counterparty": "Яремкевич Андрей Андреевич",
+    "date": "2026-01-24",
+    "amountText": "55000",
+    "amount": 55000.0,
+    "closingDocName": "46",
+    "comment": "диадок",
+    "in1c": true,
+    "statusHint": "done",
+    "docIds": [],
+    "manual": false,
+    "source": "seed"
+  },
+  {
+    "id": "seed-148",
+    "invoice": "Счёт № 15 от 24.01.2026",
+    "counterparty": "Никанова Олеся Алексеевна",
+    "date": "2026-01-24",
+    "amountText": "88000",
+    "amount": 88000.0,
+    "closingDocName": "",
+    "comment": "",
+    "in1c": false,
+    "statusHint": "open",
+    "docIds": [],
+    "manual": false,
+    "source": "seed"
+  },
+  {
+    "id": "seed-149",
+    "invoice": "Счёт №11 от 24 января 2026 г.",
+    "counterparty": "Романова Людмила Владимировна",
+    "date": "2026-01-24",
+    "amountText": "11000",
+    "amount": 11000.0,
+    "closingDocName": "Акт выполненных работ и оказанных услуг № 1 от 01.04.2026",
+    "comment": "",
+    "in1c": false,
+    "statusHint": "matched",
+    "docIds": [],
+    "manual": false,
+    "source": "seed"
+  },
+  {
+    "id": "seed-150",
+    "invoice": "Счёт №25805189 от 24 января 2026 г.",
+    "counterparty": "ФИЛАТКИНА ЮЛИЯ МУХАМЕДГУЛЫЕВНА",
+    "date": "2026-01-24",
+    "amountText": "6970",
+    "amount": 6970.0,
+    "closingDocName": "чек 2028zrnpvs",
+    "comment": "",
+    "in1c": true,
+    "statusHint": "done",
+    "docIds": [],
+    "manual": false,
+    "source": "seed"
+  },
+  {
+    "id": "seed-151",
+    "invoice": "Счёт №5 от 24 января 2026 г.",
+    "counterparty": "Перевалова Екатерина Евгеньевна",
+    "date": "2026-01-24",
+    "amountText": "35000",
+    "amount": 35000.0,
+    "closingDocName": "",
+    "comment": "",
+    "in1c": false,
+    "statusHint": "open",
+    "docIds": [],
+    "manual": false,
+    "source": "seed"
+  },
+  {
+    "id": "seed-152",
+    "invoice": "Счёт № 113 от 24.01.2026 г.",
+    "counterparty": "Яремкевич Андрей Андреевич",
+    "date": "2026-01-24",
+    "amountText": "9400",
+    "amount": 9400.0,
+    "closingDocName": "47",
+    "comment": "диадок",
+    "in1c": true,
+    "statusHint": "done",
+    "docIds": [],
+    "manual": false,
+    "source": "seed"
+  },
+  {
+    "id": "seed-153",
+    "invoice": "Счёт №2 от 25 января 2026 г.",
+    "counterparty": "Дудник Егор Анатольевич",
+    "date": "2026-01-25",
+    "amountText": "34200",
+    "amount": 34200.0,
+    "closingDocName": "",
+    "comment": "",
+    "in1c": false,
+    "statusHint": "open",
+    "docIds": [],
+    "manual": false,
+    "source": "seed"
+  },
+  {
+    "id": "seed-154",
+    "invoice": "Счёт №12 от 25 января 2026 года",
+    "counterparty": "Сливко Максим Александрович",
+    "date": "2026-01-25",
+    "amountText": "14000",
+    "amount": 14000.0,
+    "closingDocName": "",
+    "comment": "",
+    "in1c": false,
+    "statusHint": "open",
+    "docIds": [],
+    "manual": false,
+    "source": "seed"
+  },
+  {
+    "id": "seed-155",
+    "invoice": "Счёт №2 от 25 января 2026 г.",
+    "counterparty": "САРЫЧЕВ РОМАН Владимирович",
+    "date": "2026-01-25",
+    "amountText": "13000",
+    "amount": 13000.0,
+    "closingDocName": "чек 201ng4smy3",
+    "comment": "",
+    "in1c": true,
+    "statusHint": "done",
+    "docIds": [],
+    "manual": false,
+    "source": "seed"
+  },
+  {
+    "id": "seed-156",
+    "invoice": "Счёт №7 от 25.01.2026",
+    "counterparty": "Волкова Анна Сергеевна",
+    "date": "2026-01-25",
+    "amountText": "8500",
+    "amount": 8500.0,
+    "closingDocName": "2",
+    "comment": "диадок",
+    "in1c": true,
+    "statusHint": "done",
+    "docIds": [],
+    "manual": false,
+    "source": "seed"
+  },
+  {
+    "id": "seed-157",
+    "invoice": "Счёт №7 от 25.01.2026",
+    "counterparty": "Ермаков Тимофей Андреевич",
+    "date": "2026-01-25",
+    "amountText": "6000",
+    "amount": 6000.0,
+    "closingDocName": "Акт № 5 от 03 апреля 2026 г.",
+    "comment": "Я так понимаю, что этим актом закрыт сразу этот счёт + счёт №26 (см. строка 181)",
+    "in1c": false,
+    "statusHint": "matched",
+    "docIds": [],
+    "manual": false,
+    "source": "seed"
+  },
+  {
+    "id": "seed-158",
+    "invoice": "Счёт №25813724 от 25 января 2026 г.",
+    "counterparty": "ЗАХАРОВ СЕРГЕЙ Анатольевич",
+    "date": "2026-01-25",
+    "amountText": "26500",
+    "amount": 26500.0,
+    "closingDocName": "",
+    "comment": "",
+    "in1c": false,
+    "statusHint": "open",
+    "docIds": [],
+    "manual": false,
+    "source": "seed"
+  },
+  {
+    "id": "seed-159",
+    "invoice": "Счёт №25813730 от 25 января 2026 г.",
+    "counterparty": "ЗАХАРОВ СЕРГЕЙ Анатольевич",
+    "date": "2026-01-25",
+    "amountText": "21200",
+    "amount": 21200.0,
+    "closingDocName": "",
+    "comment": "",
+    "in1c": false,
+    "statusHint": "open",
+    "docIds": [],
+    "manual": false,
+    "source": "seed"
+  },
+  {
+    "id": "seed-160",
+    "invoice": "Счёт № 28 от 25 января 2026 г.",
+    "counterparty": "Платов Никита Алексеевич",
+    "date": "2026-01-25",
+    "amountText": "52500",
+    "amount": 52500.0,
+    "closingDocName": "УПД № 27 от 31.03.26",
+    "comment": "",
+    "in1c": false,
+    "statusHint": "matched",
+    "docIds": [],
+    "manual": false,
+    "source": "seed"
+  },
+  {
+    "id": "seed-161",
+    "invoice": "Счёт на оплату №25918501",
+    "counterparty": "ЕГОРИН СЕРГЕЙ МИХАЙЛОВИЧ",
+    "date": "2026-01-28",
+    "amountText": "14500",
+    "amount": 14500.0,
+    "closingDocName": "Чек 201yn0jb3r от 28.01.206",
+    "comment": "",
+    "in1c": true,
+    "statusHint": "done",
+    "docIds": [],
+    "manual": false,
+    "source": "seed"
+  },
+  {
+    "id": "seed-162",
+    "invoice": "Счёт на оплату №25904769",
+    "counterparty": "ШЕМЕТ СЕРГЕЙ СЕРГЕЕВИЧ",
+    "date": "2026-01-28",
+    "amountText": "130000",
+    "amount": 130000.0,
+    "closingDocName": "",
+    "comment": "",
+    "in1c": false,
+    "statusHint": "open",
+    "docIds": [],
+    "manual": false,
+    "source": "seed"
+  },
+  {
+    "id": "seed-163",
+    "invoice": "Счёт на оплату № 116",
+    "counterparty": "ИП ЯРЕМКЕВИЧ АНДРЕЙ АНДРЕЕВИЧ",
+    "date": "2026-01-28",
+    "amountText": "45000",
+    "amount": 45000.0,
+    "closingDocName": "49",
+    "comment": "диадок",
+    "in1c": true,
+    "statusHint": "done",
+    "docIds": [],
+    "manual": false,
+    "source": "seed"
+  },
+  {
+    "id": "seed-164",
+    "invoice": "Счёт №23",
+    "counterparty": "ИП Мусатов Никита Андреевич",
+    "date": "2026-01-28",
+    "amountText": "22000",
+    "amount": 22000.0,
+    "closingDocName": "23",
+    "comment": "диадок",
+    "in1c": true,
+    "statusHint": "done",
+    "docIds": [],
+    "manual": false,
+    "source": "seed"
+  },
+  {
+    "id": "seed-165",
+    "invoice": "Счёт на оплату №25918833",
+    "counterparty": "Эсауленко Анастасия Евгеньевна",
+    "date": "2026-01-28",
+    "amountText": "10000",
+    "amount": 10000.0,
+    "closingDocName": "",
+    "comment": "",
+    "in1c": true,
+    "statusHint": "done",
+    "docIds": [],
+    "manual": false,
+    "source": "seed"
+  },
+  {
+    "id": "seed-166",
+    "invoice": "Счет на оплату № 105",
+    "counterparty": "ИП КУРИЛКИН КИРИЛЛ АНДРЕЕВИЧ",
+    "date": "2026-01-28",
+    "amountText": "4000",
+    "amount": 4000.0,
+    "closingDocName": "",
+    "comment": "",
+    "in1c": true,
+    "statusHint": "done",
+    "docIds": [],
+    "manual": false,
+    "source": "seed"
+  },
+  {
+    "id": "seed-167",
+    "invoice": "Счёт на оплату №25919956",
+    "counterparty": "ФИЛАТКИНА ЮЛИЯ МУХАМЕДГУЛЫЕВНА",
+    "date": "2026-01-28",
+    "amountText": "6970",
+    "amount": 6970.0,
+    "closingDocName": "",
+    "comment": "",
+    "in1c": false,
+    "statusHint": "open",
+    "docIds": [],
+    "manual": false,
+    "source": "seed"
+  },
+  {
+    "id": "seed-168",
+    "invoice": "Счет на оплату № 24",
+    "counterparty": "ИП ЕРМАКОВ ТИМОФЕЙ АНДРЕЕВИЧ",
+    "date": "2026-01-28",
+    "amountText": "6000",
+    "amount": 6000.0,
+    "closingDocName": "",
+    "comment": "",
+    "in1c": true,
+    "statusHint": "done",
+    "docIds": [],
+    "manual": false,
+    "source": "seed"
+  },
+  {
+    "id": "seed-169",
+    "invoice": "Счет на оплату №6",
+    "counterparty": "ИП Перевалова Екатерина Евгеньевна",
+    "date": "2026-01-28",
+    "amountText": "35000",
+    "amount": 35000.0,
+    "closingDocName": "",
+    "comment": "",
+    "in1c": true,
+    "statusHint": "done",
+    "docIds": [],
+    "manual": false,
+    "source": "seed"
+  },
+  {
+    "id": "seed-170",
+    "invoice": "Счет на оплату №12",
+    "counterparty": "ИП Романова Людмила Владимировна",
+    "date": "2026-01-28",
+    "amountText": "11000",
+    "amount": 11000.0,
+    "closingDocName": "Акт выполненных работ и оказанных услуг № 3 от 01.04.2026",
+    "comment": "",
+    "in1c": false,
+    "statusHint": "matched",
+    "docIds": [],
+    "manual": false,
+    "source": "seed"
+  },
+  {
+    "id": "seed-171",
+    "invoice": "СЧЕТ НА ОПЛАТУ №25960008",
+    "counterparty": "КОРОТКИХ НИКИТА АЛЕКСАНДРОВИЧ",
+    "date": "2026-01-29",
+    "amountText": "6390",
+    "amount": 6390.0,
+    "closingDocName": "Чек  201k9a31ti0 от 30.01.2026",
+    "comment": "",
+    "in1c": true,
+    "statusHint": "done",
+    "docIds": [],
+    "manual": false,
+    "source": "seed"
+  },
+  {
+    "id": "seed-172",
+    "invoice": "СЧЕТ НА ОПЛАТУ №25951363",
+    "counterparty": "ПАРАМОНОВА СВЕТЛАНА ЮРЬЕВНА",
+    "date": "2026-01-29",
+    "amountText": "25000",
+    "amount": 25000.0,
+    "closingDocName": "Чек 205awnfx91 от 29.01.2026",
+    "comment": "",
+    "in1c": true,
+    "statusHint": "done",
+    "docIds": [],
+    "manual": false,
+    "source": "seed"
+  },
+  {
+    "id": "seed-173",
+    "invoice": "СЧЕТ НА ОПЛАТУ №25956336",
+    "counterparty": "БРУК ВЛАДИСЛАВ ПАВЛОВИЧ",
+    "date": "2026-01-29",
+    "amountText": "4000",
+    "amount": 4000.0,
+    "closingDocName": "",
+    "comment": "",
+    "in1c": false,
+    "statusHint": "open",
+    "docIds": [],
+    "manual": false,
+    "source": "seed"
+  },
+  {
+    "id": "seed-174",
+    "invoice": "Счет на оплату №4",
+    "counterparty": "ИП Дудник Егор Анатольевич",
+    "date": "2026-01-29",
+    "amountText": "34200",
+    "amount": 34200.0,
+    "closingDocName": "Акт 4 от 30.01.26",
+    "comment": "",
+    "in1c": true,
+    "statusHint": "done",
+    "docIds": [],
+    "manual": false,
+    "source": "seed"
+  },
+  {
+    "id": "seed-175",
+    "invoice": "Счёт на оплату №25955889",
+    "counterparty": "ТИМОФЕЕВА ЛИЛИЯ АЛЕКСЕЕВНА",
+    "date": "2026-01-29",
+    "amountText": "5000",
+    "amount": 5000.0,
+    "closingDocName": "",
+    "comment": "",
+    "in1c": false,
+    "statusHint": "open",
+    "docIds": [],
+    "manual": false,
+    "source": "seed"
+  },
+  {
+    "id": "seed-176",
+    "invoice": "Счёт на оплату №25954161",
+    "counterparty": "Замятин Павел Александрович",
+    "date": "2026-01-30",
+    "amountText": "1000",
+    "amount": 1000.0,
+    "closingDocName": "Чек 200xrwlku7 от 30.01.2026",
+    "comment": "",
+    "in1c": true,
+    "statusHint": "done",
+    "docIds": [],
+    "manual": false,
+    "source": "seed"
+  },
+  {
+    "id": "seed-177",
+    "invoice": "Счёт на оплату №26200651",
+    "counterparty": "КОРОТКИХ НИКИТА Александрович",
+    "date": "2026-02-05",
+    "amountText": "12800",
+    "amount": 12800.0,
+    "closingDocName": "Чек №201l8hkqag",
+    "comment": "",
+    "in1c": true,
+    "statusHint": "done",
+    "docIds": [],
+    "manual": false,
+    "source": "seed"
+  },
+  {
+    "id": "seed-178",
+    "invoice": "Счёт №26201079",
+    "counterparty": "СМИРНОВ ВЛАДИСЛАВ Андреевич",
+    "date": "2026-02-05",
+    "amountText": "29000",
+    "amount": 29000.0,
+    "closingDocName": "Чек №201d5mnvro",
+    "comment": "",
+    "in1c": true,
+    "statusHint": "done",
+    "docIds": [],
+    "manual": false,
+    "source": "seed"
+  },
+  {
+    "id": "seed-179",
+    "invoice": "Счёт №71",
+    "counterparty": "Курносова Олеся Александровна",
+    "date": "2026-02-05",
+    "amountText": "20000",
+    "amount": 20000.0,
+    "closingDocName": "",
+    "comment": "",
+    "in1c": false,
+    "statusHint": "open",
+    "docIds": [],
+    "manual": false,
+    "source": "seed"
+  },
+  {
+    "id": "seed-180",
+    "invoice": "Счет на оплату № 26",
+    "counterparty": "Ермаков Тимофей Андреевич",
+    "date": "2026-02-05",
+    "amountText": "12000",
+    "amount": 12000.0,
+    "closingDocName": "Акт № 5 от 03 апреля 2026 г.",
+    "comment": "Я так понимаю, что этим актом закрыт сразу этот счёт + счёт №7 (см. строка 158)",
+    "in1c": false,
+    "statusHint": "matched",
+    "docIds": [],
+    "manual": false,
+    "source": "seed"
+  },
+  {
+    "id": "seed-181",
+    "invoice": "Счёт №9",
+    "counterparty": "Черкасский Сергей Александрович",
+    "date": "2026-02-06",
+    "amountText": "12500",
+    "amount": 12500.0,
+    "closingDocName": "Акт № 9 от 02 апреля 2026 г.",
+    "comment": "",
+    "in1c": false,
+    "statusHint": "matched",
+    "docIds": [],
+    "manual": false,
+    "source": "seed"
+  },
+  {
+    "id": "seed-182",
+    "invoice": "Счёт №26201712",
+    "counterparty": "ФРОЛОВ АЛЕКСАНДР Александрович",
+    "date": "2026-02-06",
+    "amountText": "25500",
+    "amount": 25500.0,
+    "closingDocName": "Чек №202hop6m51",
+    "comment": "",
+    "in1c": true,
+    "statusHint": "done",
+    "docIds": [],
+    "manual": false,
+    "source": "seed"
+  },
+  {
+    "id": "seed-183",
+    "invoice": "Счёт №25",
+    "counterparty": "Зварчук Владислав Сергеевич",
+    "date": "2026-02-06",
+    "amountText": "210900",
+    "amount": 210900.0,
+    "closingDocName": "Акт № 14 от 05.02.2026",
+    "comment": "",
+    "in1c": false,
+    "statusHint": "matched",
+    "docIds": [],
+    "manual": false,
+    "source": "seed"
+  },
+  {
+    "id": "seed-184",
+    "invoice": "Счёт №125",
+    "counterparty": "Яремкевич Андрей Андреевич",
+    "date": "2026-02-06",
+    "amountText": "200000",
+    "amount": 200000.0,
+    "closingDocName": "",
+    "comment": "",
+    "in1c": false,
+    "statusHint": "open",
+    "docIds": [],
+    "manual": false,
+    "source": "seed"
+  },
+  {
+    "id": "seed-185",
+    "invoice": "Счёт №26202001",
+    "counterparty": "ЕГОРИН СЕРГЕЙ МИХАЙЛОВИЧ",
+    "date": "2026-02-06",
+    "amountText": "11500",
+    "amount": 11500.0,
+    "closingDocName": "Чек №2020eqdau1",
+    "comment": "",
+    "in1c": true,
+    "statusHint": "done",
+    "docIds": [],
+    "manual": false,
+    "source": "seed"
+  },
+  {
+    "id": "seed-186",
+    "invoice": "Счёт №14",
+    "counterparty": "Романова Людмила Владимировна",
+    "date": "2026-02-06",
+    "amountText": "36000",
+    "amount": 36000.0,
+    "closingDocName": "Акт выполненных работ и оказанных услуг № 7 от 03.04.2026",
+    "comment": "",
+    "in1c": false,
+    "statusHint": "matched",
+    "docIds": [],
+    "manual": false,
+    "source": "seed"
+  },
+  {
+    "id": "seed-187",
+    "invoice": "Счёт №26201381",
+    "counterparty": "Ерохин Виктор Викторович",
+    "date": "2026-02-06",
+    "amountText": "17000",
+    "amount": 17000.0,
+    "closingDocName": "Чек №200c360rxe",
+    "comment": "",
+    "in1c": false,
+    "statusHint": "matched",
+    "docIds": [],
+    "manual": false,
+    "source": "seed"
+  },
+  {
+    "id": "seed-188",
+    "invoice": "Счёт №348",
+    "counterparty": "Шакиров Булат Ильшатович",
+    "date": "2026-02-06",
+    "amountText": "60000",
+    "amount": 60000.0,
+    "closingDocName": "",
+    "comment": "",
+    "in1c": false,
+    "statusHint": "open",
+    "docIds": [],
+    "manual": false,
+    "source": "seed"
+  },
+  {
+    "id": "seed-189",
+    "invoice": "Счёт №26",
+    "counterparty": "Никанова Олеся Алексеевна",
+    "date": "2026-02-06",
+    "amountText": "88000",
+    "amount": 88000.0,
+    "closingDocName": "",
+    "comment": "",
+    "in1c": false,
+    "statusHint": "open",
+    "docIds": [],
+    "manual": false,
+    "source": "seed"
+  },
+  {
+    "id": "seed-190",
+    "invoice": "Счёт № 13",
+    "counterparty": "Романова Людмила Владимировна",
+    "date": "2026-02-06",
+    "amountText": "22000",
+    "amount": 22000.0,
+    "closingDocName": "Акт выполненных работ и оказанных услуг № 8 от 03.04.2026",
+    "comment": "",
+    "in1c": false,
+    "statusHint": "matched",
+    "docIds": [],
+    "manual": false,
+    "source": "seed"
+  },
+  {
+    "id": "seed-191",
+    "invoice": "Счёт №26201134",
+    "counterparty": "ФИЛАТКИНА ЮЛИЯ МУХАМЕДГУЛЫЕВНА",
+    "date": "2026-02-06",
+    "amountText": "13940",
+    "amount": 13940.0,
+    "closingDocName": "",
+    "comment": "",
+    "in1c": false,
+    "statusHint": "open",
+    "docIds": [],
+    "manual": false,
+    "source": "seed"
+  },
+  {
+    "id": "seed-192",
+    "invoice": "Счёт № №26203227",
+    "counterparty": "САРЫЧЕВ РОМАН Владимирович",
+    "date": "2026-02-06",
+    "amountText": "20000",
+    "amount": 20000.0,
+    "closingDocName": "Чек №201oj2jhfw",
+    "comment": "",
+    "in1c": true,
+    "statusHint": "done",
+    "docIds": [],
+    "manual": false,
+    "source": "seed"
+  },
+  {
+    "id": "seed-193",
+    "invoice": "Счёт № №26203257",
+    "counterparty": "ШЕМЕТ СЕРГЕЙ СЕРГЕЕВИЧ",
+    "date": "2026-02-06",
+    "amountText": "38000",
+    "amount": 38000.0,
+    "closingDocName": "",
+    "comment": "",
+    "in1c": false,
+    "statusHint": "open",
+    "docIds": [],
+    "manual": false,
+    "source": "seed"
+  },
+  {
+    "id": "seed-194",
+    "invoice": "Счёт № 107",
+    "counterparty": "Курилкин Кирилл Андреевич",
+    "date": "2026-02-06",
+    "amountText": "8000",
+    "amount": 8000.0,
+    "closingDocName": "",
+    "comment": "",
+    "in1c": false,
+    "statusHint": "open",
+    "docIds": [],
+    "manual": false,
+    "source": "seed"
+  },
+  {
+    "id": "seed-195",
+    "invoice": "Счёт №26203832",
+    "counterparty": "АСРЯН АЛИСА Аветисовна",
+    "date": "2026-02-06",
+    "amountText": "14310",
+    "amount": 14310.0,
+    "closingDocName": "Чек №204yb4ovcy",
+    "comment": "",
+    "in1c": true,
+    "statusHint": "done",
+    "docIds": [],
+    "manual": false,
+    "source": "seed"
+  },
+  {
+    "id": "seed-196",
+    "invoice": "Счёт №26203354",
+    "counterparty": "ПОЛЯКОВ ДЕНИС Иванович",
+    "date": "2026-02-06",
+    "amountText": "9540",
+    "amount": 9540.0,
+    "closingDocName": "Чек №205kbygllu",
+    "comment": "",
+    "in1c": true,
+    "statusHint": "done",
+    "docIds": [],
+    "manual": false,
+    "source": "seed"
+  },
+  {
+    "id": "seed-197",
+    "invoice": "Счёт № 126",
+    "counterparty": "Яремкевич Андрей Андреевич",
+    "date": "2026-02-06",
+    "amountText": "18720",
+    "amount": 18720.0,
+    "closingDocName": "",
+    "comment": "",
+    "in1c": false,
+    "statusHint": "open",
+    "docIds": [],
+    "manual": false,
+    "source": "seed"
+  },
+  {
+    "id": "seed-198",
+    "invoice": "Счёт №26203326",
+    "counterparty": "ПОЛЯКОВ ДЕНИС Иванович",
+    "date": "2026-02-06",
+    "amountText": "15900",
+    "amount": 15900.0,
+    "closingDocName": "Чек №205jujjtnio",
+    "comment": "",
+    "in1c": true,
+    "statusHint": "done",
+    "docIds": [],
+    "manual": false,
+    "source": "seed"
+  },
+  {
+    "id": "seed-199",
+    "invoice": "Счёт №3091",
+    "counterparty": "Тюлькин Юрий Сергеевич",
+    "date": "2026-02-06",
+    "amountText": "58800",
+    "amount": 58800.0,
+    "closingDocName": "",
+    "comment": "",
+    "in1c": false,
+    "statusHint": "open",
+    "docIds": [],
+    "manual": false,
+    "source": "seed"
+  },
+  {
+    "id": "seed-200",
+    "invoice": "Счёт №617",
+    "counterparty": "Дедяева Светлана Сергеевна",
+    "date": "2026-02-06",
+    "amountText": "13000",
+    "amount": 13000.0,
+    "closingDocName": "",
+    "comment": "",
+    "in1c": false,
+    "statusHint": "open",
+    "docIds": [],
+    "manual": false,
+    "source": "seed"
+  },
+  {
+    "id": "seed-201",
+    "invoice": "Счёт №7",
+    "counterparty": "Перевалова Екатерина Евгеньевна",
+    "date": "2026-02-06",
+    "amountText": "70000",
+    "amount": 70000.0,
+    "closingDocName": "",
+    "comment": "",
+    "in1c": false,
+    "statusHint": "open",
+    "docIds": [],
+    "manual": false,
+    "source": "seed"
+  },
+  {
+    "id": "seed-202",
+    "invoice": "Счёт №26203730",
+    "counterparty": "Эсауленко Анастасия Евгеньевна",
+    "date": "2026-02-06",
+    "amountText": "30000",
+    "amount": 30000.0,
+    "closingDocName": "",
+    "comment": "",
+    "in1c": false,
+    "statusHint": "open",
+    "docIds": [],
+    "manual": false,
+    "source": "seed"
+  },
+  {
+    "id": "seed-203",
+    "invoice": "Счёт №6",
+    "counterparty": "Дудник Егор Анатольевич",
+    "date": "2026-02-06",
+    "amountText": "102600",
+    "amount": 102600.0,
+    "closingDocName": "",
+    "comment": "",
+    "in1c": false,
+    "statusHint": "open",
+    "docIds": [],
+    "manual": false,
+    "source": "seed"
+  },
+  {
+    "id": "seed-204",
+    "invoice": "Счет-Договор № 10-673",
+    "counterparty": "ООО ДВАЧ МЕДИА",
+    "date": "2026-02-06",
+    "amountText": "392679",
+    "amount": 392679.0,
+    "closingDocName": "",
+    "comment": "",
+    "in1c": false,
+    "statusHint": "open",
+    "docIds": [],
+    "manual": false,
+    "source": "seed"
+  },
+  {
+    "id": "seed-205",
+    "invoice": "Счёт № 33",
+    "counterparty": "Бобкина Елена Валерьевна",
+    "date": "2026-02-06",
+    "amountText": "121000",
+    "amount": 121000.0,
+    "closingDocName": "Акт № 25 от 21 февраля 2026 г.",
+    "comment": "",
+    "in1c": true,
+    "statusHint": "done",
+    "docIds": [],
+    "manual": false,
+    "source": "seed"
+  },
+  {
+    "id": "seed-206",
+    "invoice": "Счёт № 8180313135",
+    "counterparty": "Козин Алексей Евгеньевич",
+    "date": "2026-02-06",
+    "amountText": "117700",
+    "amount": 117700.0,
+    "closingDocName": "",
+    "comment": "",
+    "in1c": false,
+    "statusHint": "open",
+    "docIds": [],
+    "manual": false,
+    "source": "seed"
+  },
+  {
+    "id": "seed-207",
+    "invoice": "Счёт №8",
+    "counterparty": "Волкова Анна Сергеевна",
+    "date": "2026-02-06",
+    "amountText": "17000",
+    "amount": 17000.0,
+    "closingDocName": "",
+    "comment": "",
+    "in1c": false,
+    "statusHint": "open",
+    "docIds": [],
+    "manual": false,
+    "source": "seed"
+  },
+  {
+    "id": "seed-208",
+    "invoice": "Счёт №19",
+    "counterparty": "Шитенков Эдуард Евгеньевич",
+    "date": "2026-02-06",
+    "amountText": "18000",
+    "amount": 18000.0,
+    "closingDocName": "",
+    "comment": "",
+    "in1c": false,
+    "statusHint": "open",
+    "docIds": [],
+    "manual": false,
+    "source": "seed"
+  },
+  {
+    "id": "seed-209",
+    "invoice": "Счёт №618",
+    "counterparty": "Дедяева Светлана Сергеевна",
+    "date": "2026-02-06",
+    "amountText": "26000",
+    "amount": 26000.0,
+    "closingDocName": "",
+    "comment": "",
+    "in1c": false,
+    "statusHint": "open",
+    "docIds": [],
+    "manual": false,
+    "source": "seed"
+  },
+  {
+    "id": "seed-210",
+    "invoice": "Счёт № 14",
+    "counterparty": "ООО МЕРКУРИЙ",
+    "date": "2026-02-06",
+    "amountText": "85227",
+    "amount": 85227.0,
+    "closingDocName": "",
+    "comment": "",
+    "in1c": false,
+    "statusHint": "open",
+    "docIds": [],
+    "manual": false,
+    "source": "seed"
+  },
+  {
+    "id": "seed-211",
+    "invoice": "Счёт №27",
+    "counterparty": "Васильев Андрей Сергеевич",
+    "date": "2026-02-06",
+    "amountText": "26600",
+    "amount": 26600.0,
+    "closingDocName": "",
+    "comment": "",
+    "in1c": false,
+    "statusHint": "open",
+    "docIds": [],
+    "manual": false,
+    "source": "seed"
+  },
+  {
+    "id": "seed-212",
+    "invoice": "Счёт №26224091",
+    "counterparty": "РЕПЯХ АНДРЕЙ Сергеевич",
+    "date": "2026-02-06",
+    "amountText": "15000",
+    "amount": 15000.0,
+    "closingDocName": "Чек №20a7bkmvd0",
+    "comment": "",
+    "in1c": true,
+    "statusHint": "done",
+    "docIds": [],
+    "manual": false,
+    "source": "seed"
+  },
+  {
+    "id": "seed-213",
+    "invoice": "",
+    "counterparty": "Фомин Сергей Михайлович",
+    "date": "2026-02-06",
+    "amountText": "46000",
+    "amount": 46000.0,
+    "closingDocName": "",
+    "comment": "",
+    "in1c": false,
+    "statusHint": "open",
+    "docIds": [],
+    "manual": false,
+    "source": "seed"
+  },
+  {
+    "id": "seed-214",
+    "invoice": "Счёт № 126",
+    "counterparty": "ИП Егоров Игорь Дмитриевич",
+    "date": "2026-02-06",
+    "amountText": "78000",
+    "amount": 78000.0,
+    "closingDocName": "Акт № 58 от 06 февраля 2026 г.",
+    "comment": "",
+    "in1c": true,
+    "statusHint": "done",
+    "docIds": [],
+    "manual": false,
+    "source": "seed"
+  },
+  {
+    "id": "seed-215",
+    "invoice": "Счёт № 272",
+    "counterparty": "Чижов Родион Артёмович",
+    "date": "2026-02-06",
+    "amountText": "27000",
+    "amount": 27000.0,
+    "closingDocName": "",
+    "comment": "",
+    "in1c": false,
+    "statusHint": "open",
+    "docIds": [],
+    "manual": false,
+    "source": "seed"
+  },
+  {
+    "id": "seed-216",
+    "invoice": "Счёт №26232380",
+    "counterparty": "ШЕМЕТ СЕРГЕЙ СЕРГЕЕВИЧ",
+    "date": "2026-02-06",
+    "amountText": "19800",
+    "amount": 19800.0,
+    "closingDocName": "",
+    "comment": "",
+    "in1c": false,
+    "statusHint": "open",
+    "docIds": [],
+    "manual": false,
+    "source": "seed"
+  },
+  {
+    "id": "seed-217",
+    "invoice": "Счёт №26232537",
+    "counterparty": "ЛАЗАРЕВ ИВАН Владимирович",
+    "date": "2026-02-06",
+    "amountText": "73000",
+    "amount": 73000.0,
+    "closingDocName": "Чек №201rls28yx",
+    "comment": "",
+    "in1c": false,
+    "statusHint": "matched",
+    "docIds": [],
+    "manual": false,
+    "source": "seed"
+  },
+  {
+    "id": "seed-218",
+    "invoice": "Счёт № 29",
+    "counterparty": "Никанова Олеся Алексеевна",
+    "date": "2026-02-06",
+    "amountText": "93500",
+    "amount": 93500.0,
+    "closingDocName": "",
+    "comment": "",
+    "in1c": false,
+    "statusHint": "open",
+    "docIds": [],
+    "manual": false,
+    "source": "seed"
+  },
+  {
+    "id": "seed-219",
+    "invoice": "Счёт №26236560",
+    "counterparty": "ГОРЮНОВ ВАЛЕРИЙ Валерьевич",
+    "date": "2026-02-06",
+    "amountText": "13500",
+    "amount": 13500.0,
+    "closingDocName": "Чек №201h6i24tv",
+    "comment": "",
+    "in1c": true,
+    "statusHint": "done",
+    "docIds": [],
+    "manual": false,
+    "source": "seed"
+  },
+  {
+    "id": "seed-220",
+    "invoice": "Счёт №26236553",
+    "counterparty": "ГОРЮНОВ ВАЛЕРИЙ Валерьевич",
+    "date": "2026-02-06",
+    "amountText": "13500",
+    "amount": 13500.0,
+    "closingDocName": "Чек №201gsu0nwz",
+    "comment": "vzjc.",
+    "in1c": true,
+    "statusHint": "done",
+    "docIds": [],
+    "manual": false,
+    "source": "seed"
+  },
+  {
+    "id": "seed-221",
+    "invoice": "Счёт №26238170",
+    "counterparty": "ЗАХАРОВ СЕРГЕЙ Анатольевич",
+    "date": "2026-02-06",
+    "amountText": "42400",
+    "amount": 42400.0,
+    "closingDocName": "Чек №200c360rxe",
+    "comment": "А ещё есть от него же чек на ту же сумму и с той же номенклатурой №201g7zvzjc \nЧто там у него происходит — я не знаю.",
+    "in1c": true,
+    "statusHint": "done",
+    "docIds": [],
+    "manual": false,
+    "source": "seed"
+  },
+  {
+    "id": "seed-222",
+    "invoice": "Счёт-договор № 07022026-БР",
+    "counterparty": "Болховитин Антон Сергеевич",
+    "date": "2026-02-07",
+    "amountText": "149100",
+    "amount": 149100.0,
+    "closingDocName": "",
+    "comment": "",
+    "in1c": false,
+    "statusHint": "open",
+    "docIds": [],
+    "manual": false,
+    "source": "seed"
+  },
+  {
+    "id": "seed-223",
+    "invoice": "Счёт №589",
+    "counterparty": "Сечко Денис Иванович",
+    "date": "2026-02-07",
+    "amountText": "100000",
+    "amount": 100000.0,
+    "closingDocName": "",
+    "comment": "",
+    "in1c": false,
+    "statusHint": "open",
+    "docIds": [],
+    "manual": false,
+    "source": "seed"
+  },
+  {
+    "id": "seed-224",
+    "invoice": "Счёт №1",
+    "counterparty": "Миронов Андрей Юрьевич",
+    "date": "2026-02-07",
+    "amountText": "56914.89",
+    "amount": 56914.89,
+    "closingDocName": "",
+    "comment": "",
+    "in1c": false,
+    "statusHint": "open",
+    "docIds": [],
+    "manual": false,
+    "source": "seed"
+  },
+  {
+    "id": "seed-225",
+    "invoice": "Счёт №26248768",
+    "counterparty": "ГОРЕВСКИХ АНДРЕЙ Вячеславович",
+    "date": "2026-02-07",
+    "amountText": "60000",
+    "amount": 60000.0,
+    "closingDocName": "",
+    "comment": "На момент 16 марта 2026 года чек всё ещё не выставлен!",
+    "in1c": false,
+    "statusHint": "open",
+    "docIds": [],
+    "manual": false,
+    "source": "seed"
+  },
+  {
+    "id": "seed-226",
+    "invoice": "Счёт №26247799",
+    "counterparty": "НИКАШИН ВЯЧЕСЛАВ Михайлович",
+    "date": "2026-02-07",
+    "amountText": "150000",
+    "amount": 150000.0,
+    "closingDocName": "Чек №200qmotxob",
+    "comment": "",
+    "in1c": true,
+    "statusHint": "done",
+    "docIds": [],
+    "manual": false,
+    "source": "seed"
+  },
+  {
+    "id": "seed-227",
+    "invoice": "Счёт № 158",
+    "counterparty": "Андреев Денис Станиславович",
+    "date": "2026-02-07",
+    "amountText": "18000",
+    "amount": 18000.0,
+    "closingDocName": "",
+    "comment": "",
+    "in1c": false,
+    "statusHint": "open",
+    "docIds": [],
+    "manual": false,
+    "source": "seed"
+  },
+  {
+    "id": "seed-228",
+    "invoice": "Счёт № 3",
+    "counterparty": "Сидорец Тарас Валерьевич",
+    "date": "2026-02-08",
+    "amountText": "10000",
+    "amount": 10000.0,
+    "closingDocName": "",
+    "comment": "",
+    "in1c": false,
+    "statusHint": "open",
+    "docIds": [],
+    "manual": false,
+    "source": "seed"
+  },
+  {
+    "id": "seed-229",
+    "invoice": "Счёт №32",
+    "counterparty": "Галактионов Яков Андреевич",
+    "date": "2026-02-09",
+    "amountText": "265000",
+    "amount": 265000.0,
+    "closingDocName": "",
+    "comment": "",
+    "in1c": false,
+    "statusHint": "open",
+    "docIds": [],
+    "manual": false,
+    "source": "seed"
+  },
+  {
+    "id": "seed-230",
+    "invoice": "Счёт № 568",
+    "counterparty": "ИП Мартыненко Яна Александровна",
+    "date": "2026-02-09",
+    "amountText": "22500",
+    "amount": 22500.0,
+    "closingDocName": "",
+    "comment": "",
+    "in1c": false,
+    "statusHint": "open",
+    "docIds": [],
+    "manual": false,
+    "source": "seed"
+  },
+  {
+    "id": "seed-231",
+    "invoice": "СЧЕТ НА ОПЛАТУ №26402273",
+    "counterparty": "ШВЕЦОВ ПАВЕЛ ДМИТРИЕВИЧ",
+    "date": "2026-02-12",
+    "amountText": "2000",
+    "amount": 2000.0,
+    "closingDocName": "Чек №205p6wokr0",
+    "comment": "",
+    "in1c": true,
+    "statusHint": "done",
+    "docIds": [],
+    "manual": false,
+    "source": "seed"
+  },
+  {
+    "id": "seed-232",
+    "invoice": "Счет №26404636",
+    "counterparty": "Статкевич Владимир Алесандрович",
+    "date": "2026-02-12",
+    "amountText": "7000",
+    "amount": 7000.0,
+    "closingDocName": "Чек №200fa57nj3",
+    "comment": "",
+    "in1c": false,
+    "statusHint": "matched",
+    "docIds": [],
+    "manual": false,
+    "source": "seed"
+  },
+  {
+    "id": "seed-233",
+    "invoice": "Счет №26443895",
+    "counterparty": "ПАНФИЛОВ КОНСТАНТИН КОНСТАНТИНОВИЧ",
+    "date": "2026-02-13",
+    "amountText": "45000",
+    "amount": 45000.0,
+    "closingDocName": "Чек №2041vr8j5d",
+    "comment": "",
+    "in1c": false,
+    "statusHint": "matched",
+    "docIds": [],
+    "manual": false,
+    "source": "seed"
+  },
+  {
+    "id": "seed-234",
+    "invoice": "Счет № 65",
+    "counterparty": "Королев Олег Анатольевич",
+    "date": "2026-02-13",
+    "amountText": "4000",
+    "amount": 4000.0,
+    "closingDocName": "",
+    "comment": "",
+    "in1c": false,
+    "statusHint": "open",
+    "docIds": [],
+    "manual": false,
+    "source": "seed"
+  },
+  {
+    "id": "seed-235",
+    "invoice": "Счет № 2",
+    "counterparty": "ООО Ассет Легал",
+    "date": "2026-02-17",
+    "amountText": "17000",
+    "amount": 17000.0,
+    "closingDocName": "",
+    "comment": "",
+    "in1c": false,
+    "statusHint": "open",
+    "docIds": [],
+    "manual": false,
+    "source": "seed"
+  },
+  {
+    "id": "seed-236",
+    "invoice": "Счет №26655925",
+    "counterparty": "ИП Вторушина Нина Александровна",
+    "date": "2026-02-20",
+    "amountText": "15302",
+    "amount": 15302.0,
+    "closingDocName": "Чек №20ifm2yy8v",
+    "comment": "",
+    "in1c": true,
+    "statusHint": "done",
+    "docIds": [],
+    "manual": false,
+    "source": "seed"
+  },
+  {
+    "id": "seed-237",
+    "invoice": "Оплата самозанятому по счету  №26662857",
+    "counterparty": "Кучумова Светлана Николаевна",
+    "date": "2026-02-24",
+    "amountText": "12000",
+    "amount": 12000.0,
+    "closingDocName": "Чек №206j8qq8mb",
+    "comment": "",
+    "in1c": true,
+    "statusHint": "done",
+    "docIds": [],
+    "manual": false,
+    "source": "seed"
+  },
+  {
+    "id": "seed-238",
+    "invoice": "Оплата самозанятому по счету №26818076",
+    "counterparty": "Большакова Виолетта Дмитриевна",
+    "date": "2026-02-26",
+    "amountText": "6000",
+    "amount": 6000.0,
+    "closingDocName": "Чек №200owfeh8w",
+    "comment": "",
+    "in1c": true,
+    "statusHint": "done",
+    "docIds": [],
+    "manual": false,
+    "source": "seed"
+  },
+  {
+    "id": "seed-239",
+    "invoice": "Оплата по счету №26832069",
+    "counterparty": "БЕСПАЛЬЧИКОВА АНАСТАСИЯ СЕРГЕЕВНА",
+    "date": "2026-02-27",
+    "amountText": "10000",
+    "amount": 10000.0,
+    "closingDocName": "",
+    "comment": "",
+    "in1c": false,
+    "statusHint": "open",
+    "docIds": [],
+    "manual": false,
+    "source": "seed"
+  },
+  {
+    "id": "seed-240",
+    "invoice": "Оплата самозанятому по счету №26832410",
+    "counterparty": "ЗАХАРОВ СЕРГЕЙ Анатольевич",
+    "date": "2026-02-27",
+    "amountText": "54060",
+    "amount": 54060.0,
+    "closingDocName": "Чек №201ja8uygj",
+    "comment": "",
+    "in1c": true,
+    "statusHint": "done",
+    "docIds": [],
+    "manual": false,
+    "source": "seed"
+  },
+  {
+    "id": "seed-241",
+    "invoice": "Оплата по счету №26845277",
+    "counterparty": "БЕСПАЛЬЧИКОВА АНАСТАСИЯ СЕРГЕЕВНА",
+    "date": "2026-02-27",
+    "amountText": "10000",
+    "amount": 10000.0,
+    "closingDocName": "",
+    "comment": "",
+    "in1c": false,
+    "statusHint": "open",
+    "docIds": [],
+    "manual": false,
+    "source": "seed"
+  },
+  {
+    "id": "seed-242",
+    "invoice": "Оплата по счету № 3",
+    "counterparty": "ИП Каткова Софья Викторовна",
+    "date": "2026-02-27",
+    "amountText": "130000",
+    "amount": 130000.0,
+    "closingDocName": "",
+    "comment": "",
+    "in1c": false,
+    "statusHint": "open",
+    "docIds": [],
+    "manual": false,
+    "source": "seed"
+  },
+  {
+    "id": "seed-243",
+    "invoice": "Оплата по счету  № 148",
+    "counterparty": "Яремкевич Андрей Андреевич",
+    "date": "2026-02-27",
+    "amountText": "109000",
+    "amount": 109000.0,
+    "closingDocName": "",
+    "comment": "",
+    "in1c": false,
+    "statusHint": "open",
+    "docIds": [],
+    "manual": false,
+    "source": "seed"
+  },
+  {
+    "id": "seed-244",
+    "invoice": "СЧЁТ № 12",
+    "counterparty": "Золотова Екатерина Павловна",
+    "date": "2026-02-27",
+    "amountText": "239200",
+    "amount": 239200.0,
+    "closingDocName": "",
+    "comment": "",
+    "in1c": false,
+    "statusHint": "open",
+    "docIds": [],
+    "manual": false,
+    "source": "seed"
+  },
+  {
+    "id": "seed-245",
+    "invoice": "СЧЁТ № 44",
+    "counterparty": "Никанова Олеся Алексеевна",
+    "date": "2026-02-27",
+    "amountText": "66000",
+    "amount": 66000.0,
+    "closingDocName": "",
+    "comment": "",
+    "in1c": false,
+    "statusHint": "open",
+    "docIds": [],
+    "manual": false,
+    "source": "seed"
+  },
+  {
+    "id": "seed-246",
+    "invoice": "Оплата по счету № 9",
+    "counterparty": "Попова Елена Владимировна",
+    "date": "2026-02-27",
+    "amountText": "12750",
+    "amount": 12750.0,
+    "closingDocName": "",
+    "comment": "",
+    "in1c": false,
+    "statusHint": "open",
+    "docIds": [],
+    "manual": false,
+    "source": "seed"
+  },
+  {
+    "id": "seed-247",
+    "invoice": "Оплата по счету №26862344",
+    "counterparty": "ФИЛАТКИНА ЮЛИЯ МУХАМЕДГУЛЫЕВНА",
+    "date": "2026-02-27",
+    "amountText": "6970",
+    "amount": 6970.0,
+    "closingDocName": "Чек №202epluea9",
+    "comment": "",
+    "in1c": true,
+    "statusHint": "done",
+    "docIds": [],
+    "manual": false,
+    "source": "seed"
+  },
+  {
+    "id": "seed-248",
+    "invoice": "Оплата по счету №25",
+    "counterparty": "Гелейшвили Георгий Евгеньевич",
+    "date": "2026-02-27",
+    "amountText": "10000",
+    "amount": 10000.0,
+    "closingDocName": "",
+    "comment": "",
+    "in1c": false,
+    "statusHint": "open",
+    "docIds": [],
+    "manual": false,
+    "source": "seed"
+  },
+  {
+    "id": "seed-249",
+    "invoice": "Счет №26868445",
+    "counterparty": "СИДОРОВА АЛИНА Константиновна",
+    "date": "2026-02-27",
+    "amountText": "13000",
+    "amount": 13000.0,
+    "closingDocName": "Чек №20m5log2j1",
+    "comment": "",
+    "in1c": true,
+    "statusHint": "done",
+    "docIds": [],
+    "manual": false,
+    "source": "seed"
+  },
+  {
+    "id": "seed-250",
+    "invoice": "Оплата по счету № 40",
+    "counterparty": "Зварчук Владислав Сергеевич",
+    "date": "2026-02-27",
+    "amountText": "26640",
+    "amount": 26640.0,
+    "closingDocName": "Акт № 16 от 28.02.2026",
+    "comment": "",
+    "in1c": false,
+    "statusHint": "matched",
+    "docIds": [],
+    "manual": false,
+    "source": "seed"
+  },
+  {
+    "id": "seed-251",
+    "invoice": "Счёт-договор № 27022026-БР от \"27\" февраля 2026 г.",
+    "counterparty": "Болховитин Антон Сергеевич",
+    "date": "2026-02-27",
+    "amountText": "149100",
+    "amount": 149100.0,
+    "closingDocName": "",
+    "comment": "",
+    "in1c": false,
+    "statusHint": "open",
+    "docIds": [],
+    "manual": false,
+    "source": "seed"
+  },
+  {
+    "id": "seed-252",
+    "invoice": "Счет №26866987",
+    "counterparty": "ШТУРМАН АЛЕКСЕЙ Сергеевич",
+    "date": "2026-02-27",
+    "amountText": "3500",
+    "amount": 3500.0,
+    "closingDocName": "",
+    "comment": "",
+    "in1c": false,
+    "statusHint": "open",
+    "docIds": [],
+    "manual": false,
+    "source": "seed"
+  },
+  {
+    "id": "seed-253",
+    "invoice": "Оплата по счету № 45",
+    "counterparty": "Никанова Олеся Алексеевна",
+    "date": "2026-02-27",
+    "amountText": "38500",
+    "amount": 38500.0,
+    "closingDocName": "",
+    "comment": "",
+    "in1c": false,
+    "statusHint": "open",
+    "docIds": [],
+    "manual": false,
+    "source": "seed"
+  },
+  {
+    "id": "seed-254",
+    "invoice": "Счет №26880550",
+    "counterparty": "БЯДРЕТДИНОВ ЭМИЛЬ Мансурович",
+    "date": "2026-02-28",
+    "amountText": "55000",
+    "amount": 55000.0,
+    "closingDocName": "",
+    "comment": "",
+    "in1c": false,
+    "statusHint": "open",
+    "docIds": [],
+    "manual": false,
+    "source": "seed"
+  },
+  {
+    "id": "seed-255",
+    "invoice": "Счет-Договор № 10-703 от 28.02.2026",
+    "counterparty": "ООО ДВАЧ МЕДИА",
+    "date": "2026-02-28",
+    "amountText": "247779",
+    "amount": 247779.0,
+    "closingDocName": "",
+    "comment": "",
+    "in1c": false,
+    "statusHint": "open",
+    "docIds": [],
+    "manual": false,
+    "source": "seed"
+  },
+  {
+    "id": "seed-256",
+    "invoice": "Оплата по счету № 3478839874",
+    "counterparty": "Граненко Андрей Александрович",
+    "date": "2026-03-01",
+    "amountText": "45000",
+    "amount": 45000.0,
+    "closingDocName": "",
+    "comment": "",
+    "in1c": false,
+    "statusHint": "open",
+    "docIds": [],
+    "manual": false,
+    "source": "seed"
+  },
+  {
+    "id": "seed-257",
+    "invoice": "Оплата по счету № 8",
+    "counterparty": "Парфенов Александр Сергеевич",
+    "date": "2026-03-02",
+    "amountText": "41000",
+    "amount": 41000.0,
+    "closingDocName": "",
+    "comment": "",
+    "in1c": false,
+    "statusHint": "open",
+    "docIds": [],
+    "manual": false,
+    "source": "seed"
+  },
+  {
+    "id": "seed-258",
+    "invoice": "Счёт №44",
+    "counterparty": "Галактионов Яков Андреевич",
+    "date": "2026-03-02",
+    "amountText": "84800",
+    "amount": 84800.0,
+    "closingDocName": "",
+    "comment": "",
+    "in1c": false,
+    "statusHint": "open",
+    "docIds": [],
+    "manual": false,
+    "source": "seed"
+  },
+  {
+    "id": "seed-259",
+    "invoice": "Оплата по счету №17",
+    "counterparty": "Романова Людмила Владимировна",
+    "date": "2026-03-03",
+    "amountText": "17000",
+    "amount": 17000.0,
+    "closingDocName": "Акт выполненных работ и оказанных услуг № 6 от 03.04.2026",
+    "comment": "",
+    "in1c": false,
+    "statusHint": "matched",
+    "docIds": [],
+    "manual": false,
+    "source": "seed"
+  },
+  {
+    "id": "seed-260",
+    "invoice": "Оплата самозанятому по  Счёту №26942833",
+    "counterparty": "ПАНФИЛОВ КОНСТАНТИН КОНСТАНТИНОВИЧ",
+    "date": "2026-03-03",
+    "amountText": "55000",
+    "amount": 55000.0,
+    "closingDocName": "Чек №20420lblj3",
+    "comment": "",
+    "in1c": true,
+    "statusHint": "done",
+    "docIds": [],
+    "manual": false,
+    "source": "seed"
+  },
+  {
+    "id": "seed-261",
+    "invoice": "",
+    "counterparty": "Михеева Юлия Игоревна",
+    "date": "",
+    "amountText": "70000",
+    "amount": 70000.0,
+    "closingDocName": "Чек №200iu5uz5l",
+    "comment": "Есть чек, но не увидел счёта",
+    "in1c": true,
+    "statusHint": "disputed",
+    "docIds": [],
+    "manual": false,
+    "source": "seed"
+  },
+  {
+    "id": "seed-262",
+    "invoice": "",
+    "counterparty": "Парфенов Александр Сергеевич",
+    "date": "2026-03-04",
+    "amountText": "18200",
+    "amount": 18200.0,
+    "closingDocName": "",
+    "comment": "Возврат неиспользованных денежных средств.",
+    "in1c": false,
+    "statusHint": "disputed",
+    "docIds": [],
+    "manual": false,
+    "source": "seed"
+  },
+  {
+    "id": "seed-263",
+    "invoice": "Оплата по счету № 589",
+    "counterparty": "ИП Мартыненко Яна Александровна",
+    "date": "2026-03-05",
+    "amountText": "15750",
+    "amount": 15750.0,
+    "closingDocName": "",
+    "comment": "",
+    "in1c": false,
+    "statusHint": "open",
+    "docIds": [],
+    "manual": false,
+    "source": "seed"
+  },
+  {
+    "id": "seed-264",
+    "invoice": "Оплата по счету №15",
+    "counterparty": "Дудник Егор Анатольевич",
+    "date": "2026-03-05",
+    "amountText": "30000",
+    "amount": 30000.0,
+    "closingDocName": "Акт выполненных работ №15",
+    "comment": "",
+    "in1c": false,
+    "statusHint": "matched",
+    "docIds": [],
+    "manual": false,
+    "source": "seed"
+  },
+  {
+    "id": "seed-265",
+    "invoice": "Оплата по счету № 14",
+    "counterparty": "Канделаки Тинатин",
+    "date": "2026-03-05",
+    "amountText": "300000",
+    "amount": 300000.0,
+    "closingDocName": "",
+    "comment": "",
+    "in1c": false,
+    "statusHint": "open",
+    "docIds": [],
+    "manual": false,
+    "source": "seed"
+  },
+  {
+    "id": "seed-266",
+    "invoice": "Оплата по счету 1",
+    "counterparty": "Ключенков Сергей Александрович",
+    "date": "2026-03-06",
+    "amountText": "31237.5",
+    "amount": 31237.5,
+    "closingDocName": "",
+    "comment": "",
+    "in1c": false,
+    "statusHint": "open",
+    "docIds": [],
+    "manual": false,
+    "source": "seed"
+  },
+  {
+    "id": "seed-267",
+    "invoice": "Оплата по счету 49",
+    "counterparty": "Никанова Олеся Алексеевна",
+    "date": "2026-03-06",
+    "amountText": "22000",
+    "amount": 22000.0,
+    "closingDocName": "",
+    "comment": "",
+    "in1c": false,
+    "statusHint": "open",
+    "docIds": [],
+    "manual": false,
+    "source": "seed"
+  },
+  {
+    "id": "seed-268",
+    "invoice": "",
+    "counterparty": "Михеева Юлия Игоревна",
+    "date": "2026-03-08",
+    "amountText": "70000",
+    "amount": 70000.0,
+    "closingDocName": "",
+    "comment": "",
+    "in1c": false,
+    "statusHint": "open",
+    "docIds": [],
+    "manual": false,
+    "source": "seed"
+  },
+  {
+    "id": "seed-269",
+    "invoice": "Оплата по счету № 1",
+    "counterparty": "Прошкин Владислав Владимирович",
+    "date": "2026-03-09",
+    "amountText": "29700",
+    "amount": 29700.0,
+    "closingDocName": "",
+    "comment": "",
+    "in1c": false,
+    "statusHint": "open",
+    "docIds": [],
+    "manual": false,
+    "source": "seed"
+  },
+  {
+    "id": "seed-270",
+    "invoice": "Оплата по счету  № 159",
+    "counterparty": "Яремкевич Андрей Андреевич",
+    "date": "2026-03-10",
+    "amountText": "22000",
+    "amount": 22000.0,
+    "closingDocName": "",
+    "comment": "",
+    "in1c": false,
+    "statusHint": "open",
+    "docIds": [],
+    "manual": false,
+    "source": "seed"
+  },
+  {
+    "id": "seed-271",
+    "invoice": "Оплата по счету № 5",
+    "counterparty": "Золотова Екатерина Павловна",
+    "date": "2026-03-10",
+    "amountText": "46000",
+    "amount": 46000.0,
+    "closingDocName": "",
+    "comment": "",
+    "in1c": false,
+    "statusHint": "open",
+    "docIds": [],
+    "manual": false,
+    "source": "seed"
+  },
+  {
+    "id": "seed-272",
+    "invoice": "Оплата самозанятому по счету №27165825",
+    "counterparty": "КАРПУШЕНКО АЛЕКСЕЙ Дмитриевич",
+    "date": "2026-03-10",
+    "amountText": "58300",
+    "amount": 58300.0,
+    "closingDocName": "Чек №200bzkefyl",
+    "comment": "",
+    "in1c": false,
+    "statusHint": "matched",
+    "docIds": [],
+    "manual": false,
+    "source": "seed"
+  },
+  {
+    "id": "seed-273",
+    "invoice": "Оплата по счету № 33",
+    "counterparty": "Васильев Андрей Сергеевич",
+    "date": "2026-03-10",
+    "amountText": "28000",
+    "amount": 28000.0,
+    "closingDocName": "Акт № 10",
+    "comment": "",
+    "in1c": false,
+    "statusHint": "matched",
+    "docIds": [],
+    "manual": false,
+    "source": "seed"
+  },
+  {
+    "id": "seed-274",
+    "invoice": "Оплата самозанятому по счету №27204738",
+    "counterparty": "ФРОЛОВ АЛЕКСАНДР Александрович",
+    "date": "2026-03-10",
+    "amountText": "12750",
+    "amount": 12750.0,
+    "closingDocName": "Чек №202lqttwze",
+    "comment": "",
+    "in1c": false,
+    "statusHint": "matched",
+    "docIds": [],
+    "manual": false,
+    "source": "seed"
+  },
+  {
+    "id": "seed-275",
+    "invoice": "Оплата по счету № 10/03/03",
+    "counterparty": "Третьяков Андрей Георгиевич",
+    "date": "2026-03-11",
+    "amountText": "195500",
+    "amount": 195500.0,
+    "closingDocName": "",
+    "comment": "",
+    "in1c": false,
+    "statusHint": "open",
+    "docIds": [],
+    "manual": false,
+    "source": "seed"
+  },
+  {
+    "id": "seed-276",
+    "invoice": "Оплата по счету № 591",
+    "counterparty": "ИП Мартыненко Яна Александровна",
+    "date": "2026-03-11",
+    "amountText": "11250",
+    "amount": 11250.0,
+    "closingDocName": "",
+    "comment": "",
+    "in1c": false,
+    "statusHint": "open",
+    "docIds": [],
+    "manual": false,
+    "source": "seed"
+  },
+  {
+    "id": "seed-277",
+    "invoice": "Счёт на оплату  №27224078",
+    "counterparty": "КОРОТКИХ НИКИТА Александрович",
+    "date": "2026-03-11",
+    "amountText": "6400",
+    "amount": 6400.0,
+    "closingDocName": "",
+    "comment": "",
+    "in1c": false,
+    "statusHint": "open",
+    "docIds": [],
+    "manual": false,
+    "source": "seed"
+  },
+  {
+    "id": "seed-278",
+    "invoice": "Оплата по счету № 22",
+    "counterparty": "Култышева Нина Григорьевна",
+    "date": "2026-03-12",
+    "amountText": "30000",
+    "amount": 30000.0,
+    "closingDocName": "",
+    "comment": "",
+    "in1c": false,
+    "statusHint": "open",
+    "docIds": [],
+    "manual": false,
+    "source": "seed"
+  },
+  {
+    "id": "seed-279",
+    "invoice": "Оплата по счету №27190488",
+    "counterparty": "ФИЛАТКИНА ЮЛИЯ МУХАМЕДГУЛЫЕВНА",
+    "date": "2026-03-13",
+    "amountText": "6970",
+    "amount": 6970.0,
+    "closingDocName": "Чек №202gh0k2po",
+    "comment": "",
+    "in1c": false,
+    "statusHint": "matched",
+    "docIds": [],
+    "manual": false,
+    "source": "seed"
+  },
+  {
+    "id": "seed-280",
+    "invoice": "Оплата по счету № 52",
+    "counterparty": "Зварчук Владислав Сергеевич",
+    "date": "2026-03-14",
+    "amountText": "53280",
+    "amount": 53280.0,
+    "closingDocName": "Акт № 17 от 12.03.2026",
+    "comment": "Есть ещё Акт № 19 от 01.04.2026 на ту же сумму. Мне кажется, он по ошибке выстаавлен, но кто знает, кто знает…",
+    "in1c": false,
+    "statusHint": "matched",
+    "docIds": [],
+    "manual": false,
+    "source": "seed"
+  },
+  {
+    "id": "seed-281",
+    "invoice": "Оплата по счету №320",
+    "counterparty": "Черкашина Арина Александровна",
+    "date": "2026-03-14",
+    "amountText": "165000",
+    "amount": 165000.0,
+    "closingDocName": "",
+    "comment": "",
+    "in1c": false,
+    "statusHint": "open",
+    "docIds": [],
+    "manual": false,
+    "source": "seed"
+  },
+  {
+    "id": "seed-282",
+    "invoice": "Оплата по счету № 13",
+    "counterparty": "Федоров Павел Сергеевич",
+    "date": "2026-03-16",
+    "amountText": "25000",
+    "amount": 25000.0,
+    "closingDocName": "",
+    "comment": "",
+    "in1c": false,
+    "statusHint": "open",
+    "docIds": [],
+    "manual": false,
+    "source": "seed"
+  },
+  {
+    "id": "seed-283",
+    "invoice": "",
+    "counterparty": "Федоров Павел Сергеевич",
+    "date": "2026-03-16",
+    "amountText": "25000",
+    "amount": 25000.0,
+    "closingDocName": "",
+    "comment": "Возврат без НДС",
+    "in1c": false,
+    "statusHint": "disputed",
+    "docIds": [],
+    "manual": false,
+    "source": "seed"
+  },
+  {
+    "id": "seed-284",
+    "invoice": "Оплата по счету № Ш-000010702",
+    "counterparty": "ИП Шитов Денис Сергеевич",
+    "date": "2026-03-20",
+    "amountText": "900",
+    "amount": 900.0,
+    "closingDocName": "",
+    "comment": "",
+    "in1c": false,
+    "statusHint": "open",
+    "docIds": [],
+    "manual": false,
+    "source": "seed"
+  },
+  {
+    "id": "seed-285",
+    "invoice": "Оплата по счету № 4",
+    "counterparty": "ИП Каткова Софья Викторовна",
+    "date": "2026-03-20",
+    "amountText": "130000",
+    "amount": 130000.0,
+    "closingDocName": "",
+    "comment": "",
+    "in1c": false,
+    "statusHint": "open",
+    "docIds": [],
+    "manual": false,
+    "source": "seed"
+  },
+  {
+    "id": "seed-286",
+    "invoice": "Оплата самозанятому по счету  №27526076",
+    "counterparty": "Жинков Григорий Борисович",
+    "date": "2026-03-21",
+    "amountText": "73700",
+    "amount": 73700.0,
+    "closingDocName": "Чек №202mdh664f",
+    "comment": "Чек на сумму 73770 (как и счёт), не знаю, почему в выгрузке из банка указано 73700.",
+    "in1c": false,
+    "statusHint": "matched",
+    "docIds": [],
+    "manual": false,
+    "source": "seed"
+  },
+  {
+    "id": "seed-287",
+    "invoice": "Оплата самозанятому по счету №27529760",
+    "counterparty": "ПОПОВ ИЛЬЯ ВАСИЛЬЕВИЧ",
+    "date": "2026-03-21",
+    "amountText": "31000",
+    "amount": 31000.0,
+    "closingDocName": "Чек №203oa3mya2",
+    "comment": "",
+    "in1c": false,
+    "statusHint": "matched",
+    "docIds": [],
+    "manual": false,
+    "source": "seed"
+  },
+  {
+    "id": "seed-288",
+    "invoice": "Оплата по счету № 122",
+    "counterparty": "Курилкин Кирилл Андреевич",
+    "date": "2026-03-21",
+    "amountText": "3000",
+    "amount": 3000.0,
+    "closingDocName": "",
+    "comment": "",
+    "in1c": false,
+    "statusHint": "open",
+    "docIds": [],
+    "manual": false,
+    "source": "seed"
+  },
+  {
+    "id": "seed-289",
+    "invoice": "Оплата по счету № 59",
+    "counterparty": "Зварчук Владислав Сергеевич",
+    "date": "2026-03-21",
+    "amountText": "19980",
+    "amount": 19980.0,
+    "closingDocName": "Акт № 18 от 21.03.2026",
+    "comment": "",
+    "in1c": false,
+    "statusHint": "matched",
+    "docIds": [],
+    "manual": false,
+    "source": "seed"
+  },
+  {
+    "id": "seed-290",
+    "invoice": "Оплата по счету №27530290",
+    "counterparty": "Вторушина Нина Александровна",
+    "date": "2026-03-21",
+    "amountText": "6000",
+    "amount": 6000.0,
+    "closingDocName": "Чек №20j0z5x3u8",
+    "comment": "",
+    "in1c": false,
+    "statusHint": "matched",
+    "docIds": [],
+    "manual": false,
+    "source": "seed"
+  },
+  {
+    "id": "seed-291",
+    "invoice": "Оплата по счету  № 166",
+    "counterparty": "Яремкевич Андрей Андреевич",
+    "date": "2026-03-21",
+    "amountText": "133800",
+    "amount": 133800.0,
+    "closingDocName": "",
+    "comment": "",
+    "in1c": false,
+    "statusHint": "open",
+    "docIds": [],
+    "manual": false,
+    "source": "seed"
+  },
+  {
+    "id": "seed-292",
+    "invoice": "Оплата по счету №27530777",
+    "counterparty": "Иващенко Павел Владимирович",
+    "date": "2026-03-21",
+    "amountText": "30000",
+    "amount": 30000.0,
+    "closingDocName": "Чек №206f3ctdsu",
+    "comment": "",
+    "in1c": false,
+    "statusHint": "matched",
+    "docIds": [],
+    "manual": false,
+    "source": "seed"
+  },
+  {
+    "id": "seed-293",
+    "invoice": "Счёт-оферта за оказание услуг по размещению рекламных материалов",
+    "counterparty": "ЦАРЬГРАД МЕДИА НАО",
+    "date": "2026-03-21",
+    "amountText": "25000",
+    "amount": 25000.0,
+    "closingDocName": "",
+    "comment": "Номер счёта-оферты неизвестен",
+    "in1c": false,
+    "statusHint": "open",
+    "docIds": [],
+    "manual": false,
+    "source": "seed"
+  },
+  {
+    "id": "seed-294",
+    "invoice": "Оплата по счету № 12",
+    "counterparty": "Аксенова Людмила Вячеславовна",
+    "date": "2026-03-21",
+    "amountText": "40000",
+    "amount": 40000.0,
+    "closingDocName": "",
+    "comment": "",
+    "in1c": false,
+    "statusHint": "open",
+    "docIds": [],
+    "manual": false,
+    "source": "seed"
+  },
+  {
+    "id": "seed-295",
+    "invoice": "Оплата по счету № 10",
+    "counterparty": "Золотова Екатерина Павловна",
+    "date": "2026-03-21",
+    "amountText": "115000",
+    "amount": 115000.0,
+    "closingDocName": "",
+    "comment": "",
+    "in1c": false,
+    "statusHint": "open",
+    "docIds": [],
+    "manual": false,
+    "source": "seed"
+  },
+  {
+    "id": "seed-296",
+    "invoice": "Оплата по счету № 11",
+    "counterparty": "Черкасский Сергей Александрович",
+    "date": "2026-03-21",
+    "amountText": "8000",
+    "amount": 8000.0,
+    "closingDocName": "Акт № 12 от 02 апреля 2026 г.",
+    "comment": "",
+    "in1c": false,
+    "statusHint": "matched",
+    "docIds": [],
+    "manual": false,
+    "source": "seed"
+  },
+  {
+    "id": "seed-297",
+    "invoice": "Оплата по счету № 3478839887",
+    "counterparty": "Граненко Андрей Александрович",
+    "date": "2026-03-21",
+    "amountText": "38500",
+    "amount": 38500.0,
+    "closingDocName": "Акт № 8619744624",
+    "comment": "",
+    "in1c": false,
+    "statusHint": "matched",
+    "docIds": [],
+    "manual": false,
+    "source": "seed"
+  },
+  {
+    "id": "seed-298",
+    "invoice": "Оплата самозанятому по счету  №27531605",
+    "counterparty": "Кучумова Светлана Николаевна",
+    "date": "2026-03-21",
+    "amountText": "4000",
+    "amount": 4000.0,
+    "closingDocName": "Чек №207j6r3fwr",
+    "comment": "",
+    "in1c": false,
+    "statusHint": "matched",
+    "docIds": [],
+    "manual": false,
+    "source": "seed"
+  },
+  {
+    "id": "seed-299",
+    "invoice": "Оплата самозанятому  по счету №27531762",
+    "counterparty": "ВАСИЛЬЕВ ДЕНИС Сергеевич",
+    "date": "2026-03-21",
+    "amountText": "5500",
+    "amount": 5500.0,
+    "closingDocName": "Чек №24io7igyo7",
+    "comment": "",
+    "in1c": false,
+    "statusHint": "matched",
+    "docIds": [],
+    "manual": false,
+    "source": "seed"
+  },
+  {
+    "id": "seed-300",
+    "invoice": "Оплата по счету № 27",
+    "counterparty": "Тирон Диана Александровна",
+    "date": "2026-03-21",
+    "amountText": "103000",
+    "amount": 103000.0,
+    "closingDocName": "УПД (статус 1) № 46",
+    "comment": "В УПД указана сумма 103300, но в выгрузке из банка почему-то 103000",
+    "in1c": false,
+    "statusHint": "matched",
+    "docIds": [],
+    "manual": false,
+    "source": "seed"
+  },
+  {
+    "id": "seed-301",
+    "invoice": "Оплата по счету № 18",
+    "counterparty": "Виноградов Александр Андреевич",
+    "date": "2026-03-21",
+    "amountText": "2200",
+    "amount": 2200.0,
+    "closingDocName": "",
+    "comment": "",
+    "in1c": false,
+    "statusHint": "open",
+    "docIds": [],
+    "manual": false,
+    "source": "seed"
+  },
+  {
+    "id": "seed-302",
+    "invoice": "Оплата по счету № 39",
+    "counterparty": "Журавлев Александр Михайлович",
+    "date": "2026-03-21",
+    "amountText": "5000",
+    "amount": 5000.0,
+    "closingDocName": "",
+    "comment": "",
+    "in1c": false,
+    "statusHint": "open",
+    "docIds": [],
+    "manual": false,
+    "source": "seed"
+  },
+  {
+    "id": "seed-303",
+    "invoice": "Оплата по счету № 11",
+    "counterparty": "Золотова Екатерина Павловна",
+    "date": "2026-03-21",
+    "amountText": "89700",
+    "amount": 89700.0,
+    "closingDocName": "",
+    "comment": "",
+    "in1c": false,
+    "statusHint": "open",
+    "docIds": [],
+    "manual": false,
+    "source": "seed"
+  },
+  {
+    "id": "seed-304",
+    "invoice": "Оплата по счету № 1",
+    "counterparty": "Прошкин Владислав Владимирович",
+    "date": "2026-03-21",
+    "amountText": "12000",
+    "amount": 12000.0,
+    "closingDocName": "",
+    "comment": "",
+    "in1c": false,
+    "statusHint": "open",
+    "docIds": [],
+    "manual": false,
+    "source": "seed"
+  },
+  {
+    "id": "seed-305",
+    "invoice": "Оплата по счету  № 167",
+    "counterparty": "Яремкевич Андрей Андреевич",
+    "date": "2026-03-22",
+    "amountText": "5000",
+    "amount": 5000.0,
+    "closingDocName": "",
+    "comment": "",
+    "in1c": false,
+    "statusHint": "open",
+    "docIds": [],
+    "manual": false,
+    "source": "seed"
+  },
+  {
+    "id": "seed-306",
+    "invoice": "Оплата по счету № 116",
+    "counterparty": "Платов Никита Алексеевич",
+    "date": "2026-03-22",
+    "amountText": "5000",
+    "amount": 5000.0,
+    "closingDocName": "",
+    "comment": "",
+    "in1c": false,
+    "statusHint": "open",
+    "docIds": [],
+    "manual": false,
+    "source": "seed"
+  },
+  {
+    "id": "seed-307",
+    "invoice": "Оплата по счету № 2003263",
+    "counterparty": "Балакирев Данила Сергеевич",
+    "date": "2026-03-22",
+    "amountText": "15000",
+    "amount": 15000.0,
+    "closingDocName": "",
+    "comment": "",
+    "in1c": false,
+    "statusHint": "open",
+    "docIds": [],
+    "manual": false,
+    "source": "seed"
+  },
+  {
+    "id": "seed-308",
+    "invoice": "",
+    "counterparty": "Чевелева Кристина Андреевна",
+    "date": "2026-03-22",
+    "amountText": "7700",
+    "amount": 7700.0,
+    "closingDocName": "",
+    "comment": "",
+    "in1c": false,
+    "statusHint": "open",
+    "docIds": [],
+    "manual": false,
+    "source": "seed"
+  },
+  {
+    "id": "seed-309",
+    "invoice": "Оплата самозанятому по счету №27539781",
+    "counterparty": "ШВЕЦОВ ПАВЕЛ Дмитриевич",
+    "date": "2026-03-22",
+    "amountText": "5300",
+    "amount": 5300.0,
+    "closingDocName": "Чек №206dyphpsg",
+    "comment": "",
+    "in1c": false,
+    "statusHint": "matched",
+    "docIds": [],
+    "manual": false,
+    "source": "seed"
+  },
+  {
+    "id": "seed-310",
+    "invoice": "Оплата по счету № 37",
+    "counterparty": "ИП Советский Михаил Алексеевич",
+    "date": "2026-03-22",
+    "amountText": "12000",
+    "amount": 12000.0,
+    "closingDocName": "",
+    "comment": "",
+    "in1c": false,
+    "statusHint": "open",
+    "docIds": [],
+    "manual": false,
+    "source": "seed"
+  },
+  {
+    "id": "seed-311",
+    "invoice": "",
+    "counterparty": "Гаспарян Армен Сумбатович",
+    "date": "2026-03-22",
+    "amountText": "25000",
+    "amount": 25000.0,
+    "closingDocName": "б/н от 26.03",
+    "comment": "",
+    "in1c": true,
+    "statusHint": "done",
+    "docIds": [],
+    "manual": false,
+    "source": "seed"
+  },
+  {
+    "id": "seed-312",
+    "invoice": "",
+    "counterparty": "Василец Татьяна Викторовна",
+    "date": "2026-03-22",
+    "amountText": "25000",
+    "amount": 25000.0,
+    "closingDocName": "",
+    "comment": "",
+    "in1c": false,
+    "statusHint": "open",
+    "docIds": [],
+    "manual": false,
+    "source": "seed"
+  },
+  {
+    "id": "seed-313",
+    "invoice": "Оплата по счету Счет № 32",
+    "counterparty": "Царёв Олег Анатольевич",
+    "date": "2026-03-22",
+    "amountText": "25000",
+    "amount": 25000.0,
+    "closingDocName": "",
+    "comment": "",
+    "in1c": false,
+    "statusHint": "open",
+    "docIds": [],
+    "manual": false,
+    "source": "seed"
+  },
+  {
+    "id": "seed-314",
+    "invoice": "Счет-договор № 59",
+    "counterparty": "ООО БЛОКНОТ ОНЛАЙН",
+    "date": "2026-03-23",
+    "amountText": "15750",
+    "amount": 15750.0,
+    "closingDocName": "",
+    "comment": "",
+    "in1c": false,
+    "statusHint": "open",
+    "docIds": [],
+    "manual": false,
+    "source": "seed"
+  },
+  {
+    "id": "seed-315",
+    "invoice": "Оплата по счету  № 169",
+    "counterparty": "Яремкевич Андрей Андреевич",
+    "date": "2026-03-23",
+    "amountText": "50000",
+    "amount": 50000.0,
+    "closingDocName": "",
+    "comment": "",
+    "in1c": false,
+    "statusHint": "open",
+    "docIds": [],
+    "manual": false,
+    "source": "seed"
+  },
+  {
+    "id": "seed-316",
+    "invoice": "Оплата по счету-договору № 2303-003",
+    "counterparty": "Никанова Олеся Алексеевна",
+    "date": "2026-03-23",
+    "amountText": "15400",
+    "amount": 15400.0,
+    "closingDocName": "",
+    "comment": "",
+    "in1c": false,
+    "statusHint": "open",
+    "docIds": [],
+    "manual": false,
+    "source": "seed"
+  },
+  {
+    "id": "seed-317",
+    "invoice": "Оплата по счету-договору № 2303-001",
+    "counterparty": "Никанова Олеся Алексеевна",
+    "date": "2026-03-23",
+    "amountText": "59700",
+    "amount": 59700.0,
+    "closingDocName": "",
+    "comment": "",
+    "in1c": false,
+    "statusHint": "open",
+    "docIds": [],
+    "manual": false,
+    "source": "seed"
+  },
+  {
+    "id": "seed-318",
+    "invoice": "Оплата по счету  171",
+    "counterparty": "Яремкевич Андрей Андреевич",
+    "date": "2026-03-23",
+    "amountText": "3000",
+    "amount": 3000.0,
+    "closingDocName": "",
+    "comment": "",
+    "in1c": false,
+    "statusHint": "open",
+    "docIds": [],
+    "manual": false,
+    "source": "seed"
+  },
+  {
+    "id": "seed-319",
+    "invoice": "Оплата по счету-договору № 2303-002",
+    "counterparty": "Никанова Олеся Алексеевна",
+    "date": "2026-03-23",
+    "amountText": "16800",
+    "amount": 16800.0,
+    "closingDocName": "",
+    "comment": "",
+    "in1c": false,
+    "statusHint": "open",
+    "docIds": [],
+    "manual": false,
+    "source": "seed"
+  },
+  {
+    "id": "seed-320",
+    "invoice": "Оплата по счету 9",
+    "counterparty": "ИП Аведьян Альбина Фридиковна",
+    "date": "2026-03-24",
+    "amountText": "40000",
+    "amount": 40000.0,
+    "closingDocName": "",
+    "comment": "",
+    "in1c": false,
+    "statusHint": "open",
+    "docIds": [],
+    "manual": false,
+    "source": "seed"
+  },
+  {
+    "id": "seed-321",
+    "invoice": "Оплата по счету №27639097",
+    "counterparty": "ДАРБИНЯН МИХАИЛ Романович",
+    "date": "2026-03-25",
+    "amountText": "23320",
+    "amount": 23320.0,
+    "closingDocName": "",
+    "comment": "",
+    "in1c": false,
+    "statusHint": "open",
+    "docIds": [],
+    "manual": false,
+    "source": "seed"
+  },
+  {
+    "id": "seed-322",
+    "invoice": "Оплата по счету №27640275",
+    "counterparty": "СУДАРЕВ МИХАИЛ Михайлович",
+    "date": "2026-03-25",
+    "amountText": "11500",
+    "amount": 11500.0,
+    "closingDocName": "",
+    "comment": "",
+    "in1c": false,
+    "statusHint": "open",
+    "docIds": [],
+    "manual": false,
+    "source": "seed"
+  },
+  {
+    "id": "seed-323",
+    "invoice": "Оплата по счету №233",
+    "counterparty": "Сутормина Елена Александровна",
+    "date": "2026-03-25",
+    "amountText": "30000",
+    "amount": 30000.0,
+    "closingDocName": "",
+    "comment": "",
+    "in1c": false,
+    "statusHint": "open",
+    "docIds": [],
+    "manual": false,
+    "source": "seed"
+  },
+  {
+    "id": "seed-324",
+    "invoice": "Оплата по счету № 2503263",
+    "counterparty": "Балакирев Данила Сергеевич",
+    "date": "2026-03-25",
+    "amountText": "53900",
+    "amount": 53900.0,
+    "closingDocName": "",
+    "comment": "",
+    "in1c": false,
+    "statusHint": "open",
+    "docIds": [],
+    "manual": false,
+    "source": "seed"
+  },
+  {
+    "id": "seed-325",
+    "invoice": "Оплата по счету № 73",
+    "counterparty": "Чеботарева Анастасия Викторовна",
+    "date": "2026-03-25",
+    "amountText": "32068",
+    "amount": 32068.0,
+    "closingDocName": "",
+    "comment": "",
+    "in1c": false,
+    "statusHint": "open",
+    "docIds": [],
+    "manual": false,
+    "source": "seed"
+  },
+  {
+    "id": "seed-326",
+    "invoice": "Оплата самозанятому по счету №27647160",
+    "counterparty": "ПОПОВ ИЛЬЯ ВАСИЛЬЕВИЧ",
+    "date": "2026-03-25",
+    "amountText": "16350",
+    "amount": 16350.0,
+    "closingDocName": "",
+    "comment": "",
+    "in1c": false,
+    "statusHint": "open",
+    "docIds": [],
+    "manual": false,
+    "source": "seed"
+  },
+  {
+    "id": "seed-327",
+    "invoice": "Оплата по счету №27646085",
+    "counterparty": "ЛИНКЕВИЧ ВАСИЛИЙ Сергеевич",
+    "date": "2026-03-25",
+    "amountText": "943",
+    "amount": 943.0,
+    "closingDocName": "",
+    "comment": "",
+    "in1c": false,
+    "statusHint": "open",
+    "docIds": [],
+    "manual": false,
+    "source": "seed"
+  },
+  {
+    "id": "seed-328",
+    "invoice": "Оплата по счету № 12",
+    "counterparty": "Коновалов Артем Викторович",
+    "date": "2026-03-25",
+    "amountText": "13200",
+    "amount": 13200.0,
+    "closingDocName": "",
+    "comment": "",
+    "in1c": false,
+    "statusHint": "open",
+    "docIds": [],
+    "manual": false,
+    "source": "seed"
+  },
+  {
+    "id": "seed-329",
+    "invoice": "Оплата по счету №27647925",
+    "counterparty": "ИЖЕДЕРОВ ЯКОВ Николаевич",
+    "date": "2026-03-25",
+    "amountText": "3500",
+    "amount": 3500.0,
+    "closingDocName": "",
+    "comment": "",
+    "in1c": false,
+    "statusHint": "open",
+    "docIds": [],
+    "manual": false,
+    "source": "seed"
+  },
+  {
+    "id": "seed-330",
+    "invoice": "Оплата по СЧЕТ-ОФЕРТА № 17",
+    "counterparty": "ООО МЕДИАЭСКАДРА",
+    "date": "2026-03-25",
+    "amountText": "476",
+    "amount": 476.0,
+    "closingDocName": "",
+    "comment": "",
+    "in1c": false,
+    "statusHint": "open",
+    "docIds": [],
+    "manual": false,
+    "source": "seed"
+  },
+  {
+    "id": "seed-331",
+    "invoice": "Оплата по Счёт-договор № 25032026-БР",
+    "counterparty": "Болховитин Антон Сергеевич",
+    "date": "2026-03-26",
+    "amountText": "149100",
+    "amount": 149100.0,
+    "closingDocName": "Счет-фактура № 25032026-БР",
+    "comment": "",
+    "in1c": false,
+    "statusHint": "matched",
+    "docIds": [],
+    "manual": false,
+    "source": "seed"
+  },
+  {
+    "id": "seed-332",
+    "invoice": "Оплата по счету №10",
+    "counterparty": "ИП Аведьян Альбина Фридиковна",
+    "date": "2026-03-26",
+    "amountText": "12000",
+    "amount": 12000.0,
+    "closingDocName": "",
+    "comment": "",
+    "in1c": false,
+    "statusHint": "open",
+    "docIds": [],
+    "manual": false,
+    "source": "seed"
+  },
+  {
+    "id": "seed-333",
+    "invoice": "Оплата по счету №27676457",
+    "counterparty": "Васильев Алексей Юрьевич",
+    "date": "2026-03-26",
+    "amountText": "15000",
+    "amount": 15000.0,
+    "closingDocName": "",
+    "comment": "",
+    "in1c": false,
+    "statusHint": "open",
+    "docIds": [],
+    "manual": false,
+    "source": "seed"
+  },
+  {
+    "id": "seed-334",
+    "invoice": "Оплата по счету № 124",
+    "counterparty": "Платов Никита Алексеевич",
+    "date": "2026-03-27",
+    "amountText": "19400",
+    "amount": 19400.0,
+    "closingDocName": "",
+    "comment": "",
+    "in1c": false,
+    "statusHint": "open",
+    "docIds": [],
+    "manual": false,
+    "source": "seed"
+  },
+  {
+    "id": "seed-335",
+    "invoice": "",
+    "counterparty": "ИП Граненко Андрей Александрович",
+    "date": "",
+    "amountText": "24000",
+    "amount": 24000.0,
+    "closingDocName": "Акт № 8619744625",
+    "comment": "Счёта нет и в выписках платежей из банка я такого не видел, однако акт — вот он, пожалуйста. Выше есть счёт от Граненко на 45000, может, этот акт на 24000 в счёт этого счёта?..",
+    "in1c": false,
+    "statusHint": "disputed",
+    "docIds": [],
+    "manual": false,
+    "source": "seed"
+  },
+  {
+    "id": "seed-336",
+    "invoice": "",
+    "counterparty": "ИП Черкасский Сергей Александрович",
+    "date": "",
+    "amountText": "12500",
+    "amount": 12500.0,
+    "closingDocName": "Акт № 10 от 02 апреля 2026 г.",
+    "comment": "Я не видел ни счёта, ни подобной аписи в выгрузке из банка, но акт есть.",
+    "in1c": false,
+    "statusHint": "disputed",
+    "docIds": [],
+    "manual": false,
+    "source": "seed"
+  },
+  {
+    "id": "seed-337",
+    "invoice": "",
+    "counterparty": "Романова Людмила Владимировна",
+    "date": "",
+    "amountText": "18 000,00 ₽\n18 000,00 ₽\n11 000,00 ₽",
+    "amount": 18000.0,
+    "closingDocName": "Акт выполненных работ и оказанных услуг № 2 от 01.04.2026\nАкт выполненных работ и оказанных услуг № 4 от 01.04.2026\nАкт выполненных работ и оказанных услуг № 5 от 01.04.2026",
+    "comment": "Акты есть, а больше по этим платежам ничего нет. Как их воспринимать — я не знаю.",
+    "in1c": false,
+    "statusHint": "disputed",
+    "docIds": [],
+    "manual": false,
+    "source": "seed"
+  },
+  {
+    "id": "seed-338",
+    "invoice": "СЧЕТ НА ОПЛАТУ №27985291",
+    "counterparty": "ПАРАМОНОВА СВЕТЛАНА ЮРЬЕВНА",
+    "date": "2026-04-03",
+    "amountText": "20000",
+    "amount": 20000.0,
+    "closingDocName": "Чек №206p2b2n65",
+    "comment": "",
+    "in1c": false,
+    "statusHint": "matched",
+    "docIds": [],
+    "manual": false,
+    "source": "seed"
+  },
+  {
+    "id": "seed-339",
+    "invoice": "",
+    "counterparty": "САРЫЧЕВ РОМАН ВЛАДИМИРОВИЧ",
+    "date": "2026-04-03",
+    "amountText": "5000",
+    "amount": 5000.0,
+    "closingDocName": "Чек №201p4ik0qo",
+    "comment": "",
+    "in1c": false,
+    "statusHint": "matched",
+    "docIds": [],
+    "manual": false,
+    "source": "seed"
+  },
+  {
+    "id": "seed-340",
+    "invoice": "",
+    "counterparty": "Макарова Елена Викторовна",
+    "date": "",
+    "amountText": "10000",
+    "amount": 10000.0,
+    "closingDocName": "Чек №201cthjh22",
+    "comment": "",
+    "in1c": false,
+    "statusHint": "matched",
+    "docIds": [],
+    "manual": false,
+    "source": "seed"
+  },
+  {
+    "id": "seed-341",
+    "invoice": "",
+    "counterparty": "ИП ГОРШЕНИН МАКСИМ ВЛАДИМИРОВИЧ",
+    "date": "",
+    "amountText": "19000",
+    "amount": 19000.0,
+    "closingDocName": "Акт № 230 от 06 апреля 2026 г.",
+    "comment": "",
+    "in1c": false,
+    "statusHint": "matched",
+    "docIds": [],
+    "manual": false,
+    "source": "seed"
+  },
+  {
+    "id": "seed-342",
+    "invoice": "СЧЕТ НА ОПЛАТУ №28078611",
+    "counterparty": "ГОРЮНОВ ВАЛЕРИЙ ВАЛЕРЬЕВИЧ",
+    "date": "2026-04-07",
+    "amountText": "12000",
+    "amount": 12000.0,
+    "closingDocName": "Чек №2023dlszx0",
+    "comment": "",
+    "in1c": false,
+    "statusHint": "matched",
+    "docIds": [],
+    "manual": false,
+    "source": "seed"
+  },
+  {
+    "id": "seed-343",
+    "invoice": "СЧЕТ НА ОПЛАТУ №28081240",
+    "counterparty": "МОЛОКАНЦЕВ ДМИТРИЙ СЕРГЕЕВИЧ",
+    "date": "2026-04-07",
+    "amountText": "6000",
+    "amount": 6000.0,
+    "closingDocName": "Чек №20ko8rfem0",
+    "comment": "",
+    "in1c": false,
+    "statusHint": "matched",
+    "docIds": [],
+    "manual": false,
+    "source": "seed"
+  }
+];
+    const STORAGE_KEY = 'magister-payments-state-v1';
+    const DB_NAME = 'magister-closing-docs-db';
+    const DOC_STORE = 'documents';
+    const MONEY_FORMATTER = new Intl.NumberFormat('ru-RU', {minimumFractionDigits: 0, maximumFractionDigits: 2});
+    const STOP_TOKENS = new Set(['ооо','ип','ао','пао','зао','самозанятый','самозанятому','самозанятая','индивидуальный','предприниматель','акт','чек','счет','счёт','счету','счёту','договор','договору','оплата','оплата','услуги','работ','работы','выполненных','оказанных','услуг','от','за','по','на','без','ндс','сумма','руб','рублей','рф','года','года']);
+
+    let db;
+    let state = { rows: [], hideDone: false, showOnlyNoDocs: false, activeTab: 'all', search: '', columnFilters: { counterparty: '', sort: '' } };
+    let docsCache = [];
+    let currentAttachRowId = null;
+
+    function uid(prefix='id') { return `${prefix}-${Date.now()}-${Math.random().toString(36).slice(2,8)}`; }
+    function toast(message){ const el = document.getElementById('toast'); el.textContent = message; el.classList.add('show'); clearTimeout(el._timer); el._timer = setTimeout(() => el.classList.remove('show'), 3600); }
+    function setProgress(title='', log='', visible=false){ const box=document.getElementById('progressBox'); document.getElementById('progressTitle').textContent=title||'Обработка'; document.getElementById('progressLog').textContent=log||''; box.classList.toggle('show', !!visible); }
+    function openModal(title, text){ document.getElementById('textModalTitle').textContent = title; document.getElementById('textModalBody').textContent = text || 'Распознанный текст отсутствует.'; document.getElementById('textModalOverlay').classList.add('show'); }
+    function closeModal(){ document.getElementById('textModalOverlay').classList.remove('show'); }
+
+    function openDb(){
+      return new Promise((resolve, reject) => {
+        const req = indexedDB.open(DB_NAME, 1);
+        req.onupgradeneeded = () => {
+          const idb = req.result;
+          if(!idb.objectStoreNames.contains(DOC_STORE)) idb.createObjectStore(DOC_STORE, {keyPath: 'id'});
+        };
+        req.onsuccess = () => resolve(req.result);
+        req.onerror = () => reject(req.error);
+      });
+    }
+    function idbRequest(request){
+      return new Promise((resolve, reject) => {
+        request.onsuccess = () => resolve(request.result);
+        request.onerror = () => reject(request.error);
+      });
+    }
+    function docStore(mode='readonly'){ return db.transaction(DOC_STORE, mode).objectStore(DOC_STORE); }
+    async function getAllDocs(){ return await idbRequest(docStore().getAll()); }
+    async function getDoc(id){ return await idbRequest(docStore().get(id)); }
+    async function putDoc(doc){ return await idbRequest(docStore('readwrite').put(doc)); }
+    async function deleteDoc(id){ return await idbRequest(docStore('readwrite').delete(id)); }
+    async function clearDocsStore(){ return await idbRequest(docStore('readwrite').clear()); }
+
+    function loadState(){
+      try{
+        const saved = JSON.parse(localStorage.getItem(STORAGE_KEY) || 'null');
+        if(saved && Array.isArray(saved.rows)){
+          state = {...state, ...saved};
+        }else{
+          state.rows = JSON.parse(JSON.stringify(SEED_ROWS));
+        }
+      }catch(e){
+        state.rows = JSON.parse(JSON.stringify(SEED_ROWS));
+      }
+      state.rows = state.rows.map(normalizeRow);
+      state.columnFilters = state.columnFilters || { counterparty: '', sort: '' };
+      state.columnFilters.counterparty = state.columnFilters.counterparty || '';
+      state.columnFilters.sort = state.columnFilters.sort || '';
+    }
+    function saveState(){
+      localStorage.setItem(STORAGE_KEY, JSON.stringify({ rows: state.rows, hideDone: state.hideDone, showOnlyNoDocs: state.showOnlyNoDocs, activeTab: state.activeTab, search: state.search || '', columnFilters: state.columnFilters || { counterparty:'', sort:'' } }));
+    }
+
+    function normalizeSpaces(s){ return String(s || '').replace(/\u00A0/g, ' ').replace(/[ \t]+/g, ' ').replace(/\s+\/\s+/g, ' / ').trim(); }
+    function normalizeEntity(s){
+      return normalizeSpaces(String(s || '').toLowerCase().replace(/ё/g, 'е').replace(/["'`]/g,' ').replace(/[()]/g,' ').replace(/[.,;:!?]+/g,' ').replace(/[^a-zа-я0-9№\-\/\s]/gi,' ')
+        .split(/\s+/)
+        .filter(Boolean)
+        .filter(token => !STOP_TOKENS.has(token))
+        .join(' '));
+    }
+    function entityTokens(s){ return [...new Set(normalizeEntity(s).split(' ').filter(t => t && t.length > 1))]; }
+    function overlapScore(a,b){
+      const A = entityTokens(a), B = entityTokens(b);
+      if(!A.length || !B.length) return 0;
+      let common = 0;
+      A.forEach(token => { if(B.includes(token)) common++; });
+      const ratio = common / Math.max(1, Math.min(A.length, B.length));
+      return ratio * 5;
+    }
+    function normalizeDateStr(value){
+      if(!value) return '';
+      const s = String(value).trim();
+      if(/^\d{4}-\d{2}-\d{2}$/.test(s)) return s;
+      const m = s.match(/^(\d{2})[.\/-](\d{2})[.\/-](\d{4})$/);
+      if(m) return `${m[3]}-${m[2]}-${m[1]}`;
+      return s;
+    }
+    function displayDate(value){
+      const s = normalizeDateStr(value);
+      const m = s.match(/^(\d{4})-(\d{2})-(\d{2})$/);
+      return m ? `${m[3]}.${m[2]}.${m[1]}` : (value || '');
+    }
+    function parseMoneyValue(value){
+      if(value === null || value === undefined || value === '') return null;
+      if(typeof value === 'number' && Number.isFinite(value)) return value;
+      let s = String(value).replace(/\u00A0/g, ' ');
+      const lines = s.split(/\n+/).map(t => t.trim()).filter(Boolean);
+      s = lines[0] || s;
+      s = s.replace(/[^\d,.-]/g, '').replace(/,(?=\d{3}(\D|$))/g, '').replace(',', '.');
+      const num = parseFloat(s);
+      return Number.isFinite(num) ? num : null;
+    }
+    function formatAmount(row){
+      if(row.amountText) return row.amountText;
+      if(row.amount === null || row.amount === undefined || Number.isNaN(row.amount)) return '';
+      return MONEY_FORMATTER.format(row.amount);
+    }
+    function extractAllAmounts(text){
+      const source = `${text || ''}`.replace(/\u00A0/g, ' ');
+      const regex = /\b\d{1,3}(?:[\s\u00A0]\d{3})*(?:[,.]\d{1,2})?\b/g;
+      const list = [];
+      let m;
+      while((m = regex.exec(source))){
+        const raw = m[0];
+        const normalized = raw.replace(/[\s\u00A0]/g, '').replace(',', '.');
+        const num = parseFloat(normalized);
+        if(Number.isFinite(num) && num > 0) list.push(Number(num.toFixed(2)));
+      }
+      return [...new Set(list)];
+    }
+    function extractInvoiceHints(text){
+      const source = normalizeSpaces(text);
+      const hints = [];
+      const regexes = [
+        /(сч[её]т(?:[-\s]договор|[-\s]оферта)?\s*№?\s*[A-Za-zА-Яа-я0-9\-\/]+)/gi,
+        /(акт\s*№?\s*[A-Za-zА-Яа-я0-9\-\/]+)/gi,
+        /(чек\s*№?\s*[A-Za-zА-Яа-я0-9\-\/]+)/gi,
+        /(№\s*[A-Za-zА-Яа-я0-9\-\/]{2,})/gi
+      ];
+      regexes.forEach(rx => {
+        let m;
+        while((m = rx.exec(source))) hints.push(normalizeSpaces(m[1] || m[0]));
+      });
+      return [...new Set(hints)].slice(0, 12);
+    }
+    function invoiceKey(value){
+      return normalizeSpaces(String(value || '').toLowerCase().replace(/ё/g,'е').replace(/[^a-zа-я0-9№\-\/]/gi,' ')).trim();
+    }
+    function parseRegistryInfo(info){
+      const clean = normalizeSpaces(info);
+      const parts = clean.split(/\s\/\s/, 2);
+      const counterparty = normalizeSpaces(parts[0] || '');
+      const rest = parts[1] || clean;
+      let invoice = '';
+      const match = rest.match(/Оплата(?:\s+самозанятому)?\s+по\s+(.+?)(?=\s+Сумма\b|$)/i);
+      if(match) invoice = normalizeSpaces(match[1]);
+      const invoiceHints = extractInvoiceHints(rest);
+      if(!invoice && invoiceHints.length) invoice = invoiceHints[0];
+      return {counterparty, invoice, rawInfo: clean};
+    }
+    function deriveClosingDocName(row){
+      const docs = getDocsForRow(row.id);
+      const fromDocs = docs.map(doc => doc.name).filter(Boolean);
+      return row.closingDocName || fromDocs.join(' • ');
+    }
+    function normalizeRow(row){
+      const amount = row.amount !== undefined && row.amount !== null ? row.amount : parseMoneyValue(row.amountText || row.amount);
+      const amountText = normalizeSpaces(row.amountText || (amount !== null && amount !== undefined ? MONEY_FORMATTER.format(amount) : ''));
+      return {
+        id: row.id || uid('row'),
+        invoice: normalizeSpaces(row.invoice || ''),
+        counterparty: normalizeSpaces(row.counterparty || ''),
+        date: normalizeDateStr(row.date || ''),
+        amount: Number.isFinite(amount) ? amount : null,
+        amountText,
+        closingDocName: normalizeSpaces(row.closingDocName || ''),
+        comment: row.comment || '',
+        in1c: !!row.in1c,
+        docIds: Array.isArray(row.docIds) ? row.docIds : [],
+        source: row.source || 'manual',
+        statusHint: row.statusHint || 'open',
+        rawInfo: row.rawInfo || ''
+      };
+    }
+    function rowKey(row){ return [normalizeEntity(row.counterparty), normalizeDateStr(row.date), String(parseMoneyValue(row.amountText ?? row.amount) ?? ''), invoiceKey(row.invoice)].join('|'); }
+    function getDocsForRow(rowId){ return docsCache.filter(doc => doc.assignedRowId === rowId); }
+    function getDocById(id){ return docsCache.find(doc => doc.id === id); }
+    function rowHasAnyDoc(row){ return !!deriveClosingDocName(row) || getDocsForRow(row.id).length > 0; }
+    function rowHasDisputedDoc(row){ return row.statusHint === 'disputed' || docsCache.some(doc => (doc.status === 'disputed' && (doc.suggestedRowId === row.id || doc.assignedRowId === row.id))); }
+    function rowStatus(row){
+      if(row.in1c) return 'done';
+      if(rowHasDisputedDoc(row)) return 'disputed';
+      if(rowHasAnyDoc(row)) return 'matched';
+      return 'open';
+    }
+    function countRows(predicate){ return state.rows.filter(predicate).length; }
+
+    function renderSummary(){
+      const summary = [
+        {label:'Всего строк', value: state.rows.length, hint:'в журнале MAGISTER'},
+        {label:'Без документа', value: countRows(r => rowStatus(r) === 'open'), hint:'нужно подобрать закрывашку'},
+        {label:'Есть документ', value: countRows(r => rowStatus(r) === 'matched'), hint:'готово к заведению'},
+        {label:'Спорные', value: countRows(r => rowStatus(r) === 'disputed'), hint:'требуют проверки'},
+        {label:'В 1C', value: countRows(r => rowStatus(r) === 'done'), hint:'отмечены как заведённые'}
+      ];
+      document.getElementById('summaryGrid').innerHTML = summary.map(item => `
+        <div class="stat">
+          <div class="statLabel">${escapeHtml(item.label)}</div>
+          <div class="statValue">${escapeHtml(String(item.value))}</div>
+          <div class="statHint">${escapeHtml(item.hint)}</div>
+        </div>
+      `).join('');
+    }
+
+    function escapeHtml(value){
+      return String(value ?? '').replace(/[&<>"']/g, ch => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[ch]));
+    }
+    function optionRows(selected=''){
+      return ['<option value="">Выберите платёж…</option>'].concat(state.rows.map(row => {
+        const label = `${displayDate(row.date) || 'без даты'} · ${row.counterparty || 'без контрагента'} · ${formatAmount(row) || 'без суммы'}`;
+        return `<option value="${row.id}" ${selected===row.id?'selected':''}>${escapeHtml(label)}</option>`;
+      })).join('');
+    }
+
+    function filterCounterpartyOptions(){
+      const current = state.columnFilters?.counterparty || '';
+      const names = [...new Set(state.rows.map(row => normalizeSpaces(row.counterparty)).filter(Boolean))].sort((a,b)=>a.localeCompare(b,'ru'));
+      return '<option value="">Все контрагенты</option>' + names.map(name => `<option value="${escapeHtml(name)}" ${name===current?'selected':''}>${escapeHtml(name)}</option>`).join('');
+    }
+    function numericAmount(row){
+      const n = Number.isFinite(row.amount) ? row.amount : parseMoneyValue(row.amountText);
+      return Number.isFinite(n) ? n : 0;
+    }
+    function dateComparable(row){ return normalizeDateStr(row.date || '') || '0000-00-00'; }
+    function sortedRows(rows){
+      const sort = state.columnFilters?.sort || '';
+      const copy = [...rows];
+      if(sort === 'dateAsc') copy.sort((a,b)=>dateComparable(a).localeCompare(dateComparable(b)));
+      else if(sort === 'dateDesc') copy.sort((a,b)=>dateComparable(b).localeCompare(dateComparable(a)));
+      else if(sort === 'amountAsc') copy.sort((a,b)=>numericAmount(a)-numericAmount(b));
+      else if(sort === 'amountDesc') copy.sort((a,b)=>numericAmount(b)-numericAmount(a));
+      else if(sort === 'counterpartyAsc') copy.sort((a,b)=>(a.counterparty||'').localeCompare(b.counterparty||'','ru'));
+      else if(sort === 'counterpartyDesc') copy.sort((a,b)=>(b.counterparty||'').localeCompare(a.counterparty||'','ru'));
+      return copy;
+    }
+
+    function filteredRows(baseRows){
+      const search = normalizeEntity(state.search || '');
+      const counterpartyFilter = state.columnFilters?.counterparty || '';
+      const rows = baseRows.filter(row => {
+        if(state.hideDone && row.in1c) return false;
+        if(state.showOnlyNoDocs && rowHasAnyDoc(row)) return false;
+        if(counterpartyFilter && normalizeSpaces(row.counterparty) !== counterpartyFilter) return false;
+        if(!search) return true;
+        const hay = normalizeEntity([row.invoice, row.counterparty, row.comment, deriveClosingDocName(row)].join(' '));
+        return hay.includes(search);
+      });
+      return sortedRows(rows);
+    }
+
+    function renderDocPills(row){
+      const docs = getDocsForRow(row.id);
+      const pills = docs.map(doc => `
+        <span class="docPill">
+          <span>${escapeHtml(doc.name)}</span>
+          <span class="pillStatus ${doc.status==='manual'?'manual':doc.status==='disputed'?'disputed':'matched'}">${doc.status==='manual'?'вручную':doc.status==='disputed'?'спорно':'авто'}</span>
+          <button class="pillBtn" data-action="open-doc" data-doc-id="${doc.id}">открыть</button>
+          <button class="pillBtn" data-action="download-doc" data-doc-id="${doc.id}">скачать</button>
+          <button class="pillBtn" data-action="view-text" data-doc-id="${doc.id}">текст</button>
+          <button class="pillBtn remove" data-action="unlink-doc" data-doc-id="${doc.id}" data-row-id="${row.id}">убрать</button>
+        </span>`).join('');
+      return pills || '<span class="statusLine">Файлы ещё не прикреплены.</span>';
+    }
+
+    function tableMarkup(rows, tableType){
+      if(!rows.length) return `<div class="emptyState">Здесь пока пусто.</div>`;
+      return `
+        <div class="tableToolbar">
+          <div class="searchBox"><span>🔎</span><input class="globalSearchInput" value="${escapeHtml(state.search || '')}" placeholder="Поиск по контрагенту, счёту, комментарию или документу"></div>
+          <div class="tableFilters">
+            <label class="filterControl">Контрагент <select class="counterpartyFilter">${filterCounterpartyOptions()}</select></label>
+            <label class="filterControl">Сортировка <select class="sortFilter">
+              <option value="" ${(state.columnFilters?.sort||'')===''?'selected':''}>Без сортировки</option>
+              <option value="counterpartyAsc" ${(state.columnFilters?.sort||'')==='counterpartyAsc'?'selected':''}>Контрагент А→Я</option>
+              <option value="counterpartyDesc" ${(state.columnFilters?.sort||'')==='counterpartyDesc'?'selected':''}>Контрагент Я→А</option>
+              <option value="dateDesc" ${(state.columnFilters?.sort||'')==='dateDesc'?'selected':''}>Дата: новые сверху</option>
+              <option value="dateAsc" ${(state.columnFilters?.sort||'')==='dateAsc'?'selected':''}>Дата: старые сверху</option>
+              <option value="amountDesc" ${(state.columnFilters?.sort||'')==='amountDesc'?'selected':''}>Сумма: больше сверху</option>
+              <option value="amountAsc" ${(state.columnFilters?.sort||'')==='amountAsc'?'selected':''}>Сумма: меньше сверху</option>
+            </select></label>
+            <label class="filterControl"><button type="button" class="clearFiltersBtn">Сбросить</button></label>
+          </div>
+          <div class="statusLine">Показано строк: <strong>${rows.length}</strong></div>
+        </div>
+        <div class="tableWrap">
+          <table>
+            <colgroup>
+              <col style="width:17%"><col style="width:16%"><col style="width:9%"><col style="width:8%"><col style="width:24%"><col style="width:12%"><col style="width:6%"><col style="width:8%">
+            </colgroup>
+            <thead>
+              <tr>
+                <th>Счёт</th>
+                <th>Контрагент</th>
+                <th>Дата</th>
+                <th>Сумма</th>
+                <th>Закрывающий документ</th>
+                <th>Комментарий</th>
+                <th style="text-align:center">1C</th>
+                <th>Действия</th>
+              </tr>
+            </thead>
+            <tbody>
+              ${rows.map(row => `
+                <tr class="status-${rowStatus(row)}">
+                  <td><input class="cellInput" data-field="invoice" data-row-id="${row.id}" value="${escapeHtml(row.invoice)}"></td>
+                  <td><input class="cellInput" data-field="counterparty" data-row-id="${row.id}" value="${escapeHtml(row.counterparty)}"></td>
+                  <td><input class="cellDate" data-field="date" data-row-id="${row.id}" value="${escapeHtml(displayDate(row.date))}" placeholder="дд.мм.гггг"></td>
+                  <td><input class="cellAmount" data-field="amountText" data-row-id="${row.id}" value="${escapeHtml(formatAmount(row))}" placeholder="0"></td>
+                  <td>
+                    <div class="docStack">
+                      <input class="docTitleInput" data-field="closingDocName" data-row-id="${row.id}" value="${escapeHtml(deriveClosingDocName(row))}" placeholder="Название акта / чека">
+                      <div class="docPills">${renderDocPills(row)}</div>
+                    </div>
+                  </td>
+                  <td><textarea class="cellComment" data-field="comment" data-row-id="${row.id}" placeholder="Комментарий">${escapeHtml(row.comment)}</textarea></td>
+                  <td><div class="checkCell"><input type="checkbox" data-action="toggle-in1c" data-row-id="${row.id}" ${row.in1c?'checked':''}></div></td>
+                  <td>
+                    <div class="rowActions">
+                      <button class="miniBtn" data-action="attach-row-doc" data-row-id="${row.id}">Прикрепить файл</button>
+                      <button class="miniBtn" data-action="add-row" data-after-row-id="${row.id}">+ строка</button>
+                      ${tableType==='disputed' ? '<button class="miniBtn warn" data-action="mark-row-reviewed" data-row-id="'+row.id+'">Снять спорность</button>' : ''}
+                    </div>
+                  </td>
+                </tr>`).join('')}
+            </tbody>
+          </table>
+        </div>`;
+    }
+
+    function renderAllTab(){
+      const rows = filteredRows(state.rows);
+      const box = document.getElementById('allTab');
+      box.innerHTML = tableMarkup(rows, 'all');
+    }
+
+    function renderDisputedTab(){
+      const rows = filteredRows(state.rows.filter(row => rowStatus(row) === 'disputed'));
+      const disputedDocs = docsCache.filter(doc => doc.status === 'disputed');
+      const box = document.getElementById('disputedTab');
+      box.innerHTML = `
+        ${tableMarkup(rows, 'disputed')}
+        <div style="height:14px"></div>
+        <div class="cardsGrid">
+          ${disputedDocs.length ? disputedDocs.map(doc => renderDocCard(doc, true)).join('') : '<div class="emptyState">Спорных документов сейчас нет.</div>'}
+        </div>`;
+    }
+
+    function renderUnmatchedTab(){
+      const unmatched = docsCache.filter(doc => !doc.assignedRowId && doc.status !== 'disputed');
+      const box = document.getElementById('unmatchedTab');
+      box.innerHTML = unmatched.length ? `<div class="cardsGrid">${unmatched.map(doc => renderDocCard(doc, false)).join('')}</div>` : '<div class="emptyState">Все загруженные документы уже распределены по платежам.</div>';
+    }
+
+    function renderDocCard(doc, disputedMode){
+      const assignedText = doc.assignedRowId ? 'Привязан к строке журнала.' : 'Документ пока никуда не привязан.';
+      const parsedAmounts = (doc.amounts || []).slice(0,5).map(amount => MONEY_FORMATTER.format(amount)).join(', ');
+      const suggested = doc.suggestedRowId ? state.rows.find(row => row.id === doc.suggestedRowId) : null;
+      return `
+        <article class="docCard">
+          <div class="docCardHeader">
+            <div class="docName">${escapeHtml(doc.name)}</div>
+            <span class="badge ${doc.status==='disputed'?'disputed':doc.assignedRowId?'matched':'unmatched'}">${doc.status==='disputed'?'спорно':doc.assignedRowId?'сопоставлен':'не сопоставлен'}</span>
+          </div>
+          <div class="docMeta">
+            <div><strong>Тип:</strong> ${escapeHtml(doc.type || 'файл')}</div>
+            <div><strong>Распознано контрагентов:</strong> ${escapeHtml(doc.counterpartyGuess || 'не найдено')}</div>
+            <div><strong>Суммы:</strong> ${escapeHtml(parsedAmounts || 'не найдены')}</div>
+            <div><strong>Статус:</strong> ${escapeHtml(assignedText)}</div>
+            ${suggested ? `<div><strong>Лучшее совпадение:</strong> ${escapeHtml(`${displayDate(suggested.date) || 'без даты'} · ${suggested.counterparty} · ${formatAmount(suggested)}`)}</div>` : ''}
+          </div>
+          <div class="docTextPreview">${escapeHtml((doc.text || '').slice(0, 500) || 'Распознанный текст отсутствует.')}${(doc.text || '').length > 500 ? '…' : ''}</div>
+          <div class="assignRow">
+            <select data-doc-select="${doc.id}">${optionRows(doc.assignedRowId || doc.suggestedRowId || '')}</select>
+            <button class="miniBtn" data-action="assign-doc" data-doc-id="${doc.id}">Прикрепить</button>
+          </div>
+          <div class="docActions">
+            ${disputedMode && suggested ? `<button class="miniBtn warn" data-action="accept-suggested" data-doc-id="${doc.id}">Принять совпадение</button>` : ''}
+            <button class="miniBtn" data-action="open-doc" data-doc-id="${doc.id}">Открыть</button>
+            <button class="miniBtn" data-action="download-doc" data-doc-id="${doc.id}">Скачать</button>
+            <button class="miniBtn" data-action="view-text" data-doc-id="${doc.id}">Текст</button>
+            <button class="miniBtn" data-action="recheck-doc" data-doc-id="${doc.id}">Пересчитать</button>
+          </div>
+        </article>`;
+    }
+
+    function render(){
+      renderSummary();
+      document.getElementById('hideDoneToggle').checked = !!state.hideDone;
+      document.getElementById('showOnlyNoDocsToggle').checked = !!state.showOnlyNoDocs;
+      document.querySelectorAll('.tab').forEach(tab => tab.classList.toggle('active', tab.dataset.tab === state.activeTab));
+      document.getElementById('allTab').style.display = state.activeTab === 'all' ? '' : 'none';
+      document.getElementById('disputedTab').style.display = state.activeTab === 'disputed' ? '' : 'none';
+      document.getElementById('unmatchedTab').style.display = state.activeTab === 'unmatched' ? '' : 'none';
+      renderAllTab();
+      renderDisputedTab();
+      renderUnmatchedTab();
+      document.querySelectorAll('.globalSearchInput').forEach(searchInput => {
+        searchInput.value = state.search || '';
+        searchInput.addEventListener('input', (event) => { state.search = event.target.value || ''; saveState(); render(); });
+      });
+      document.querySelectorAll('.counterpartyFilter').forEach(select => {
+        select.addEventListener('change', (event) => { state.columnFilters = state.columnFilters || {}; state.columnFilters.counterparty = event.target.value || ''; saveState(); render(); });
+      });
+      document.querySelectorAll('.sortFilter').forEach(select => {
+        select.addEventListener('change', (event) => { state.columnFilters = state.columnFilters || {}; state.columnFilters.sort = event.target.value || ''; saveState(); render(); });
+      });
+      document.querySelectorAll('.clearFiltersBtn').forEach(btn => {
+        btn.addEventListener('click', () => { state.search = ''; state.columnFilters = { counterparty:'', sort:'' }; saveState(); render(); });
+      });
+    }
+
+    function findRow(rowId){ return state.rows.find(row => row.id === rowId); }
+    function updateRow(rowId, patch){ const row = findRow(rowId); if(!row) return; Object.assign(row, patch); saveState(); render(); }
+    function addRow(afterRowId=''){
+      const fresh = normalizeRow({ id: uid('row'), invoice:'', counterparty:'', date:'', amount:null, amountText:'', closingDocName:'', comment:'', in1c:false, docIds:[], source:'manual', statusHint:'open' });
+      if(afterRowId){
+        const index = state.rows.findIndex(row => row.id === afterRowId);
+        if(index >= 0) state.rows.splice(index + 1, 0, fresh); else state.rows.unshift(fresh);
+      }else state.rows.unshift(fresh);
+      saveState(); render();
+    }
+
+    async function handleRegistryFile(file){
+      setProgress('Загрузка банковского реестра', 'Читаю файл…', true);
+      const data = await file.arrayBuffer();
+      const workbook = XLSX.read(data, {type: 'array'});
+      const sheetName = workbook.SheetNames[0];
+      const rows = XLSX.utils.sheet_to_json(workbook.Sheets[sheetName], {header: 1, raw: false, defval: ''});
+      const headerIndex = rows.findIndex(row => row.map(cell => String(cell || '').trim()).includes('Информация'));
+      if(headerIndex === -1) throw new Error('В файле не найден заголовок с колонкой «Информация».');
+      const headers = rows[headerIndex].map(cell => String(cell || '').trim());
+      const idx = {
+        doc: headers.indexOf('Документ'),
+        dateIn: headers.indexOf('Дата вх.'),
+        sum: headers.indexOf('Сумма'),
+        info: headers.indexOf('Информация')
+      };
+      const existing = new Set(state.rows.map(row => rowKey(row)));
+      let added = 0; let skipped = 0;
+      rows.slice(headerIndex + 1).forEach(row => {
+        const docType = String(row[idx.doc] || '');
+        if(!/списание/i.test(docType)) return;
+        const info = row[idx.info] || '';
+        if(!info) return;
+        const parsed = parseRegistryInfo(info);
+        const candidate = normalizeRow({
+          id: uid('row'),
+          invoice: parsed.invoice,
+          counterparty: parsed.counterparty,
+          date: normalizeDateStr(row[idx.dateIn] || ''),
+          amount: parseMoneyValue(row[idx.sum]),
+          amountText: row[idx.sum] === '' ? '' : MONEY_FORMATTER.format(parseMoneyValue(row[idx.sum]) || 0),
+          closingDocName: '',
+          comment: '',
+          in1c: false,
+          docIds: [],
+          source: 'registry',
+          statusHint: 'open',
+          rawInfo: parsed.rawInfo
+        });
+        const key = rowKey(candidate);
+        if(existing.has(key)){ skipped++; return; }
+        existing.add(key);
+        state.rows.push(candidate);
+        added++;
+      });
+      saveState();
+      render();
+      setProgress('Реестр обработан', `Добавлено строк: ${added}. Пропущено дублей: ${skipped}.`, false);
+      toast(`Реестр обработан: добавлено ${added}, пропущено дублей ${skipped}.`);
+    }
+
+    async function extractPdfText(file){
+      const bytes = new Uint8Array(await file.arrayBuffer());
+      const pdf = await pdfjsLib.getDocument({data: bytes}).promise;
+      let text = '';
+      for(let pageNo = 1; pageNo <= pdf.numPages; pageNo++){
+        const page = await pdf.getPage(pageNo);
+        const content = await page.getTextContent();
+        const pageText = content.items.map(item => item.str).join(' ');
+        text += '\n' + pageText;
+      }
+      return normalizeSpaces(text);
+    }
+    async function extractImageText(file){
+      const result = await Tesseract.recognize(file, 'rus+eng');
+      return normalizeSpaces(result.data.text || '');
+    }
+    async function extractTextFromFile(file){
+      const type = (file.type || '').toLowerCase();
+      if(type.includes('pdf') || file.name.toLowerCase().endsWith('.pdf')){
+        return await extractPdfText(file);
+      }
+      return await extractImageText(file);
+    }
+
+    function scoreDocAgainstRow(doc, row){
+      const textCorpus = [doc.counterpartyGuess, doc.text, doc.name, ...(doc.invoiceHints || [])].filter(Boolean).join(' ');
+      let score = 0;
+      const nameScore = overlapScore(row.counterparty, textCorpus);
+      score += nameScore;
+      const rowAmount = parseMoneyValue(row.amountText || row.amount);
+      if(rowAmount !== null && Array.isArray(doc.amounts) && doc.amounts.length){
+        const amountHit = doc.amounts.some(value => Math.abs(value - rowAmount) < 0.01);
+        const closeHit = doc.amounts.some(value => Math.abs(value - rowAmount) < 1);
+        if(amountHit) score += 4.5;
+        else if(closeHit) score += 2.5;
+      }
+      const rowInvoiceKey = invoiceKey(row.invoice);
+      if(rowInvoiceKey){
+        const invoiceMatch = (doc.invoiceHints || []).some(h => invoiceKey(h).includes(rowInvoiceKey) || rowInvoiceKey.includes(invoiceKey(h)));
+        if(invoiceMatch) score += 3.5;
+      }
+      if(doc.text && normalizeEntity(doc.text).includes(normalizeEntity(row.counterparty)) && row.counterparty) score += 1.2;
+      if(row.in1c) score -= 0.4;
+      return Number(score.toFixed(3));
+    }
+
+    function bestCandidatesForDoc(doc){
+      const candidates = state.rows.map(row => ({ rowId: row.id, score: scoreDocAgainstRow(doc, row) }))
+        .filter(item => item.score > 0)
+        .sort((a,b) => b.score - a.score);
+      return candidates.slice(0, 5);
+    }
+
+    async function saveDocAssignment(docId, rowId, mode='manual'){
+      const doc = await getDoc(docId);
+      if(!doc) return;
+      if(doc.assignedRowId){
+        const prevRow = findRow(doc.assignedRowId);
+        if(prevRow){ prevRow.docIds = prevRow.docIds.filter(id => id !== docId); }
+      }
+      if(rowId){
+        const row = findRow(rowId);
+        if(row){
+          if(!row.docIds.includes(docId)) row.docIds.push(docId);
+          if(!row.closingDocName) row.closingDocName = doc.name;
+        }
+      }
+      doc.assignedRowId = rowId || '';
+      doc.suggestedRowId = rowId || doc.suggestedRowId || '';
+      doc.status = rowId ? (mode === 'auto' ? 'matched' : 'manual') : 'unmatched';
+      doc.matchScore = mode === 'auto' ? doc.matchScore : 0;
+      await putDoc(doc);
+      docsCache = await getAllDocs();
+      saveState();
+      render();
+    }
+
+    async function processClosingFiles(files, directRowId=''){
+      if(!files.length) return;
+      let matched = 0, disputed = 0, unmatched = 0;
+      for(let i = 0; i < files.length; i++){
+        const file = files[i];
+        setProgress('Обработка закрывающих документов', `Файл ${i + 1} из ${files.length}: ${file.name}`, true);
+        let text = '';
+        try{
+          text = await extractTextFromFile(file);
+        }catch(error){
+          text = '';
+        }
+        const doc = {
+          id: uid('doc'),
+          name: file.name,
+          type: file.type || 'application/octet-stream',
+          size: file.size,
+          blob: file,
+          text,
+          amounts: extractAllAmounts(`${file.name} ${text}`),
+          invoiceHints: extractInvoiceHints(`${file.name} ${text}`),
+          counterpartyGuess: '',
+          assignedRowId: '',
+          suggestedRowId: '',
+          status: 'unmatched',
+          matchScore: 0,
+          createdAt: new Date().toISOString()
+        };
+        const candidates = bestCandidatesForDoc(doc);
+        if(candidates.length){
+          const best = candidates[0];
+          const second = candidates[1];
+          doc.counterpartyGuess = findRow(best.rowId)?.counterparty || '';
+          doc.suggestedRowId = best.rowId;
+          doc.matchScore = best.score;
+          if(directRowId){
+            doc.suggestedRowId = directRowId;
+          }
+        }
+        await putDoc(doc);
+        if(directRowId){
+          await saveDocAssignment(doc.id, directRowId, 'manual');
+          matched++;
+          continue;
+        }
+        if(candidates.length){
+          const best = candidates[0];
+          const second = candidates[1];
+          if(best.score >= 6 && (!second || best.score - second.score >= 2)){
+            await saveDocAssignment(doc.id, best.rowId, 'auto');
+            matched++;
+            continue;
+          }
+          if(best.score >= 4){
+            const fresh = await getDoc(doc.id);
+            fresh.status = 'disputed';
+            fresh.suggestedRowId = best.rowId;
+            fresh.matchScore = best.score;
+            await putDoc(fresh);
+            disputed++;
+          }else{
+            unmatched++;
+          }
+        }else unmatched++;
+      }
+      docsCache = await getAllDocs();
+      saveState();
+      render();
+      setProgress('Обработка завершена', `Авто: ${matched}, спорных: ${disputed}, несопоставленных: ${unmatched}.`, false);
+      toast(`Документы обработаны. Авто: ${matched}, спорных: ${disputed}, несопоставленных: ${unmatched}.`);
+    }
+
+    async function openDocFile(docId, download=false){
+      const doc = await getDoc(docId);
+      if(!doc || !doc.blob) return toast('Файл недоступен. Возможно, это строка из исходной сверки без вложенного файла.');
+      const url = URL.createObjectURL(doc.blob);
+      if(download){
+        const a = document.createElement('a');
+        a.href = url; a.download = doc.name; document.body.appendChild(a); a.click(); a.remove();
+      }else window.open(url, '_blank');
+      setTimeout(() => URL.revokeObjectURL(url), 15000);
+    }
+
+    async function unlinkDoc(docId, rowId){
+      const row = findRow(rowId); const doc = await getDoc(docId);
+      if(row){ row.docIds = row.docIds.filter(id => id !== docId); }
+      if(doc){ doc.assignedRowId = ''; doc.status = doc.suggestedRowId ? 'disputed' : 'unmatched'; await putDoc(doc); }
+      docsCache = await getAllDocs(); saveState(); render();
+    }
+    async function deleteUploadedDocsOnly(){
+      if(!confirm('Удалить все загруженные документы и очистить их привязки? Строки платежей при этом останутся.')) return;
+      state.rows = state.rows.map(row => ({...row, docIds: [], closingDocName: row.source === 'seed' ? row.closingDocName : (row.closingDocName && !row.docIds?.length ? row.closingDocName : ''), in1c: row.in1c }));
+      await clearDocsStore(); docsCache = []; saveState(); render(); toast('Загруженные документы удалены.');
+    }
+
+    function rowsForExport(){
+      return state.rows.map(row => ({
+        'Счёт': row.invoice,
+        'Контрагент': row.counterparty,
+        'Дата': displayDate(row.date),
+        'Сумма': formatAmount(row),
+        'Закрывающий документ': deriveClosingDocName(row),
+        'Комментарий': row.comment,
+        'Заведено в 1C': row.in1c ? 'Да' : '',
+        'Статус': rowStatus(row) === 'done' ? 'Заведено' : rowStatus(row) === 'matched' ? 'Есть документ' : rowStatus(row) === 'disputed' ? 'Спорное совпадение' : 'Без документа',
+        'Источник': row.source || ''
+      }));
+    }
+    function docsForExport(){
+      return docsCache.map(doc => ({
+        'Файл': doc.name,
+        'Статус': doc.status === 'matched' ? 'Авто' : doc.status === 'manual' ? 'Вручную' : doc.status === 'disputed' ? 'Спорно' : 'Не сопоставлен',
+        'Привязан к': (findRow(doc.assignedRowId)?.counterparty) || '',
+        'Лучшее совпадение': (findRow(doc.suggestedRowId)?.counterparty) || '',
+        'Суммы': (doc.amounts || []).join('; '),
+        'Распознанный текст': doc.text || ''
+      }));
+    }
+    function exportXlsx(){
+      const wb = XLSX.utils.book_new();
+      const ws1 = XLSX.utils.json_to_sheet(rowsForExport());
+      ws1['!cols'] = [
+        {wch:34},{wch:28},{wch:14},{wch:14},{wch:44},{wch:34},{wch:14},{wch:20},{wch:14}
+      ];
+      ws1['!autofilter'] = { ref: XLSX.utils.encode_range(XLSX.utils.decode_range(ws1['!ref'])) };
+      XLSX.utils.book_append_sheet(wb, ws1, 'Платежи');
+      const ws2 = XLSX.utils.json_to_sheet(docsForExport());
+      ws2['!cols'] = [{wch:28},{wch:18},{wch:28},{wch:28},{wch:18},{wch:80}];
+      XLSX.utils.book_append_sheet(wb, ws2, 'Документы');
+      XLSX.writeFile(wb, 'MAGISTER_сверка_платежей.xlsx');
+    }
+
+    function rowFromXlsxObject(obj){
+      const get = (...names) => {
+        for(const name of names){
+          if(Object.prototype.hasOwnProperty.call(obj, name) && obj[name] !== undefined && obj[name] !== null) return obj[name];
+        }
+        return '';
+      };
+      const in1cRaw = String(get('Заведено в 1C','Заведено в 1С','1C','1С')).trim().toLowerCase();
+      return normalizeRow({
+        id: uid('row'),
+        invoice: get('Счёт','Счет','Счёт / документ','Счет / документ'),
+        counterparty: get('Контрагент','Поставщик','Получатель'),
+        date: normalizeDateStr(get('Дата','Дата платежа')),
+        amount: parseMoneyValue(get('Сумма','Сумма платежа')),
+        amountText: String(get('Сумма','Сумма платежа') || ''),
+        closingDocName: get('Закрывающий документ','Документ','Акт / чек'),
+        comment: get('Комментарий','Примечание'),
+        in1c: ['да','yes','true','1','заведено','✓','x'].includes(in1cRaw),
+        source: get('Источник') || 'xlsx-restore',
+        statusHint: 'open'
+      });
+    }
+    async function restoreFromXlsx(file){
+      try{
+        const data = await file.arrayBuffer();
+        const workbook = XLSX.read(data, {type:'array'});
+        const sheetName = workbook.SheetNames.includes('Платежи') ? 'Платежи' : workbook.SheetNames[0];
+        const sheet = workbook.Sheets[sheetName];
+        const objects = XLSX.utils.sheet_to_json(sheet, {raw:false, defval:''});
+        const rows = objects.map(rowFromXlsxObject).filter(row => row.invoice || row.counterparty || row.amountText || row.date);
+        if(!rows.length) throw new Error('В XLSX не удалось распознать строки платежей.');
+        if(confirm(`Заменить текущий журнал данными из XLSX? Будет загружено строк: ${rows.length}.`)){
+          state.rows = rows;
+          state.columnFilters = { counterparty:'', sort:'' };
+          saveState(); render(); toast(`Журнал восстановлен из XLSX: ${rows.length} строк.`);
+        }
+      }catch(error){
+        alert(error.message || 'Не удалось восстановить журнал из XLSX.');
+      }
+    }
+
+
+    async function init(){
+      db = await openDb();
+      loadState();
+      docsCache = await getAllDocs();
+      document.getElementById('loadRegistryBtn').addEventListener('click', () => document.getElementById('registryInput').click());
+      document.getElementById('loadDocsBtn').addEventListener('click', () => document.getElementById('docsInput').click());
+      document.getElementById('exportXlsxBtn').addEventListener('click', exportXlsx);
+      document.getElementById('restoreXlsxBtn').addEventListener('click', () => document.getElementById('restoreInput').click());
+      document.getElementById('resetDocsBtn').addEventListener('click', deleteUploadedDocsOnly);
+      document.getElementById('registryInput').addEventListener('change', async (event) => { const file = event.target.files?.[0]; if(file){ try{ await handleRegistryFile(file); }catch(error){ setProgress('', '', false); alert(error.message || 'Не удалось обработать реестр.'); } } event.target.value=''; });
+      document.getElementById('docsInput').addEventListener('change', async (event) => { const files = [...(event.target.files || [])]; if(files.length){ try{ await processClosingFiles(files); }catch(error){ setProgress('', '', false); alert(error.message || 'Не удалось обработать закрывающие документы.'); } } event.target.value=''; });
+      document.getElementById('rowDocInput').addEventListener('change', async (event) => { const files = [...(event.target.files || [])]; if(files.length && currentAttachRowId){ try{ await processClosingFiles(files, currentAttachRowId); }catch(error){ setProgress('', '', false); alert(error.message || 'Не удалось прикрепить документ.'); } } currentAttachRowId = null; event.target.value=''; });
+      document.getElementById('restoreInput').addEventListener('change', async (event) => { const file = event.target.files?.[0]; if(file) await restoreFromXlsx(file); event.target.value=''; });
+      document.getElementById('hideDoneToggle').addEventListener('change', (event) => { state.hideDone = event.target.checked; saveState(); render(); });
+      document.getElementById('showOnlyNoDocsToggle').addEventListener('change', (event) => { state.showOnlyNoDocs = event.target.checked; saveState(); render(); });
+      document.querySelectorAll('.tab').forEach(tab => tab.addEventListener('click', () => { state.activeTab = tab.dataset.tab; saveState(); render(); }));
+      document.getElementById('closeTextModalBtn').addEventListener('click', closeModal);
+      document.getElementById('textModalOverlay').addEventListener('click', (event) => { if(event.target.id === 'textModalOverlay') closeModal(); });
+      document.body.addEventListener('input', (event) => {
+        const rowId = event.target.dataset.rowId;
+        const field = event.target.dataset.field;
+        if(!rowId || !field) return;
+        const row = findRow(rowId); if(!row) return;
+        if(field === 'date') row.date = normalizeDateStr(event.target.value);
+        else if(field === 'amountText'){ row.amountText = event.target.value; row.amount = parseMoneyValue(event.target.value); }
+        else row[field] = event.target.value;
+        saveState();
+      });
+      document.body.addEventListener('change', (event) => {
+        const action = event.target.dataset.action;
+        if(action === 'toggle-in1c'){
+          const row = findRow(event.target.dataset.rowId); if(!row) return; row.in1c = event.target.checked; saveState(); render();
+        }
+      });
+      document.body.addEventListener('click', async (event) => {
+        const btn = event.target.closest('[data-action]');
+        if(!btn) return;
+        const action = btn.dataset.action;
+        const rowId = btn.dataset.rowId;
+        const docId = btn.dataset.docId;
+        if(action === 'attach-row-doc'){
+          currentAttachRowId = rowId; document.getElementById('rowDocInput').click();
+        }else if(action === 'add-row'){
+          addRow(btn.dataset.afterRowId || '');
+        }else if(action === 'mark-row-reviewed'){
+          const row = findRow(rowId); if(row){ row.statusHint = 'open'; saveState(); render(); }
+        }else if(action === 'view-text'){
+          const doc = getDocById(docId); if(doc) openModal(doc.name, doc.text || 'Распознанный текст отсутствует.');
+        }else if(action === 'open-doc'){
+          await openDocFile(docId, false);
+        }else if(action === 'download-doc'){
+          await openDocFile(docId, true);
+        }else if(action === 'unlink-doc'){
+          await unlinkDoc(docId, btn.dataset.rowId);
+        }else if(action === 'assign-doc'){
+          const select = document.querySelector(`[data-doc-select="${docId}"]`);
+          if(select?.value) await saveDocAssignment(docId, select.value, 'manual'); else toast('Сначала выберите строку платежа.');
+        }else if(action === 'accept-suggested'){
+          const doc = getDocById(docId); if(doc?.suggestedRowId) await saveDocAssignment(docId, doc.suggestedRowId, 'auto');
+        }else if(action === 'recheck-doc'){
+          const doc = getDocById(docId); if(!doc) return;
+          const fresh = await getDoc(docId);
+          const candidates = bestCandidatesForDoc(fresh);
+          if(candidates.length){
+            if(candidates[0].score >= 6){
+              await saveDocAssignment(docId, candidates[0].rowId, 'auto');
+              toast('Документ автоматически перепривязан.');
+              return;
+            }
+            fresh.suggestedRowId = candidates[0].rowId;
+            fresh.matchScore = candidates[0].score;
+            fresh.status = candidates[0].score >= 4 ? 'disputed' : 'unmatched';
+          } else { fresh.suggestedRowId = ''; fresh.status = 'unmatched'; fresh.matchScore = 0; }
+          await putDoc(fresh); docsCache = await getAllDocs(); render(); toast('Совпадение пересчитано.');
+        }
+      });
+      render();
+    }
+
+    init().catch(error => { console.error(error); alert('Не удалось инициализировать приложение.'); });
+  </script>
+</body>
+</html>
