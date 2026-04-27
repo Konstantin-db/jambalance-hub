@@ -1,0 +1,86 @@
+<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Рабочая среда «ДжемБаланс»</title>
+  <style>
+    body{
+      margin:0;
+      font-family:Arial, sans-serif;
+      background:#f7f7f7;
+      color:#1f1f1f;
+    }
+    .wrap{
+      max-width:1100px;
+      margin:0 auto;
+      padding:40px 20px;
+    }
+    h1{
+      margin:0 0 24px;
+      font-size:32px;
+    }
+    .grid{
+      display:grid;
+      grid-template-columns:repeat(auto-fit,minmax(240px,1fr));
+      gap:16px;
+    }
+    .card{
+      display:block;
+      padding:22px;
+      border-radius:18px;
+      text-decoration:none;
+      color:#1f1f1f;
+      background:white;
+      border:1px solid #ececec;
+      box-shadow:0 8px 20px rgba(0,0,0,.05);
+      transition:.2s ease;
+    }
+    .card:hover{
+      transform:translateY(-2px);
+      border-color:#df8f4a;
+    }
+    .title{
+      font-size:22px;
+      font-weight:700;
+      margin-bottom:8px;
+    }
+    .desc{
+      font-size:14px;
+      color:#666;
+      line-height:1.45;
+    }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <h1>Рабочая среда «ДжемБаланс»</h1>
+    <div class="grid">
+      <a class="card" href="tools/dogovornyy-centr.html">
+        <div class="title">ДжемБаланс</div>
+        <div class="desc">Договорной центр и коммерческие предложения.</div>
+      </a>
+
+      <a class="card" href="tools/genstroy-journal.html">
+        <div class="title">Генстрой</div>
+        <div class="desc">Журнал договоров.</div>
+      </a>
+
+      <a class="card" href="tools/libera-gph.html">
+        <div class="title">Либера</div>
+        <div class="desc">Генератор ГПХ.</div>
+      </a>
+
+      <a class="card" href="tools/trans-trading-gph.html">
+        <div class="title">Транс-Трейдинг Профи</div>
+        <div class="desc">Генератор ГПХ.</div>
+      </a>
+
+      <a class="card" href="tools/sant-report.html">
+        <div class="title">ИП Сант И. С.</div>
+        <div class="desc">Отчёт по продажам.</div>
+      </a>
+    </div>
+  </div>
+</body>
+</html>
