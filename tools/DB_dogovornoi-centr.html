@@ -4,9 +4,6 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>ДжемБаланс — договорной центр</title>
-  <link rel="icon" type="image/png" href="/favicon.png">
-  <link rel="shortcut icon" href="/favicon.png">
-  <link rel="apple-touch-icon" href="/favicon.png">
   <style>
     :root{
       --accent:#df8f4a;
@@ -233,7 +230,67 @@
 @media (max-width:1200px){.offerShell{grid-template-columns:1fr}.offerPreviewCard{min-height:auto}}
 @media (max-width:760px){.offerCards,.offerSummaryStrip,.offerPromoFields,.offerContactGrid{grid-template-columns:1fr}.offerHeroTop{flex-direction:column}.offerHeroTitle{font-size:26px}.offerGreeting{font-size:24px}.offerSignatureVisual{width:100%;min-height:124px}.offerSignatureImageSign{width:108px;left:4px;bottom:18px}.offerSignatureImageStamp{width:118px;left:92px;bottom:-2px}}
 
-  </style>
+  
+
+    .paymentsTopbar{display:flex;align-items:flex-start;justify-content:space-between;gap:18px;margin-bottom:14px;flex-wrap:wrap}
+    .paymentsHeading{font-size:28px;font-weight:800;color:#312319;margin-bottom:6px}
+    .paymentsLead{max-width:860px;color:#6d5848;line-height:1.5}
+    .paymentsActions{display:flex;gap:10px;flex-wrap:wrap}
+    .paymentsFilters{display:flex;gap:12px;flex-wrap:wrap;align-items:end;margin:14px 0 12px}
+    .paymentsFilters label{display:flex;flex-direction:column;gap:6px;font-size:12px;font-weight:700;color:#7a5b40}
+    .paymentsFilters label.grow{flex:1 1 300px}
+    .paymentsFilters input,.paymentsFilters select{min-height:40px;border:1px solid #e7d7cb;border-radius:12px;padding:10px 12px;background:#fff;color:#2b2119}
+    .paymentsCheck{flex-direction:row !important;align-items:center;gap:8px !important;padding:10px 0 0 2px}
+    .paymentsStats{display:grid;grid-template-columns:repeat(4,minmax(160px,1fr));gap:12px;margin:12px 0 10px}
+    .paymentsStat{background:linear-gradient(180deg,#fff,#fff5ee);border:1px solid #efddd0;border-radius:18px;padding:14px 16px;box-shadow:0 8px 24px rgba(70,45,22,.05)}
+    .paymentsStatLabel{font-size:12px;text-transform:uppercase;letter-spacing:.08em;color:#9a6a3c;font-weight:800;margin-bottom:7px}
+    .paymentsStatValue{font-size:27px;font-weight:800;color:#2f2217;line-height:1}
+    .paymentsStatHint{font-size:12px;color:#7f6856;margin-top:6px}
+    .paymentsLegend{display:flex;gap:16px;flex-wrap:wrap;font-size:12px;color:#7d6552;margin:10px 0 12px}
+    .paymentsLegend .dot{display:inline-block;width:10px;height:10px;border-radius:50%;margin-right:6px;vertical-align:middle}
+    .paymentsLegend .full{background:#86c49a}.paymentsLegend .gift{background:#f0c46c}.paymentsLegend .gap{background:#e9ddd2}
+    #paymentsPanel{padding:20px 22px 22px;overflow:visible}
+    .paymentsTableWrap{overflow:auto;max-height:calc(100vh - 330px);border:1px solid #ead9cb;border-radius:22px;background:#fff;box-shadow:0 12px 30px rgba(70,45,22,.06)}
+    .paymentsTable{width:100%;border-collapse:separate;border-spacing:0;min-width:0;table-layout:fixed}
+    .paymentsTable th,.paymentsTable td{border-bottom:1px solid #f0e4da;padding:9px 7px;vertical-align:top;background:#fff;word-wrap:break-word;overflow-wrap:anywhere}
+    .paymentsTable thead th{position:sticky;top:0;z-index:5;background:linear-gradient(180deg,#fff8f1,#fff2e7);font-size:12px;text-transform:uppercase;letter-spacing:.06em;color:#915f2f;font-weight:800}
+    .paymentsTable .stickyCol{position:static;background:#fff;box-shadow:none}
+    .paymentsTable .stickyColSecond{position:static;background:#fff;box-shadow:none}
+    .paymentsTable .stickyColThird{position:static;background:#fff;box-shadow:none}
+    .paymentsTable thead .stickyCol,.paymentsTable thead .stickyColSecond,.paymentsTable thead .stickyColThird{background:linear-gradient(180deg,#fff8f1,#fff2e7)}
+    .paymentsClientCell{width:19%}
+    .paymentsClientName{font-weight:800;color:#2f2217;font-size:13px;line-height:1.35}
+    .paymentsClientMeta{margin-top:6px;display:flex;gap:6px;flex-wrap:wrap}
+    .paymentsTag{display:inline-flex;align-items:center;padding:4px 8px;border-radius:999px;background:#fff1df;border:1px solid #efd2b6;color:#925b23;font-size:11px;font-weight:700}
+    .paymentsTag.alert{background:#fff0ef;border-color:#ffd0cc;color:#b42318}
+    .paymentsPrice{width:8%;font-weight:800;color:#2e2319;text-align:right;white-space:nowrap;font-size:12px}
+    .paymentsStatusCell{width:9%}
+    .paymentsStatusPill{display:inline-flex;align-items:center;padding:5px 9px;border-radius:999px;font-size:11px;font-weight:800;text-transform:uppercase;letter-spacing:.05em}
+    .paymentsStatusPill.full{background:#e7f6eb;color:#2b7b46}
+    .paymentsStatusPill.partial{background:#fff4dc;color:#9b6a18}
+    .paymentsStatusPill.empty{background:#f1ece7;color:#7b6a5c}
+    .paymentsProgress{margin-top:6px;font-size:11px;color:#7c6655;line-height:1.35}
+    .paymentsMonthHead{width:4.5%;text-align:center;font-size:11px;padding:8px 4px !important}
+    .paymentsCellInput,.paymentsNoteInput{width:100%;border:1px solid #ead8ca;border-radius:10px;padding:7px 8px;background:#fff;font-size:12px;color:#2b2119;min-height:34px}
+    .paymentsCellInput{min-width:0;text-align:center}
+    .paymentsCellInput.hasValue{background:#f1fff3;border-color:#b9ddc0}
+    .paymentsCellInput.isGift{background:#fff5dc;border-color:#f2cf7e}
+    .paymentsCellInput.isMissingPrevious{background:#fff3f2;border-color:#f2b8b5}
+    .paymentsCellInput:focus,.paymentsNoteInput:focus{outline:none;border-color:#e18d3c;box-shadow:0 0 0 3px rgba(225,141,60,.14)}
+    .paymentsActionsCol{width:6%}
+    .paymentsNoteCol{width:9%}
+    .paymentsRowActions{display:flex;gap:6px;flex-wrap:wrap;justify-content:center}
+    .paymentsMiniBtn{border:1px solid #ecd5c4;background:#fff7f0;color:#7b5229;border-radius:10px;padding:6px 8px;font-size:11px;font-weight:700;cursor:pointer}
+    .paymentsMiniBtn:hover{border-color:#df8f4a;color:#5f3f20}
+    .paymentsMiniBtn.danger{background:#fff3f2;color:#9f4034;border-color:#f0ccc7}
+    .paymentsTable tr.needs-payment td{background:#fffafa}
+    .paymentsTable tr.needs-payment td:first-child{box-shadow:inset 4px 0 0 #d92d20}
+    .paymentsTable tr.archived td{background:#faf7f4;color:#8a7563}
+    .paymentsEmpty{padding:22px 18px;color:#7b6552}
+    @media (max-width:1200px){.paymentsStats{grid-template-columns:repeat(2,minmax(160px,1fr))}}
+    @media (max-width:760px){.paymentsStats{grid-template-columns:1fr}.paymentsTopbar{flex-direction:column}.paymentsActions{width:100%}.paymentsFilters{flex-direction:column;align-items:stretch}.paymentsFilters label,.paymentsFilters label.grow{width:100%}.paymentsCheck{padding-top:0}}
+
+</style>
 </head>
 <body>
 <header>
@@ -356,6 +413,7 @@
   <main class="workspace">
     <div class="tabs">
       <div class="tab active" data-view="preview">Документы</div>
+      <div class="tab" data-view="payments">Оплаты</div>
       <div class="tab" data-view="journal">Журнал клиентов</div>
       <div class="tab" data-view="commercial">Коммерческие предложения</div>
     </div>
@@ -369,6 +427,36 @@
         </div>
       </div>
       <div class="docPreview" id="docPreview"></div>
+    </section>
+
+    
+
+    <section class="panel" id="paymentsPanel" style="display:none">
+      <div class="paymentsTopbar">
+        <div>
+          <div class="paymentsHeading">Оплаты</div>
+          <div class="paymentsLead">Ручной учёт оплат по клиентам и месяцам. Название клиента и стоимость обслуживания подтягиваются из журнала договоров, а история за прошлые периоды уже перенесена из листа «Оплаты».</div>
+        </div>
+        <div class="paymentsActions">
+          <button class="ghost" id="paymentsSyncBtn">Синхронизировать с журналом</button>
+          <button class="ghost" id="paymentsAddBtn">Добавить клиента</button>
+          <button class="primary" id="paymentsExportBtn">Выгрузить .xlsx</button>
+        </div>
+      </div>
+      <div class="paymentsFilters">
+        <label><span>Год</span><select id="paymentsYear"></select></label>
+        <label class="grow"><span>Клиент</span><input id="paymentsSearch" placeholder="Поиск по клиенту"></label>
+        <label><span>Фильтр</span><select id="paymentsFilter"><option value="all">Все строки</option><option value="needs">Нет оплаты за прошлый месяц</option><option value="journal">Только из журнала</option></select></label>
+        <label class="paymentsCheck"><input type="checkbox" id="paymentsShowArchived"> <span>Показывать архив</span></label>
+      </div>
+      <div class="paymentsStats" id="paymentsStats"></div>
+      <div class="paymentsLegend">
+        <span><i class="dot full"></i> месяц отмечен</span>
+        <span><i class="dot gift"></i> особая отметка или подарок</span>
+      </div>
+      <div class="paymentsTableWrap">
+        <table class="paymentsTable" id="paymentsTable"></table>
+      </div>
     </section>
 
     <section class="journal" id="journalPanel">
@@ -4625,7 +4713,7 @@ const OFFER_CATALOG = [{"title": "Разовые услуги", "items": [{"id":
 const OFFER_DESCRIPTIONS = {"hr": {"title": "Кадровый учёт для компаний", "paragraphs": ["Удалённое ведение кадрового учёта — это современное и эффективное решение, позволяющее оптимизировать управление персоналом, обеспечить юридическую безопасность и сократить административные расходы.", "Поддержка в ведении кадрового учёта на удалённой основе включает управление трудовыми договорами, приёмами на работу, увольнениями, отпусками, командировками и другими кадровыми документами. Это обеспечивает соблюдение трудового законодательства и позволяет не держать штатного кадровика."], "bullets": ["Управление трудовыми договорами", "Оформление сотрудников", "Учёт рабочего времени сотрудников", "Увольнение сотрудников", "Ведение базы в 1С ЗУП", "Разработка должностных инструкций", "Кадровое делопроизводство", "Ведение миграционного учёта"]}, "payroll": {"title": "Расчёт заработных плат и налогов с ФОТ", "paragraphs": ["Расчёт зарплаты и налогов с ФОТ от «ДжемБаланс» — это комплексная услуга, которая обеспечивает точный и своевременный расчёт заработной платы и налогов. Команда готовит необходимые документы, включая отчётность, и обеспечивает соответствие законодательству РФ."], "bullets": ["Расчёт заработной платы за отработанное время", "Расчёт налогов с фонда оплаты труда", "Расчёт выходных пособий при увольнении", "Расчёт выплат по листам временной нетрудоспособности", "Начисление премиальных выплат", "Расчёт командировочных расходов", "Расчёт страховых взносов", "Ежемесячная автоматическая передача расчётных листков сотрудникам", "Ежемесячная передача расчётной ведомости директору", "Расчёт иных компенсационных выплат"]}, "accounting-ooo": {"title": "Бухгалтерское сопровождение для ООО", "paragraphs": ["Откажитесь от штатного бухгалтера и уменьшите затраты на зарплату и связанные с ней налоги и взносы."], "bullets": ["Ведение первичного бухгалтерского учёта", "Подготовка и сдача налоговой отчётности", "Помощь в бухгалтерских вопросах", "Оптимизация налоговой нагрузки", "Коммуникация с налоговой в случае расхождений", "Проверка контрагентов", "Ведение документооборота"]}, "accounting-ip": {"title": "Бухгалтерское сопровождение для ИП", "paragraphs": ["Ведение всего бухгалтерского и налогового учёта для ИП на аутсорсинге — решение для тех, кто хочет сосредоточиться на развитии бизнеса, минимизируя затраты времени и ресурсов на рутинные операции."], "bullets": ["Ведение первичного бухгалтерского учёта", "Подготовка и подача деклараций ИП", "Помощь в бухгалтерских вопросах", "Подготовка и сдача бухгалтерской и налоговой отчётности", "Составление нулевой отчётности", "Электронная подпись и ЭДО", "Ведение документооборота"]}, "military": {"title": "Ведение воинского учёта", "paragraphs": ["Надёжное и удобное решение для бизнеса, позволяющее оставаться в полном соответствии с законодательством РФ. Мы берём на себя подготовку и сдачу отчётности, учёт призывников и военнообязанных и обновление данных по требованиям законодательства."], "bullets": ["Подготовка и сдача отчётности в комиссариат", "Учёт призывников и военнообязанных", "Постановка на воинский учёт", "Сверки с военкоматом по графику"]}};
 let offerBlocks = [];
 let offerOverrides = {};
-let state = loadState();
+let state = {journal: INITIAL_JOURNAL.map(normalizeRecord), payments:null, createdAt:new Date().toISOString()};
 let currentBlocks = [];
 let numberTouched = false;
 let selectedContractIndex = null;
@@ -4641,14 +4729,53 @@ function showToast(text){const t=$('toast');t.textContent=text;t.classList.add('
 function escapeXml(s){return String(s ?? '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;')}
 function escapeHtml(s){return String(s ?? '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')}
 function cleanNameForFile(s){return String(s||'document').replace(/[\\/:*?"<>|]+/g,' ').replace(/\s+/g,' ').trim().slice(0,90)}
+
+const PAYMENT_MONTHS = [{"col": 3, "key": "2024-06", "year": 2024, "month": 6, "label": "Июн"}, {"col": 4, "key": "2024-07", "year": 2024, "month": 7, "label": "Июл"}, {"col": 5, "key": "2024-08", "year": 2024, "month": 8, "label": "Авг"}, {"col": 6, "key": "2024-09", "year": 2024, "month": 9, "label": "Сен"}, {"col": 7, "key": "2024-10", "year": 2024, "month": 10, "label": "Окт"}, {"col": 8, "key": "2024-11", "year": 2024, "month": 11, "label": "Ноя"}, {"col": 9, "key": "2024-12", "year": 2024, "month": 12, "label": "Дек"}, {"col": 10, "key": "2025-01", "year": 2025, "month": 1, "label": "Янв"}, {"col": 11, "key": "2025-02", "year": 2025, "month": 2, "label": "Фев"}, {"col": 12, "key": "2025-03", "year": 2025, "month": 3, "label": "Мар"}, {"col": 13, "key": "2025-04", "year": 2025, "month": 4, "label": "Апр"}, {"col": 14, "key": "2025-05", "year": 2025, "month": 5, "label": "Май"}, {"col": 15, "key": "2025-06", "year": 2025, "month": 6, "label": "Июн"}, {"col": 16, "key": "2025-07", "year": 2025, "month": 7, "label": "Июл"}, {"col": 17, "key": "2025-08", "year": 2025, "month": 8, "label": "Авг"}, {"col": 18, "key": "2025-09", "year": 2025, "month": 9, "label": "Сен"}, {"col": 19, "key": "2025-10", "year": 2025, "month": 10, "label": "Окт"}, {"col": 20, "key": "2025-11", "year": 2025, "month": 11, "label": "Ноя"}, {"col": 21, "key": "2025-12", "year": 2025, "month": 12, "label": "Дек"}, {"col": 22, "key": "2026-01", "year": 2026, "month": 1, "label": "Янв"}, {"col": 23, "key": "2026-02", "year": 2026, "month": 2, "label": "Фев"}, {"col": 24, "key": "2026-03", "year": 2026, "month": 3, "label": "Мар"}, {"col": 25, "key": "2026-04", "year": 2026, "month": 4, "label": "Апр"}, {"col": 26, "key": "2026-05", "year": 2026, "month": 5, "label": "Май"}, {"col": 27, "key": "2026-06", "year": 2026, "month": 6, "label": "Июн"}, {"col": 28, "key": "2026-07", "year": 2026, "month": 7, "label": "Июл"}, {"col": 29, "key": "2026-08", "year": 2026, "month": 8, "label": "Авг"}, {"col": 30, "key": "2026-09", "year": 2026, "month": 9, "label": "Сен"}, {"col": 31, "key": "2026-10", "year": 2026, "month": 10, "label": "Окт"}, {"col": 32, "key": "2026-11", "year": 2026, "month": 11, "label": "Ноя"}, {"col": 33, "key": "2026-12", "year": 2026, "month": 12, "label": "Дек"}];
+const INITIAL_PAYMENTS = [{"clientName": "Закоморный Олег Анатольевич ЭДО", "servicePrice": "5000", "note": "", "paymentValues": {"2024-06": "02.06.2024", "2024-07": "01.07.2024", "2024-08": "01.08.2027", "2024-09": "02.09.2024", "2024-10": "02.10.2024", "2024-11": "01.11.2024", "2024-12": "02.12.2024", "2025-01": "10.01.2025", "2025-02": "08.02.2025", "2025-03": "03.03.2025", "2025-04": "05.04.2025", "2025-05": "06.05.2025", "2025-06": "06.06.2025", "2025-07": "02.07.2025", "2025-08": "04.08.2025", "2025-09": "08.09.2025", "2025-10": "06.10.2025", "2025-11": "10.11.2025", "2025-12": "01.12.2025", "2026-01": "14.01.2026", "2026-02": "03.02.2026", "2026-03": "03.03.2026", "2026-04": "07.04.2026"}}, {"clientName": "Махонина Елена Николаевна  ЭДО", "servicePrice": "26500", "note": "", "paymentValues": {"2024-06": "03.06.2024", "2024-07": "25.07.2024", "2024-08": "06.08.2024", "2024-09": "03.09.2024", "2024-10": "01.10.2024", "2024-11": "01.11.2024", "2024-12": "03.12.2024", "2025-01": "10.01.2025", "2025-02": "03.02.2025/10.02.2025", "2025-03": "04.03.2025", "2025-04": "01.04.2025", "2025-05": "05.05.2025", "2025-06": "03.06.2025", "2025-07": "01.07.2025", "2025-08": "04.08.2025", "2025-09": "02.09.2025", "2025-10": "03.10.2025", "2025-11": "01.11.2025", "2025-12": "02.12.2025", "2026-01": "12.01.2026", "2026-02": "02.02.2026", "2026-03": "02.03.2026", "2026-04": "01.04.2026"}}, {"clientName": "Мацко Александр Сергеевич ИП ЭДО (дублировать на почту)", "servicePrice": "15000", "note": "", "paymentValues": {"2024-06": "18.06.2024", "2024-07": "01.07.2024", "2024-08": "02.08.2024", "2024-09": "02.09.2024", "2024-10": "08.10.2024", "2024-11": "08.11.2024", "2024-12": "02.12.2024", "2025-01": "10.01.2025", "2025-02": "04.02.2025", "2025-03": "06.03.2025", "2025-04": "03.04.2025", "2025-05": "12.05.2025", "2025-06": "03.06.2025", "2025-07": "02.07.2025", "2025-08": "12.09.2025", "2025-09": "03.09.2025", "2025-10": "03.10.2025", "2025-11": "01.11.2025", "2025-12": "05.12.2025", "2026-01": "12.01.2026", "2026-02": "03.02.2026", "2026-03": "10.03.2026", "2026-04": "12.04.2026"}}, {"clientName": "Сиволонский Олег Дмитриевич ИП ЭДО", "servicePrice": "24000", "note": "", "paymentValues": {"2024-06": "20.06.2024", "2024-07": "01.07.2024", "2024-08": "02.08.2024", "2024-09": "02.09.2024", "2024-10": "02.10.2024", "2024-11": "05.11.2024", "2024-12": "03.12.2024", "2025-01": "14.01.2025", "2025-02": "05.02.2025", "2025-03": "04.03.2025", "2025-04": "02.04.2025", "2025-05": "06.05.2025", "2025-06": "03.06.2025", "2025-07": "02.07.2025", "2025-08": "06.08.2025", "2025-09": "03.09.2025", "2025-10": "03.10.2025", "2025-11": "01.11.2025", "2025-12": "01.12.2025", "2026-01": "14.01.2026", "2026-02": "03.02.2026", "2026-03": "04.03.2026", "2026-04": "01.04.2026"}}, {"clientName": "МКК Гудвин Шиппинг ЛТД", "servicePrice": "40150", "note": "", "paymentValues": {"2024-07": "16.07.2024", "2024-08": "05.08.2024", "2024-09": "02.09.2024", "2024-10": "02.10.2024", "2024-11": "05.11.2024", "2024-12": "02.12.2024", "2025-01": "14.01.2025/20.01.2025", "2025-02": "03.02.2025", "2025-03": "03.03.2025", "2025-04": "09.04.2025", "2025-05": "05.05.2025", "2025-06": "05.06.2025", "2025-07": "01.07.2025", "2025-08": "12.08.2025", "2025-09": "08.09.2025", "2025-10": "06.10.2025", "2025-11": "28.11.2025", "2025-12": "15.12.2025", "2026-01": "19.01.2026", "2026-02": "05.02.2026", "2026-03": "10.03.2026", "2026-04": "03.04.2026"}}, {"clientName": "Магичева Светлана Владимировна", "servicePrice": "7500", "note": "", "paymentValues": {"2024-07": "08.07.2024", "2024-08": "05.08.2024", "2024-09": "04.09.2024", "2024-10": "09.10.2024", "2024-11": "07.11.2024", "2024-12": "04.12.2024", "2025-01": "10.01.2025", "2025-02": "05.02.2025", "2025-03": "03.03.2025", "2025-04": "01.04.2025", "2025-05": "07.05.2025", "2025-06": "03.06.2025", "2025-07": "01.07.2025", "2025-08": "01.08.2025", "2025-09": "02.09.2025", "2025-10": "03.10.2025", "2025-11": "01.11.2025", "2025-12": "02.12.2025", "2026-01": "14.01.2026", "2026-02": "05.02.2026", "2026-03": "05.03.2026", "2026-04": "02.04.2026"}}, {"clientName": "\"ДРЭГОН ФРАЙТ\" ЭДО", "servicePrice": "42000", "note": "", "paymentValues": {"2024-07": "29.07.2024", "2024-08": "12.08.2024", "2024-09": "12.09.2024", "2024-10": "14.10.2024", "2024-11": "01.11.2024", "2024-12": "05.12.2024", "2025-01": "14.01.2025", "2025-02": "03.02.2025", "2025-03": "03.03.2025", "2025-04": "03.04.2025", "2025-05": "05.05.2025", "2025-06": "02.06.2025", "2025-07": "месяц в подарок", "2025-08": "01.08.2025", "2025-09": "03.09.2025", "2025-10": "03.10.2025", "2025-11": "05.11.2025", "2025-12": "01.12.2025", "2026-01": "13.01.2026", "2026-02": "03.02.2026", "2026-03": "02.03.2026", "2026-04": "02.04.2026"}}, {"clientName": "\"ДРЭГОН ФРАЙТ\" ЭДО", "servicePrice": "3500", "note": "", "paymentValues": {"2024-08": "29.07.2024", "2024-09": "24.09.2024", "2024-10": "14.10.2024", "2024-11": "01.11.2024", "2024-12": "05.12.2024", "2025-01": "14.01.2025", "2025-02": "03.02.2025", "2025-03": "03.03.2025", "2025-04": "03.04.2025", "2025-05": "05.05.2025", "2025-06": "02.06.2025", "2025-07": "01.07.2025", "2025-08": "01.08.2025", "2025-09": "03.09.2025", "2025-10": "03.10.2025", "2025-11": "05.11.2025", "2025-12": "01.12.2025", "2026-01": "13.01.2026", "2026-02": "03.02.2026", "2026-03": "02.03.2026", "2026-04": "02.04.2026"}}, {"clientName": "Романов Павел Николаевич ИП ЭДО", "servicePrice": "12700", "note": "", "paymentValues": {"2024-08": "04.09.2024", "2024-09": "17.09.2024", "2024-10": "22.10.2024", "2024-11": "26.11.2024", "2024-12": "10.01.2025", "2025-01": "10.01.2025", "2025-02": "12.02.2025", "2025-03": "24.03.2025", "2025-04": "17.04.2025", "2025-05": "26.05.2025", "2025-06": "16.06.2025", "2025-07": "02.07.2025", "2025-08": "04.08.2025", "2025-09": "29.09.2025", "2025-10": "29.10.2025", "2025-11": "27.11.2025", "2025-12": "25.12.2025", "2026-01": "23.01.2026", "2026-02": "17.02.2026", "2026-03": "26.03.2026", "2026-04": "15.04.2026"}}, {"clientName": "ИП Гук Алина Витальевна", "servicePrice": "26300", "note": "", "paymentValues": {"2024-12": "02.12.2024", "2025-01": "09.01.2025", "2025-02": "03.02.2025", "2025-03": "03.03.2025", "2025-04": "01.04.2025", "2025-05": "05.05.2025", "2025-06": "02.06.2025", "2025-07": "01.07.2025", "2025-08": "01.08.2025", "2025-09": "02.09.2025", "2025-10": "02.10.2025", "2025-11": "01.11.2025", "2025-12": "01.12.2025", "2026-01": "12.01.2026", "2026-02": "02.02.2026", "2026-03": "02.03.2026", "2026-04": "01.04.2026"}}, {"clientName": "ИП СОЛОВЬЕВ АЛЕКСЕЙ ВЛАДИМИРОВИЧ ЭДО", "servicePrice": "5500", "note": "", "paymentValues": {"2024-12": "02.12.2024", "2025-01": "09.01.2025", "2025-02": "20.02.2025", "2025-03": "04.03.2025", "2025-04": "08.04.2025", "2025-05": "05.05.2025", "2025-06": "03.06.2025", "2025-07": "02.07.2025", "2025-08": "05.08.2025", "2025-09": "02.09.2025", "2025-10": "03.10.2025", "2025-11": "01.11.2025", "2025-12": "02.12.2025", "2026-01": "12.01.2026", "2026-02": "02.02.2026", "2026-03": "02.03.2026", "2026-04": "01.04.2026"}}, {"clientName": "ООО \"КоалаТур\"  ЭДО", "servicePrice": "20000", "note": "", "paymentValues": {"2024-11": "29.01.2025", "2025-01": "13.01.2025/29.01.2025", "2025-02": "03.02.2025", "2025-03": "03.03.2025", "2025-04": "01.04.2025", "2025-05": "06.05.2025", "2025-06": "03.06.2025", "2025-07": "03.07.2025", "2025-08": "04.08.2025", "2025-09": "04.09.2025", "2025-10": "03.10.2025", "2025-11": "05.11.2025", "2025-12": "01.12.2025", "2026-01": "13.01.2026", "2026-02": "06.02.2026", "2026-03": "04.03.2026", "2026-04": "02.04.2026"}}, {"clientName": "ИП Иванова Елена Сергеевна ЭДО", "servicePrice": "44000", "note": "", "paymentValues": {"2025-02": "03.02.2025", "2025-03": "03.03.2025", "2025-04": "01.04.2025", "2025-05": "05.05.2025", "2025-06": "03.06.2025", "2025-07": "01.07.2025", "2025-08": "01.08.2025", "2025-09": "02.09.2025", "2025-10": "03.10.2025", "2025-11": "01.11.2025", "2025-12": "01.12.2025", "2026-01": "26.01.2026", "2026-02": "02.02.2026", "2026-03": "02.03.2026", "2026-04": "01.04.2026"}}, {"clientName": "ООО \"ЛИБЕРА\" ЭДО", "servicePrice": "98000", "note": "", "paymentValues": {"2025-01": "28.01.2025", "2025-02": "05.02.2025", "2025-03": "07.03.2025", "2025-04": "03.04.2025", "2025-05": "05.05.2025", "2025-06": "03.06.2025", "2025-07": "02.07.2025", "2025-08": "01.08.2025", "2025-09": "02.09.2025", "2025-10": "03.10.2025", "2025-11": "01.11.2025", "2025-12": "01.12.2025", "2026-01": "13.01.2026", "2026-02": "02.02.2026", "2026-03": "02.03.2026", "2026-04": "01.04.2026"}}, {"clientName": "ООО \"Транс -Трейдинг Профи\" ЭДО", "servicePrice": "271000", "note": "", "paymentValues": {"2025-02": "17.04.2025", "2025-03": "15.05.2025", "2025-04": "10.07.2025", "2025-05": "15.09.2025", "2025-06": "30.11.2025", "2025-07": "04.02.2026", "2025-08": "04.03.2026"}}, {"clientName": "ООО \"НОЙСТРОЙ\" ЭДО", "servicePrice": "127000", "note": "", "paymentValues": {"2025-04": "10.04.2025", "2025-05": "06.05.2025", "2025-06": "10.06.2025", "2025-07": "01.07.2025", "2025-08": "01.08.2025", "2025-09": "03.09.2025", "2025-10": "09.10.2025", "2025-11": "13.11.2025", "2025-12": "01.12.2025", "2026-01": "21.01.2026", "2026-02": "02.02.2026", "2026-03": "02.03.2026"}}, {"clientName": "ИП Арустамова Валерия Николаевна ЭДО", "servicePrice": "42000", "note": "", "paymentValues": {"2025-05": "07.05.2025", "2025-06": "03.06.2025", "2025-07": "01.07.2025", "2025-08": "04.08.2025", "2025-09": "03.09.2025", "2025-10": "12.10.2025", "2025-11": "01.11.2025", "2025-12": "01.12.2025", "2026-01": "13.01.2026", "2026-02": "02.02.2026", "2026-03": "03.03.2026", "2026-04": "01.04.2026"}}, {"clientName": "ИП Ронжин Дмитрий Игоревич ЭДО", "servicePrice": "40830", "note": "", "paymentValues": {"2025-01": "24.04.2025", "2025-02": "24.04.2025", "2025-03": "24.04.2025", "2025-04": "24.04.2025", "2025-05": "07.05.2025", "2025-06": "03.06.2025", "2025-07": "01.07.2025", "2025-08": "04.08.2025", "2025-09": "03.09.2025", "2025-10": "08.10.2025", "2025-11": "05.11.2025", "2025-12": "01.12.2025", "2026-01": "14.01.2026", "2026-02": "02.02.2026", "2026-03": "03.03.2026", "2026-04": "02.04.2026"}}, {"clientName": "ИП Лукашов Владислав Андреевич ЭДО", "servicePrice": "33500", "note": "", "paymentValues": {"2025-06": "02.07.2025", "2025-07": "02.07.2025", "2025-08": "04.08.2025", "2025-09": "03.09.2025", "2025-10": "03.10.2025", "2025-11": "02.11.2025", "2025-12": "02.12.2025", "2026-01": "14.01.2026", "2026-02": "02.02.2026", "2026-03": "23.03.2026"}}, {"clientName": "ООО «ПОТОК» ЭДО", "servicePrice": "6600", "note": "", "paymentValues": {"2025-10": "09.10.2025", "2025-11": "01.11.2025", "2025-12": "08.12.2025", "2026-01": "12.01.2026", "2026-02": "02.02.2026", "2026-03": "06.03.2026", "2026-04": "06.04.2026"}}, {"clientName": "ИП Сотников Андрей Дмитриевич", "servicePrice": "3500", "note": "", "paymentValues": {"2025-10": "23.10.2025", "2025-11": "05.11.2025", "2025-12": "03.12.2025", "2026-01": "20.01.2026", "2026-02": "11.02.2026", "2026-03": "12.03.2026", "2026-04": "07.04.2026"}}, {"clientName": "ИП Тельганов Александр Садиг оглы", "servicePrice": "6000", "note": "", "paymentValues": {"2025-12": "01.12.2025", "2026-01": "12.01.2026", "2026-02": "02.02.2026", "2026-03": "02.03.2026", "2026-04": "02.04.2026"}}, {"clientName": "ИП Райхерт Карина Андреевна ЭДО", "servicePrice": "42000", "note": "", "paymentValues": {"2025-12": "25.12.2025", "2026-01": "12.01.2026", "2026-02": "03.02.2026", "2026-03": "02.03.2026", "2026-04": "01.04.2026"}}, {"clientName": "ИП Коваль Эдуард Алексеевич ЭДО", "servicePrice": "15000", "note": "", "paymentValues": {"2026-01": "20.01.2026", "2026-02": "02.02.2026", "2026-03": "21.03.2026", "2026-04": "25.04.2026"}}, {"clientName": "ИП Шумилов Владислав Александрович ЭДО", "servicePrice": "15000", "note": "", "paymentValues": {"2026-01": "23.01.2026", "2026-02": "02.02.2026", "2026-03": "23.03.2026"}}, {"clientName": "ИП Сенкевич Станислав Геннадьевич", "servicePrice": "33800", "note": "", "paymentValues": {"2026-01": "15.01.2026", "2026-02": "06.03.2026", "2026-03": "06.03.2026", "2026-04": "23.04.2026"}}, {"clientName": "ООО «Мао Мао»", "servicePrice": "32000", "note": "", "paymentValues": {}}, {"clientName": "ИП Хачатрян Карен Васяевич ЭДО", "servicePrice": "63850", "note": "", "paymentValues": {"2026-02": "29.01.2026", "2026-03": "03.03.2026", "2026-04": "31.03.2026"}}, {"clientName": "ИП Тимченко Николай Анатольевич ЭДО", "servicePrice": "6000", "note": "", "paymentValues": {"2026-02": "27.02.2026", "2026-03": "03.03.2026", "2026-04": "02.04.2026"}}, {"clientName": "ИП Честнов Николай Валентинович ЭДО", "servicePrice": "3000", "note": "", "paymentValues": {"2026-02": "27.02.2026", "2026-03": "11.03.2026", "2026-04": "03.04.2026"}}, {"clientName": "ИП Сант Илья Сергеевич ЭДО", "servicePrice": "17000", "note": "", "paymentValues": {"2026-02": "25.02.2026", "2026-03": "10.03.2026", "2026-04": "02.04.2026"}}, {"clientName": "ИП ВИКТОРОВ МАКСИМ СЕРГЕЕВИЧ", "servicePrice": "15000", "note": "", "paymentValues": {"2026-03": "13.03.2026", "2026-04": "12.04.2026"}}, {"clientName": "ООО «Генстрой» ЭДО", "servicePrice": "50000", "note": "", "paymentValues": {"2026-03": "22.04.2026", "2026-04": "22.04.2026", "2026-11": ".", "2026-12": "."}}, {"clientName": "ООО \"ОДУВАНЧИК\" ЭДО", "servicePrice": "50000", "note": "", "paymentValues": {}}, {"clientName": "ООО \"КИМБО\" ЭДО", "servicePrice": "50000", "note": "", "paymentValues": {}}, {"clientName": "ИП Куганов Хошим Холбутаевич", "servicePrice": "20000", "note": "", "paymentValues": {}}, {"clientName": "ИП Капков Дмитрий Вячеславович", "servicePrice": "13500", "note": "", "paymentValues": {}}, {"clientName": "ИП Боголюбов Марк\nКонстантинович", "servicePrice": "15000", "note": "", "paymentValues": {"2026-05": "с 29.05.2026"}}];
+const PAYMENT_MONTH_NAMES = {1:'Январь',2:'Февраль',3:'Март',4:'Апрель',5:'Май',6:'Июнь',7:'Июль',8:'Август',9:'Сентябрь',10:'Октябрь',11:'Ноябрь',12:'Декабрь'};
+function normalizePaymentText(s){return String(s||'').replace(/ /g,' ').replace(/[«»"“”]/g,'').replace(/\([^)]*\)/g,' ').replace(/эдо/ig,' ').replace(/\s+/g,' ').trim()}
+function normalizePaymentClientKey(s){return normalizePaymentText(s).toLowerCase().replace(/ип/ig,' ').replace(/ооо/ig,' ').replace(/[^a-zа-яё0-9]+/ig,' ').replace(/\s+/g,' ').trim()}
+function normalizePaymentRow(row, idx=0){
+  const values = row && row.paymentValues && typeof row.paymentValues==='object' ? row.paymentValues : {};
+  const paymentValues={};
+  Object.keys(values).forEach(key=>{paymentValues[key]=String(values[key]||'').trim();});
+  return {
+    id: row.id || `pay-${Date.now()}-${idx}-${Math.random().toString(36).slice(2,7)}`,
+    clientName: normalizePaymentText(row.clientName || ''),
+    servicePrice: String(row.servicePrice || '').trim(),
+    note: String(row.note || '').trim(),
+    paymentValues,
+    archived: !!row.archived
+  };
+}
+function createInitialPaymentsState(){
+  const thisYear = new Date().getFullYear();
+  const years = [...new Set(PAYMENT_MONTHS.map(m=>m.year))].sort((a,b)=>a-b);
+  const selectedYear = years.includes(thisYear) ? thisYear : years[years.length-1];
+  return {rows: INITIAL_PAYMENTS.map(normalizePaymentRow), selectedYear, search:'', filter:'all', showArchived:false};
+}
+function normalizePaymentsState(payments){
+  const base = createInitialPaymentsState();
+  if(!payments || !Array.isArray(payments.rows)) return base;
+  return {
+    rows: payments.rows.map(normalizePaymentRow),
+    selectedYear: payments.selectedYear || base.selectedYear,
+    search: String(payments.search || ''),
+    filter: String(payments.filter || 'all'),
+    showArchived: !!payments.showArchived
+  };
+}
+
 function loadState(){
   try{
     const saved=JSON.parse(localStorage.getItem(STORAGE_KEY));
-    if(saved && Array.isArray(saved.journal)) return {...saved, journal:saved.journal.map(normalizeRecord)};
+    if(saved && Array.isArray(saved.journal)) return {...saved, journal:saved.journal.map(normalizeRecord), payments: normalizePaymentsState(saved.payments)};
   }catch(e){}
-  return {journal: INITIAL_JOURNAL.map(normalizeRecord), createdAt:new Date().toISOString()};
+  return {journal: INITIAL_JOURNAL.map(normalizeRecord), payments: createInitialPaymentsState(), createdAt:new Date().toISOString()};
 }
 function saveState(){localStorage.setItem(STORAGE_KEY, JSON.stringify(state));}
+state = loadState();
+
 function isContractType(type=getVal('docType')){return type.startsWith('contract-') || type === 'employment-contract'}
 function isAddendumType(type=getVal('docType')){return type.startsWith('addendum-') || type.startsWith('agreement-') || type.startsWith('notice-')}
 function getVal(id){return $(id).value.trim()}
@@ -4853,10 +4980,12 @@ function restoreRecordToForm(idx){
 function setActiveView(view){
   document.querySelectorAll('.tab').forEach(t=>t.classList.toggle('active', t.dataset.view===view));
   $('previewPanel').style.display = view==='preview' ? 'block' : 'none';
+  $('paymentsPanel').style.display = view==='payments' ? 'block' : 'none';
   $('journalPanel').style.display = view==='journal' ? 'block' : 'none';
   $('commercialPanel').style.display = view==='commercial' ? 'block' : 'none';
   $('formPanel').classList.toggle('hidden-by-view', view!=='preview');
   document.querySelector('.shell').classList.toggle('single-column', view!=='preview');
+  if(view==='payments') renderPayments();
   if(view==='journal') renderJournal();
   if(view==='commercial') refreshOffer();
 }
@@ -5872,6 +6001,248 @@ function exportDocx(){
 }
 
 
+
+function paymentYears(){return [...new Set(PAYMENT_MONTHS.map(m=>m.year))].sort((a,b)=>a-b)}
+function paymentMonthsForYear(year){return PAYMENT_MONTHS.filter(m=>m.year===year)}
+function paymentMoney(v){const n=parseFloat(String(v||'').replace(/\s+/g,'').replace(',','.')); return isFinite(n)?new Intl.NumberFormat('ru-RU').format(n)+' ₽':(v||'—')}
+function paymentValueFilled(value){const v=String(value||'').trim(); return !!v && v!=='-';}
+function paymentValueClass(value){const v=String(value||'').trim(); if(!paymentValueFilled(v)) return ''; if(/подар|бесплат|зачтено/i.test(v)) return 'isGift'; return 'hasValue';}
+function paymentPreviousMonthInfo(){
+  const d = new Date();
+  d.setDate(1);
+  d.setMonth(d.getMonth()-1);
+  const year = d.getFullYear();
+  const month = d.getMonth()+1;
+  const key = `${year}-${String(month).padStart(2,'0')}`;
+  return PAYMENT_MONTHS.find(m=>m.key===key) || {year, month, key, label: PAYMENT_MONTH_NAMES[month] || key};
+}
+function paymentMonthLongLabel(info){
+  if(!info) return '';
+  const name = PAYMENT_MONTH_NAMES[info.month] || info.label || info.key;
+  return `${name} ${info.year}`;
+}
+function paymentParseISODate(s){
+  const m = String(s||'').match(/^(\d{4})-(\d{2})-(\d{2})/);
+  return m ? new Date(Number(m[1]), Number(m[2])-1, Number(m[3])) : null;
+}
+function paymentMonthEnd(info){return info ? new Date(info.year, info.month, 0) : null;}
+function paymentRowStartedBy(row, monthInfo){
+  if(!monthInfo) return false;
+  const monthEnd = paymentMonthEnd(monthInfo);
+  const matches = paymentJournalMatches(row.clientName);
+  const startDates = matches.map(r=>paymentParseISODate(r.startDate)).filter(Boolean);
+  if(startDates.length) return startDates.some(d=>d<=monthEnd);
+  return PAYMENT_MONTHS.some(m=>m.key<=monthInfo.key && paymentValueFilled(row.paymentValues[m.key]));
+}
+function paymentNeedsPreviousMonth(row, monthInfo){
+  if(!monthInfo || row.archived) return false;
+  if(!paymentRowStartedBy(row, monthInfo)) return false;
+  return !paymentValueFilled(row.paymentValues[monthInfo.key]);
+}
+function paymentJournalEntries(){
+  return state.journal.filter(r=>normalizeRecord(r).recordType==='contract').map((r,idx)=>normalizeRecord(r,idx));
+}
+function paymentJournalMatches(name){
+  const key=normalizePaymentClientKey(name);
+  if(!key) return [];
+  return paymentJournalEntries().filter(r=>{
+    const rk=normalizePaymentClientKey(r.clientName);
+    return rk===key || (rk && key && (rk.includes(key) || key.includes(rk)) && Math.min(rk.length,key.length)>=8);
+  });
+}
+function paymentJournalPrice(name, currentPrice=''){
+  const matches = paymentJournalMatches(name);
+  if(!matches.length) return currentPrice || '';
+  const prices = [...new Set(matches.map(r=>String(r.price||'').trim()).filter(Boolean))];
+  if(currentPrice && prices.includes(String(currentPrice).trim())) return String(currentPrice).trim();
+  return prices.length===1 ? prices[0] : (currentPrice || prices[0] || '');
+}
+function paymentIsLinkedToJournal(row){
+  const price = paymentJournalPrice(row.clientName, row.servicePrice);
+  return paymentJournalMatches(row.clientName).some(r=>String(r.price||'').trim()===String(price||'').trim()) || paymentJournalMatches(row.clientName).length>0;
+}
+function paymentRowSignature(row){return normalizePaymentClientKey(row.clientName)+'|'+String(row.servicePrice||'').trim()}
+function syncPaymentsWithJournal(){
+  const existing = new Set(state.payments.rows.map(paymentRowSignature));
+  let added=0, updated=0;
+  paymentJournalEntries().forEach(j=>{
+    const price=String(j.price||'').trim();
+    const signature=normalizePaymentClientKey(j.clientName)+'|'+price;
+    const row=state.payments.rows.find(r=>paymentRowSignature(r)===signature);
+    if(row){
+      if(row.servicePrice!==price){row.servicePrice=price; updated++;}
+    }else{
+      state.payments.rows.push(normalizePaymentRow({clientName:j.clientName, servicePrice:price, note:'', paymentValues:{}}));
+      existing.add(signature); added++;
+    }
+  });
+  state.payments.rows = state.payments.rows.map((row,idx)=>{
+    const linkedPrice = paymentJournalPrice(row.clientName, row.servicePrice);
+    if(linkedPrice && linkedPrice!==row.servicePrice){ row.servicePrice=linkedPrice; updated++; }
+    return normalizePaymentRow(row, idx);
+  });
+  saveState(); renderPayments();
+  showToast(`Оплаты синхронизированы: добавлено ${added}, обновлено ${updated}`);
+}
+function paymentYearStats(rows, months, previousMonth){
+  let marks=0, linked=0, needsPrevious=0;
+  rows.forEach(row=>{
+    const filled = months.filter(m=>paymentValueFilled(row.paymentValues[m.key])).length;
+    marks += filled;
+    if(paymentIsLinkedToJournal(row)) linked++;
+    if(paymentNeedsPreviousMonth(row, previousMonth)) needsPrevious++;
+  });
+  return {marks, linked, needsPrevious};
+}
+function renderPayments(){
+  if(!state.payments) state.payments = createInitialPaymentsState();
+  const allowedFilters = ['all','needs','journal'];
+  if(!allowedFilters.includes(state.payments.filter)) state.payments.filter = 'all';
+  const years = paymentYears();
+  const yearSelect = $('paymentsYear');
+  if(yearSelect && yearSelect.options.length!==years.length){
+    yearSelect.innerHTML = years.map(y=>`<option value="${y}">${y}</option>`).join('');
+  }
+  if(!years.includes(Number(state.payments.selectedYear))) state.payments.selectedYear = years[years.length-1];
+  yearSelect.value = String(state.payments.selectedYear);
+  $('paymentsSearch').value = state.payments.search || '';
+  $('paymentsFilter').value = state.payments.filter || 'all';
+  $('paymentsShowArchived').checked = !!state.payments.showArchived;
+  const year = Number(state.payments.selectedYear);
+  const months = paymentMonthsForYear(year);
+  const previousMonth = paymentPreviousMonthInfo();
+  const previousLabel = paymentMonthLongLabel(previousMonth);
+  const searchKey = normalizePaymentClientKey(state.payments.search || '');
+  let visible = state.payments.rows.map((row,idx)=>normalizePaymentRow(row, idx)).filter(row=>{
+    if(!state.payments.showArchived && row.archived) return false;
+    if(searchKey && !normalizePaymentClientKey(row.clientName).includes(searchKey)) return false;
+    const linked = paymentIsLinkedToJournal(row);
+    const needsPrevious = paymentNeedsPreviousMonth(row, previousMonth);
+    const filter = state.payments.filter || 'all';
+    if(filter==='needs' && !needsPrevious) return false;
+    if(filter==='journal' && !linked) return false;
+    return true;
+  });
+  const stats = paymentYearStats(visible, months, previousMonth);
+  $('paymentsStats').innerHTML = [
+    ['Строк в работе', visible.length, 'с учётом фильтра и поиска'],
+    ['Нет оплаты', stats.needsPrevious, previousLabel ? `за ${previousLabel}` : 'за предыдущий месяц'],
+    ['Отметок об оплате', stats.marks, 'заполненных ячеек за выбранный год'],
+    ['Из журнала', stats.linked, 'строки, связанные с договорами']
+  ].map(([label,val,hint])=>`<div class="paymentsStat"><div class="paymentsStatLabel">${label}</div><div class="paymentsStatValue">${val}</div><div class="paymentsStatHint">${hint}</div></div>`).join('');
+  const head = `<thead><tr><th class="stickyCol paymentsClientCell">Клиент</th><th class="stickyColSecond paymentsPrice">Стоимость</th>${months.map(m=>`<th class="paymentsMonthHead">${m.label}</th>`).join('')}<th class="paymentsNoteCol">Комментарий</th><th class="paymentsActionsCol">Действия</th></tr></thead>`;
+  if(!visible.length){
+    $('paymentsTable').innerHTML = head + `<tbody><tr><td colspan="${months.length+4}" class="paymentsEmpty">По текущим фильтрам строки не найдены.</td></tr></tbody>`;
+    return;
+  }
+  const body = visible.map(row=>{
+    const linked = paymentIsLinkedToJournal(row);
+    const price = paymentJournalPrice(row.clientName, row.servicePrice) || row.servicePrice;
+    const needsPrevious = paymentNeedsPreviousMonth(row, previousMonth);
+    const previousBadge = needsPrevious ? `<span class="paymentsTag alert" title="Нет оплаты за ${escapeHtml(previousLabel)}">Нет оплаты</span>` : '';
+    return `<tr class="${row.archived?'archived':''} ${needsPrevious?'needs-payment':''}">
+      <td class="stickyCol paymentsClientCell"><div class="paymentsClientName">${escapeHtml(row.clientName)}</div><div class="paymentsClientMeta">${previousBadge}${linked?'<span class="paymentsTag">из журнала</span>':''}${row.archived?'<span class="paymentsTag">архив</span>':''}</div></td>
+      <td class="stickyColSecond paymentsPrice">${escapeHtml(paymentMoney(price))}</td>
+      ${months.map(m=>{const value=String(row.paymentValues[m.key]||''); const cls=paymentValueClass(value); const missingCls = needsPrevious && previousMonth && m.key===previousMonth.key ? 'isMissingPrevious' : ''; return `<td><input class="paymentsCellInput ${cls} ${missingCls}" data-row="${row.id}" data-month="${m.key}" value="${escapeHtml(value)}" placeholder="—"></td>`;}).join('')}
+      <td class="paymentsNoteCol"><input class="paymentsNoteInput" data-row-note="${row.id}" value="${escapeHtml(row.note||'')}" placeholder="Комментарий"></td>
+      <td class="paymentsActionsCol"><div class="paymentsRowActions"><button class="paymentsMiniBtn" data-archive-row="${row.id}">${row.archived?'Вернуть':'Архив'}</button><button class="paymentsMiniBtn danger" data-delete-row="${row.id}">Удалить</button></div></td>
+    </tr>`;
+  }).join('');
+  $('paymentsTable').innerHTML = head + `<tbody>${body}</tbody>`;
+}
+function updatePaymentValue(rowId, monthKey, value){
+  const row = state.payments.rows.find(r=>r.id===rowId); if(!row) return;
+  const clean = String(value||'').trim();
+  if(clean) row.paymentValues[monthKey]=clean; else delete row.paymentValues[monthKey];
+  saveState();
+}
+function updatePaymentNote(rowId, value){
+  const row = state.payments.rows.find(r=>r.id===rowId); if(!row) return;
+  row.note=String(value||'').trim(); saveState();
+}
+function addPaymentRow(){
+  const name = prompt('Введите клиента. Если такой клиент есть в журнале договоров, стоимость подтянется автоматически.');
+  if(!name) return;
+  const cleanName = normalizePaymentText(name);
+  const price = paymentJournalPrice(cleanName, '');
+  if(state.payments.rows.some(r=>normalizePaymentClientKey(r.clientName)===normalizePaymentClientKey(cleanName) && String(r.servicePrice||'').trim()===String(price||'').trim())){
+    showToast('Такая строка уже есть в оплатах'); return;
+  }
+  state.payments.rows.unshift(normalizePaymentRow({clientName:cleanName, servicePrice:price, note:'', paymentValues:{}}));
+  saveState(); renderPayments(); showToast('Клиент добавлен в оплаты');
+}
+function togglePaymentArchive(rowId){
+  const row = state.payments.rows.find(r=>r.id===rowId); if(!row) return;
+  row.archived=!row.archived; saveState(); renderPayments();
+}
+function deletePaymentRow(rowId){
+  const row = state.payments.rows.find(r=>r.id===rowId); if(!row) return;
+  if(!confirm(`Удалить строку оплат для клиента «${row.clientName}»?`)) return;
+  state.payments.rows = state.payments.rows.filter(r=>r.id!==rowId); saveState(); renderPayments();
+}
+function paymentColumnLetter(n){let s=''; while(n>0){let m=(n-1)%26; s=String.fromCharCode(65+m)+s; n=Math.floor((n-1)/26);} return s}
+function paymentsSheetXml(rows, months, year){
+  const headers=['Клиент','Стоимость обслуживания',...months.map(m=>`${m.label} ${m.year}`),'Комментарий'];
+  const allRows=[headers];
+  rows.forEach(row=>{
+    const price = paymentJournalPrice(row.clientName, row.servicePrice) || row.servicePrice;
+    allRows.push([row.clientName, price, ...months.map(m=>row.paymentValues[m.key]||''), row.note||'']);
+  });
+  const rowXml = allRows.map((vals, rIdx)=>`<row r="${rIdx+1}">${vals.map((v,cIdx)=>`<c r="${paymentColumnLetter(cIdx+1)}${rIdx+1}" t="inlineStr"><is><t xml:space="preserve">${escapeXml(String(v??''))}</t></is></c>`).join('')}</row>`).join('');
+  return `<?xml version="1.0" encoding="UTF-8" standalone="yes"?><worksheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main"><sheetViews><sheetView workbookViewId="0"/></sheetViews><sheetFormatPr defaultRowHeight="15"/><sheetData>${rowXml}</sheetData></worksheet>`;
+}
+function exportPaymentsXlsx(){
+  const year = Number(state.payments.selectedYear);
+  const months = paymentMonthsForYear(year);
+  const searchKey = normalizePaymentClientKey(state.payments.search || '');
+  const rows = state.payments.rows.filter(row=>{
+    if(!state.payments.showArchived && row.archived) return false;
+    if(searchKey && !normalizePaymentClientKey(row.clientName).includes(searchKey)) return false;
+    const linked = paymentIsLinkedToJournal(row);
+    const previousMonth = paymentPreviousMonthInfo();
+    const needsPrevious = paymentNeedsPreviousMonth(row, previousMonth);
+    const filter = ['all','needs','journal'].includes(state.payments.filter) ? state.payments.filter : 'all';
+    if(filter==='needs' && !needsPrevious) return false;
+    if(filter==='journal' && !linked) return false;
+    return true;
+  });
+  const files = {
+    '[Content_Types].xml': `<?xml version="1.0" encoding="UTF-8" standalone="yes"?><Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types"><Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/><Default Extension="xml" ContentType="application/xml"/><Override PartName="/xl/workbook.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet.main+xml"/><Override PartName="/xl/worksheets/sheet1.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.worksheet+xml"/><Override PartName="/xl/styles.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.styles+xml"/><Override PartName="/docProps/core.xml" ContentType="application/vnd.openxmlformats-package.core-properties+xml"/><Override PartName="/docProps/app.xml" ContentType="application/vnd.openxmlformats-officedocument.extended-properties+xml"/></Types>`,
+    '_rels/.rels': `<?xml version="1.0" encoding="UTF-8" standalone="yes"?><Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument" Target="xl/workbook.xml"/><Relationship Id="rId2" Type="http://schemas.openxmlformats.org/package/2006/relationships/metadata/core-properties" Target="docProps/core.xml"/><Relationship Id="rId3" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/extended-properties" Target="docProps/app.xml"/></Relationships>`,
+    'xl/workbook.xml': `<?xml version="1.0" encoding="UTF-8" standalone="yes"?><workbook xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships"><sheets><sheet name="Оплаты ${year}" sheetId="1" r:id="rId1"/></sheets></workbook>`,
+    'xl/_rels/workbook.xml.rels': `<?xml version="1.0" encoding="UTF-8" standalone="yes"?><Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/worksheet" Target="worksheets/sheet1.xml"/><Relationship Id="rId2" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/styles" Target="styles.xml"/></Relationships>`,
+    'xl/worksheets/sheet1.xml': paymentsSheetXml(rows, months, year),
+    'xl/styles.xml': `<?xml version="1.0" encoding="UTF-8" standalone="yes"?><styleSheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main"><fonts count="1"><font><sz val="11"/><name val="Arial"/></font></fonts><fills count="1"><fill><patternFill patternType="none"/></fill></fills><borders count="1"><border/></borders><cellStyleXfs count="1"><xf numFmtId="0" fontId="0" fillId="0" borderId="0"/></cellStyleXfs><cellXfs count="1"><xf numFmtId="0" fontId="0" fillId="0" borderId="0" xfId="0"/></cellXfs></styleSheet>`,
+    'docProps/core.xml': `<?xml version="1.0" encoding="UTF-8" standalone="yes"?><cp:coreProperties xmlns:cp="http://schemas.openxmlformats.org/package/2006/metadata/core-properties" xmlns:dc="http://purl.org/dc/elements/1.1/" xmlns:dcterms="http://purl.org/dc/terms/" xmlns:dcmitype="http://purl.org/dc/dcmitype/" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"><dc:title>Оплаты ${year}</dc:title><dc:creator>ДжемБаланс</dc:creator></cp:coreProperties>`,
+    'docProps/app.xml': `<?xml version="1.0" encoding="UTF-8" standalone="yes"?><Properties xmlns="http://schemas.openxmlformats.org/officeDocument/2006/extended-properties" xmlns:vt="http://schemas.openxmlformats.org/officeDocument/2006/docPropsVTypes"><Application>Договорной центр</Application></Properties>`
+  };
+  downloadBlob(new Blob([createZip(files)], {type:'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'}), cleanNameForFile(`Оплаты_${year}`)+'.xlsx');
+}
+function initPayments(){
+  if(!state.payments) state.payments = createInitialPaymentsState();
+  $('paymentsYear').addEventListener('change', e=>{state.payments.selectedYear=Number(e.target.value); saveState(); renderPayments();});
+  $('paymentsSearch').addEventListener('input', e=>{state.payments.search=e.target.value; saveState(); renderPayments();});
+  $('paymentsFilter').addEventListener('change', e=>{state.payments.filter=e.target.value; saveState(); renderPayments();});
+  $('paymentsShowArchived').addEventListener('change', e=>{state.payments.showArchived=e.target.checked; saveState(); renderPayments();});
+  $('paymentsSyncBtn').onclick=syncPaymentsWithJournal;
+  $('paymentsAddBtn').onclick=addPaymentRow;
+  $('paymentsExportBtn').onclick=exportPaymentsXlsx;
+  $('paymentsTable').addEventListener('input', e=>{
+    const month = e.target.dataset.month; const rowId=e.target.dataset.row; const rowNote=e.target.dataset.rowNote;
+    if(month && rowId){ updatePaymentValue(rowId, month, e.target.value); e.target.classList.remove('hasValue','isGift','isMissingPrevious'); const cls=paymentValueClass(e.target.value); if(cls) e.target.classList.add(cls); }
+    if(rowNote){ updatePaymentNote(rowNote, e.target.value); }
+  });
+  $('paymentsTable').addEventListener('change', e=>{
+    const month = e.target.dataset.month;
+    if(month && month===paymentPreviousMonthInfo().key) renderPayments();
+  });
+  $('paymentsTable').addEventListener('click', e=>{
+    const archiveId = e.target.dataset.archiveRow; const deleteId = e.target.dataset.deleteRow;
+    if(archiveId) togglePaymentArchive(archiveId);
+    if(deleteId) deletePaymentRow(deleteId);
+  });
+}
+
 function init(){
   fillDocTypes(); setVal('docDate', todayISO()); setVal('startDate', todayISO()); refreshNumber(true); renderParentSelect(); renderJournal(); updateConditionalFields();
   $('docType').addEventListener('change', ()=>{currentImportedText=''; currentImportedSourceFile=''; updateConditionalFields();});
@@ -5884,8 +6255,9 @@ function init(){
   $('importCsvInput').addEventListener('change', e=>{importCsvFile(e.target.files[0]); e.target.value='';});
   $('saveJournalEditBtn').onclick=saveJournalEdit; $('cancelJournalEditBtn').onclick=closeJournalEditor; $('deleteJournalEditBtn').onclick=deleteCurrentJournalEdit;
   $('journalSearch').addEventListener('input', renderJournal);
-  $('resetJournalBtn').onclick=()=>{if(confirm('Сбросить журнал к исходным данным из Excel? Новые записи из локального журнала будут удалены.')){state={journal:INITIAL_JOURNAL.map(normalizeRecord), createdAt:new Date().toISOString()}; saveState(); closeJournalEditor(); closeContractDetail(); renderJournal(); refreshNumber(true); refreshDoc(); showToast('Журнал сброшен');}};
+  $('resetJournalBtn').onclick=()=>{if(confirm('Сбросить журнал к исходным данным из Excel? Новые записи из локального журнала будут удалены.')){state={journal:INITIAL_JOURNAL.map(normalizeRecord), payments: normalizePaymentsState(state.payments), createdAt:new Date().toISOString()}; saveState(); closeJournalEditor(); closeContractDetail(); renderJournal(); refreshNumber(true); refreshDoc(); showToast('Журнал сброшен');}};
   document.querySelectorAll('.tab').forEach(tab=>tab.onclick=()=>setActiveView(tab.dataset.view));
+  initPayments();
   initOfferTools();
   setActiveView('preview');
 }
