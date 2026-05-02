@@ -1,4 +1,8 @@
 {
   "cleanUrls": true,
-  "trailingSlash": false
+  "trailingSlash": false,
+  "rewrites": [
+    { "source": "/tools/:path*", "destination": "/tools/index.html" },
+    { "source": "/:path*", "destination": "/index.html" }
+  ]
 }
