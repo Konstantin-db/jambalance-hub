@@ -5088,7 +5088,7 @@ ${CONTRACTOR.directorShort}
 }
 function accountingAppendixServiceRows(){
   return [
-    [{text:'1. Ведение бухгалтерского и налогового учёта',bold:true},'', ''],
+    [{text:'1. Ведение бухгалтерского и налогового учёта',bold:true,colspan:3}],
     ['1.1','Проверка первичных учётных документов (кроме первичных учётных документов по учёту кадров), предоставляемых Заказчиком, на предмет полноты заполнения и соответствия требованиям законодательства.',''],
     ['1.2','Формирование первичных учётных документов, требуемых по законодательству для отражения хозяйственных операций.',''],
     ['1.3','Расчёт заработной платы, оформление и ведение документации, подтверждающей начисление заработной платы сотрудникам и вознаграждений привлечённым специалистам.',''],
@@ -5098,13 +5098,13 @@ function accountingAppendixServiceRows(){
     ['1.7','Формирование регистров бухгалтерского и налогового учёта.',''],
     ['1.8','Систематизация, группировка и хранение первичных учётных документов Заказчика, регистров бухгалтерского и налогового учёта.',''],
     ['1.9','Представление интересов Заказчика в учреждениях банков, непосредственно связанное с оказанием Услуги.',''],
-    [{text:'2. Подготовка отчётности',bold:true},'', ''],
+    [{text:'2. Подготовка отчётности',bold:true,colspan:3}],
     ['2.1','Формирование бухгалтерской отчётности.',''],
     ['2.2','Проведение инвентаризации активов и обязательств перед составлением годовой бухгалтерской отчётности.',''],
     ['2.3','Формирование и предоставление регламентированной отчётности в уполномоченные органы исполнительной власти, внебюджетные фонды.',''],
     ['2.4','Проведение сверок по начислению и уплате налогов и сборов с налоговыми органами и внебюджетными фондами.',''],
     ['2.5','Представление интересов Заказчика при проведении проверок его деятельности аудиторской организацией, уполномоченными органами исполнительной власти и внебюджетными фондами.',''],
-    [{text:'3. Информационно-консультационная поддержка деятельности Заказчика',bold:true},'', ''],
+    [{text:'3. Информационно-консультационная поддержка деятельности Заказчика',bold:true,colspan:3}],
     ['3.1','Подготовка изменений в учётную политику Заказчика.',''],
     ['3.2','Подготовка проекта финансового плана Заказчика.',''],
     ['3.3','Подготовка и предоставление учётной информации для принятия управленческих решений по форме и в сроки, согласованные с Заказчиком в рабочем порядке.',''],
@@ -5187,6 +5187,7 @@ function makeAccountingServiceContract(x){
       'В случае невозможности выполнения Исполнителем своих обязательств по настоящему Договору, возникшей в силу действий / бездействия Заказчика, услуги, оказанные Исполнителем, подлежат оплате в полном объёме.',
       'Заказчик оплачивает полную стоимость вознаграждения Исполнителя на основании счёта на оплату, выставленного Исполнителем Заказчику, в течение 5 рабочих дней с даты получения счёта.',
       'Оплата по настоящему Договору производится в безналичной форме путём перечисления денежных средств на расчётный счёт Исполнителя, указанный в разделе 11 настоящего Договора.',
+      'Выгрузка информационной базы в формате .dt является дополнительной платной услугой и осуществляется Исполнителем по предварительной письменной заявке Заказчика. Стоимость выгрузки информационной базы в формате .dt составляет 10 000 (десять тысяч) рублей.',
       'При просрочке оплаты более 5 дней Исполнитель вправе приостановить исполнение своих обязательств по настоящему Договору. Дальнейшее продолжение работы после просрочки возможно только после полной оплаты Заказчиком услуги «восстановление бухгалтерского учёта», стоимость которой определяется в соответствии с действующими тарифами Исполнителя на момент возникновения просрочки.'
     ]},
     {type:'h',text:'5. Ответственность сторон'},
@@ -5238,13 +5239,16 @@ function makeAccountingServiceContract(x){
     ...(x.specialTerms ? [{type:'h',text:'Особые условия'},{type:'p',text:x.specialTerms}] : []),
     {type:'h',text:'11. Реквизиты и адреса сторон'},
     baseRequisites(x),
+    {type:'pageBreak'},
     {type:'h',text:'Приложение № 1'},
     {type:'subtitle',text:`к Договору № ${x.docNumber} возмездного оказания услуг от ${x.docDateRu}`},
     {type:'p',text:`Заказчик: ${x.clientName}`},
     {type:'p',text:`Исполнитель: ${CONTRACTOR.name}`},
     {type:'h',text:'Перечень предоставляемых услуг'},
     {type:'table', widths:[800,7600,600], rows:[[{text:'№',bold:true},{text:'Наименование услуги',bold:true},{text:'Примечание',bold:true}], ...accountingAppendixServiceRows()]},
+    {type:'spacer'},
     contractSignatureTable(x),
+    {type:'pageBreak'},
     {type:'h',text:'Приложение № 2'},
     {type:'subtitle',text:`к Договору № ${x.docNumber} возмездного оказания услуг от ${x.docDateRu}`},
     {type:'p',text:`Заказчик: ${x.clientName}`},
@@ -5258,6 +5262,7 @@ function makeAccountingServiceContract(x){
       'документы для оказания Услуг по настоящему Договору предоставляются Заказчиком по электронной почте не позднее трёх дней, следующих за датой совершения хозяйственной операции или получения документа Заказчиком;',
       'оригиналы и копии первичных учётных документов подлежат передаче Заказчиком Исполнителю не реже чем один раз в месяц — не позднее 25 числа отчётного месяца, если иной срок не согласован Сторонами отдельно.'
     ]},
+    {type:'spacer'},
     contractSignatureTable(x)
   ];
 }
@@ -5642,14 +5647,16 @@ function paragraphXml(text, opts={}){
   const align=opts.align?`<w:jc w:val="${opts.align}"/>`:'';
   const style=opts.style?`<w:pStyle w:val="${opts.style}"/>`:'';
   const spacing=`<w:spacing w:after="${opts.after ?? 100}" w:line="276" w:lineRule="auto"/>`;
+  const pageBreak=opts.pageBreak?'<w:pageBreakBefore/>':'';
   const bold=opts.bold?'<w:b/>':''; const size=opts.size?`<w:sz w:val="${opts.size}"/>`:'';
   const lines=String(text||'').split('\n');
   const runs=lines.map((line,i)=>`<w:r><w:rPr>${bold}${size}</w:rPr>${i?'<w:br/>':''}<w:t xml:space="preserve">${escapeXml(line)}</w:t></w:r>`).join('');
-  return `<w:p><w:pPr>${style}${align}${spacing}</w:pPr>${runs}</w:p>`;
+  return `<w:p><w:pPr>${style}${align}${spacing}${pageBreak}</w:pPr>${runs}</w:p>`;
 }
+function blankParagraphXml(after=160){return `<w:p><w:pPr><w:spacing w:after="${after}"/></w:pPr></w:p>`;}
 function tableXml(b){
-  const borders='<w:tblBorders><w:top w:val="single" w:sz="4"/><w:left w:val="single" w:sz="4"/><w:bottom w:val="single" w:sz="4"/><w:right w:val="single" w:sz="4"/><w:insideH w:val="single" w:sz="4"/><w:insideV w:val="single" w:sz="4"/></w:tblBorders>';
-  const rows=b.rows.map(row=>`<w:tr>${row.map((c,i)=>{const o=typeof c==='object'?c:{text:c}; const w=(b.widths&&b.widths[i])||4600; return `<w:tc><w:tcPr><w:tcW w:w="${w}" w:type="dxa"/><w:vAlign w:val="top"/><w:tcMar><w:top w:w="90" w:type="dxa"/><w:left w:w="90" w:type="dxa"/><w:bottom w:w="90" w:type="dxa"/><w:right w:w="90" w:type="dxa"/></w:tcMar></w:tcPr>${paragraphXml(o.text||'',{bold:o.bold,align:o.bold?'center':'left',after:60})}</w:tc>`}).join('')}</w:tr>`).join('');
+  const borders = b.border===false ? '<w:tblBorders><w:top w:val="nil"/><w:left w:val="nil"/><w:bottom w:val="nil"/><w:right w:val="nil"/><w:insideH w:val="nil"/><w:insideV w:val="nil"/></w:tblBorders>' : '<w:tblBorders><w:top w:val="single" w:sz="4"/><w:left w:val="single" w:sz="4"/><w:bottom w:val="single" w:sz="4"/><w:right w:val="single" w:sz="4"/><w:insideH w:val="single" w:sz="4"/><w:insideV w:val="single" w:sz="4"/></w:tblBorders>';
+  const rows=b.rows.map(row=>{let col=0; return `<w:tr>${row.map((c)=>{const o=typeof c==='object'?c:{text:c}; const span=o.colspan||1; let w=0; for(let j=0;j<span;j++) w += (b.widths&&b.widths[col+j])||4600; col += span; const gridSpan=span>1?`<w:gridSpan w:val="${span}"/>`:''; return `<w:tc><w:tcPr><w:tcW w:w="${w}" w:type="dxa"/>${gridSpan}<w:vAlign w:val="top"/><w:tcMar><w:top w:w="90" w:type="dxa"/><w:left w:w="90" w:type="dxa"/><w:bottom w:w="90" w:type="dxa"/><w:right w:w="90" w:type="dxa"/></w:tcMar></w:tcPr>${paragraphXml(o.text||'',{bold:o.bold,align:o.align||(o.bold?'center':'left'),after:60})}</w:tc>`}).join('')}</w:tr>`}).join('');
   return `<w:tbl><w:tblPr><w:tblW w:w="0" w:type="auto"/>${borders}<w:tblLook w:firstRow="1" w:noHBand="0" w:noVBand="1"/></w:tblPr>${rows}</w:tbl>`;
 }
 function blocksToDocXml(blocks){
@@ -5658,7 +5665,7 @@ function blocksToDocXml(blocks){
   for(const b of blocks){
     if(b.type==='title') body += paragraphXml(b.text,{style:'TitleStyle',align:'center',bold:true,size:28,after:80});
     else if(b.type==='subtitle') body += paragraphXml(b.text,{align:'center',bold:true,size:24,after:220});
-    else if(b.type==='meta') body += tableXml({widths:[4600,4600], rows:[[b.left,b.right]]});
+    else if(b.type==='meta') body += tableXml({widths:[4600,4600], border:false, rows:[[b.left,b.right]]});
     else if(b.type==='cover'){
       body += tableXml({widths:[3600,2500,2900], rows:[[
         {text:'ДЖЕМБАЛАНС',bold:true},
@@ -5689,9 +5696,11 @@ function blocksToDocXml(blocks){
       body += paragraphXml((b.title||'')+'\n\n________________ /'+(b.signer||'')+'/\nМ. П.',{align:'left',after:120});
     }
     else if(b.type==='h') body += paragraphXml(b.text,{style:'HeadingStyle',align:'center',bold:true,size:23,after:120});
+    else if(b.type==='pageBreak') body += paragraphXml('',{pageBreak:true,after:0});
+    else if(b.type==='spacer') body += blankParagraphXml(220);
     else if(b.type==='p') body += paragraphXml(b.text,{align:'both',after:90});
     else if(b.type==='list') for(const item of b.items) body += paragraphXml('— '+item,{align:'both',after:60});
-    else if(b.type==='table') body += tableXml(b);
+    else if(b.type==='table'){ if(b.signature) body += blankParagraphXml(180); body += tableXml(b); }
   }
   return `<?xml version="1.0" encoding="UTF-8" standalone="yes"?><w:document xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main"><w:body>${body}<w:sectPr><w:pgSz w:w="11906" w:h="16838"/><w:pgMar w:top="1134" w:right="1134" w:bottom="1134" w:left="1134" w:header="708" w:footer="708" w:gutter="0"/></w:sectPr></w:body></w:document>`;
 }
