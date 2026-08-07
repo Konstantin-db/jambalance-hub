@@ -528,11 +528,11 @@
     }
 
     .toolbar {
-      display: grid;
-      grid-template-columns:
-        minmax(230px,1.5fr)
-        repeat(4,minmax(145px,.7fr))
-        auto;
+  display: grid;
+  grid-template-columns:
+    minmax(230px,1.5fr)
+    repeat(5,minmax(145px,.7fr))
+    auto;
       gap: 10px;
       align-items: end;
       padding: 16px;
@@ -626,7 +626,7 @@
 
     table {
       width: 100%;
-      min-width: 1640px;
+      min-width: 1770px;
       border-collapse: separate;
       border-spacing: 0;
       table-layout: fixed;
@@ -684,7 +684,8 @@
     .col-method { width: 130px; }
     .col-amount { width: 145px; }
     .col-priority { width: 125px; }
-    .col-date { width: 170px; }
+.col-responsible { width: 145px; }
+.col-date { width: 170px; }
     .col-status { width: 150px; }
     .col-dialogue { width: 250px; }
     .col-notes { width: 180px; }
@@ -1433,21 +1434,41 @@
         </div>
 
         <div class="field">
-          <label for="priorityFilter">
-            Приоритет
-          </label>
+  <label for="priorityFilter">
+    Приоритет
+  </label>
 
-          <select id="priorityFilter">
-            <option value="all">Все</option>
-            <option value="high">Высокий</option>
-            <option value="medium">Средний</option>
-            <option value="low">Низкий</option>
-            <option value="none">Не указан</option>
-          </select>
-        </div>
+  <select id="priorityFilter">
+    <option value="all">Все</option>
+    <option value="high">Высокий</option>
+    <option value="medium">Средний</option>
+    <option value="low">Низкий</option>
+    <option value="none">Не указан</option>
+  </select>
+</div>
 
-        <div class="field">
-          <label for="dateFilter">
+<div class="field">
+  <label for="responsibleFilter">
+    Ответственный
+  </label>
+
+  <select id="responsibleFilter">
+    <option value="all">
+      Все сотрудники
+    </option>
+
+    <option value="mine">
+      Только мои
+    </option>
+
+    <option value="none">
+      Не назначен
+    </option>
+  </select>
+</div>
+
+<div class="field">
+  <label for="dateFilter">
             Дата контакта
           </label>
 
@@ -1545,6 +1566,7 @@
               <th class="col-method">Способ связи</th>
               <th class="col-amount">Оговорённая сумма</th>
               <th class="col-priority">Приоритет</th>
+<th class="col-responsible">Ответственный</th>
               <th class="col-date">Следующий контакт</th>
               <th class="col-status">Статус</th>
               <th class="col-dialogue">Диалог и следующий шаг</th>
@@ -1557,7 +1579,7 @@
             <tr>
               <td
                 class="emptyCell"
-                colspan="11"
+                colspan="12"
               >
                 Загружаем записи…
               </td>
@@ -1782,21 +1804,39 @@
                 >
               </div>
 
-              <div class="field">
-                <label for="priority">
-                  Приоритет
-                </label>
+             <div class="field">
+  <label for="priority">
+    Приоритет
+  </label>
 
-                <select id="priority">
-                  <option value="none">Не указан</option>
-                  <option value="high">Высокий — красный</option>
-                  <option value="medium">Средний — оранжевый</option>
-                  <option value="low">Низкий — зелёный</option>
-                </select>
-              </div>
+  <select id="priority">
+    <option value="none">Не указан</option>
+    <option value="high">Высокий — красный</option>
+    <option value="medium">Средний — оранжевый</option>
+    <option value="low">Низкий — зелёный</option>
+  </select>
+</div>
 
-              <div class="field">
-                <label for="status">
+<div class="field">
+  <label for="responsibleUser">
+    Ответственный сотрудник
+  </label>
+
+  <select id="responsibleUser">
+    <option value="">
+      Не назначен
+    </option>
+  </select>
+
+  <div class="fieldHint">
+    Для нового лида автоматически выбирается
+    текущий сотрудник. При необходимости можно
+    назначить другого.
+  </div>
+</div>
+
+<div class="field">
+  <label for="status">
                   Статус
                 </label>
 
