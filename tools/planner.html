@@ -10,23 +10,25 @@
   <link rel="shortcut icon" href="/favicon.png">
   <link rel="apple-touch-icon" href="/favicon.png">
 
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
   <style>
     :root {
-      --bg: #f7f8fb;
+      --bg: #f6f7fa;
       --panel: #ffffff;
-      --line: #e6e8ef;
-      --line-strong: #f1c686;
+      --line: #e5e7eb;
+      --line-accent: #f3c47f;
 
       --text: #1f2937;
-      --text-strong: #111827;
+      --strong: #111827;
       --muted: #6b7280;
 
       --accent: #f99303;
       --accent-hover: #e48600;
       --accent-secondary: #df8f4a;
-      --accent-dark: #b96f28;
+      --accent-dark: #ad601b;
       --accent-soft: #fff3e3;
-      --accent-softer: #fff9f1;
+      --accent-softer: #fffaf3;
 
       --blue: #3377c8;
       --blue-soft: #eaf3ff;
@@ -42,8 +44,8 @@
 
       --gray-soft: #f3f4f6;
 
-      --shadow: 0 18px 45px rgba(31, 41, 55, 0.09);
-      --shadow-small: 0 8px 24px rgba(31, 41, 55, 0.07);
+      --shadow: 0 18px 45px rgba(31, 41, 55, .09);
+      --shadow-small: 0 8px 24px rgba(31, 41, 55, .07);
 
       --radius: 22px;
     }
@@ -64,20 +66,20 @@
       font-family: Arial, Helvetica, sans-serif;
       background:
         radial-gradient(
-          circle at 9% 8%,
-          rgba(249, 147, 3, 0.12),
+          circle at 8% 5%,
+          rgba(249, 147, 3, .10),
           transparent 24%
         ),
         radial-gradient(
-          circle at 91% 5%,
-          rgba(223, 143, 74, 0.13),
-          transparent 23%
+          circle at 93% 4%,
+          rgba(223, 143, 74, .11),
+          transparent 22%
         ),
         linear-gradient(
           180deg,
-          #fffdfa 0%,
-          #f5f7fa 46%,
-          #f2f4f7 100%
+          #fffdfa,
+          #f6f7fa 42%,
+          #f2f4f7
         );
     }
 
@@ -96,15 +98,100 @@
       cursor: pointer;
     }
 
+    button:disabled {
+      cursor: not-allowed;
+      opacity: .6;
+    }
+
     a {
       color: inherit;
     }
 
+    .hidden {
+      display: none !important;
+    }
+
+    /* Загрузка */
+
+    .loadingScreen {
+      position: fixed;
+      inset: 0;
+      z-index: 1000;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 24px;
+      background:
+        radial-gradient(
+          circle at 20% 20%,
+          rgba(249, 147, 3, .15),
+          transparent 32%
+        ),
+        linear-gradient(
+          180deg,
+          #fffdf9,
+          #f5ecdf
+        );
+    }
+
+    .loadingCard {
+      width: min(410px, 100%);
+      padding: 30px;
+      border: 1px solid #ead8c8;
+      border-top: 5px solid var(--accent);
+      border-radius: 24px;
+      background: #fff;
+      box-shadow: var(--shadow);
+      text-align: center;
+    }
+
+    .loadingLogo {
+      display: block;
+      width: 86px;
+      margin: 0 auto 18px;
+    }
+
+    .spinner {
+      width: 38px;
+      height: 38px;
+      margin: 0 auto 17px;
+      border: 4px solid #f5dec4;
+      border-top-color: var(--accent);
+      border-radius: 50%;
+      animation: spin .8s linear infinite;
+    }
+
+    @keyframes spin {
+      to {
+        transform: rotate(360deg);
+      }
+    }
+
+    .loadingTitle {
+      margin-bottom: 7px;
+      color: var(--strong);
+      font-size: 18px;
+      font-weight: 900;
+    }
+
+    .loadingText {
+      color: var(--muted);
+      font-size: 13px;
+      line-height: 1.5;
+    }
+
+    /* Основная страница */
+
     .app {
+      display: none;
       width: 100%;
       max-width: 1700px;
       margin: 0 auto;
       padding: 24px;
+    }
+
+    body.ready .app {
+      display: block;
     }
 
     .hero {
@@ -113,17 +200,12 @@
       padding: 28px;
       border: 1px solid #f6c77f;
       border-radius: 30px;
-      color: #ffffff;
+      color: #fff;
       background:
         radial-gradient(
           circle at 90% 15%,
-          rgba(255, 255, 255, 0.24),
+          rgba(255, 255, 255, .24),
           transparent 27%
-        ),
-        radial-gradient(
-          circle at 12% 100%,
-          rgba(255, 255, 255, 0.12),
-          transparent 31%
         ),
         linear-gradient(
           135deg,
@@ -131,7 +213,8 @@
           #f99303 55%,
           #ffb33d 100%
         );
-      box-shadow: 0 20px 55px rgba(249, 147, 3, 0.19);
+      box-shadow:
+        0 20px 55px rgba(249, 147, 3, .19);
     }
 
     .hero::before {
@@ -141,20 +224,8 @@
       right: -80px;
       width: 360px;
       height: 360px;
+      border: 52px solid rgba(255,255,255,.07);
       border-radius: 50%;
-      border: 52px solid rgba(255, 255, 255, 0.07);
-      pointer-events: none;
-    }
-
-    .hero::after {
-      content: "";
-      position: absolute;
-      right: 170px;
-      bottom: -190px;
-      width: 360px;
-      height: 360px;
-      border-radius: 50%;
-      background: rgba(255, 255, 255, 0.07);
       pointer-events: none;
     }
 
@@ -168,43 +239,38 @@
     }
 
     .heroMain {
-      max-width: 920px;
+      max-width: 900px;
     }
 
     .backLink {
       display: inline-flex;
       align-items: center;
-      gap: 8px;
+      gap: 7px;
       margin-bottom: 18px;
       padding: 9px 13px;
-      border: 1px solid rgba(255, 255, 255, 0.36);
+      border: 1px solid rgba(255,255,255,.36);
       border-radius: 999px;
-      color: #ffffff;
-      background: rgba(255, 255, 255, 0.14);
+      color: #fff;
+      background: rgba(255,255,255,.14);
       text-decoration: none;
       font-size: 13px;
       font-weight: 800;
-      transition:
-        transform 0.18s ease,
-        background 0.18s ease;
     }
 
     .backLink:hover {
-      transform: translateY(-1px);
-      background: rgba(255, 255, 255, 0.23);
+      background: rgba(255,255,255,.23);
     }
 
     .eyebrow {
       display: inline-flex;
-      align-items: center;
       margin-bottom: 12px;
       padding: 8px 12px;
-      border: 1px solid rgba(255, 255, 255, 0.32);
+      border: 1px solid rgba(255,255,255,.30);
       border-radius: 999px;
-      background: rgba(255, 255, 255, 0.15);
+      background: rgba(255,255,255,.14);
       font-size: 11px;
-      font-weight: 800;
-      letter-spacing: 0.09em;
+      font-weight: 900;
+      letter-spacing: .08em;
       text-transform: uppercase;
     }
 
@@ -213,110 +279,118 @@
       max-width: 900px;
       font-size: 38px;
       line-height: 1.08;
-      letter-spacing: -0.025em;
+      letter-spacing: -.025em;
     }
 
     .heroSubtitle {
       max-width: 900px;
       margin: 13px 0 0;
-      color: rgba(255, 255, 255, 0.9);
+      color: rgba(255,255,255,.9);
       font-size: 15px;
       line-height: 1.6;
     }
 
     .heroActions {
-      position: relative;
-      z-index: 1;
       display: flex;
       flex-wrap: wrap;
       justify-content: flex-end;
       gap: 10px;
-      min-width: 270px;
+      min-width: 290px;
     }
+
+    .userBadge {
+      display: flex;
+      align-items: center;
+      gap: 9px;
+      width: 100%;
+      padding: 9px 12px;
+      border: 1px solid rgba(255,255,255,.34);
+      border-radius: 15px;
+      background: rgba(255,255,255,.14);
+    }
+
+    .userAvatar {
+      display: flex;
+      flex: 0 0 auto;
+      align-items: center;
+      justify-content: center;
+      width: 35px;
+      height: 35px;
+      border-radius: 50%;
+      color: var(--accent-dark);
+      background: #fff;
+      font-size: 13px;
+      font-weight: 900;
+    }
+
+    .userName {
+      font-size: 13px;
+      font-weight: 900;
+    }
+
+    .userEmail {
+      margin-top: 2px;
+      color: rgba(255,255,255,.82);
+      font-size: 11px;
+    }
+
+    /* Кнопки */
 
     .button {
       appearance: none;
       display: inline-flex;
       align-items: center;
       justify-content: center;
-      gap: 8px;
-      min-height: 44px;
-      padding: 11px 15px;
+      gap: 7px;
+      min-height: 43px;
+      padding: 10px 14px;
       border: 1px solid transparent;
-      border-radius: 13px;
+      border-radius: 12px;
       font-size: 13px;
       font-weight: 800;
-      line-height: 1.2;
       transition:
-        transform 0.16s ease,
-        filter 0.16s ease,
-        border-color 0.16s ease,
-        background 0.16s ease,
-        box-shadow 0.16s ease;
+        transform .15s ease,
+        background .15s ease,
+        border-color .15s ease;
     }
 
-    .button:hover {
+    .button:hover:not(:disabled) {
       transform: translateY(-1px);
-    }
-
-    .button:active {
-      transform: translateY(0);
-    }
-
-    .button:disabled {
-      cursor: not-allowed;
-      opacity: 0.62;
-      transform: none;
     }
 
     .button-primary {
       color: var(--accent-dark);
-      background: #ffffff;
-      box-shadow: 0 10px 24px rgba(113, 58, 0, 0.16);
-    }
-
-    .button-primary:hover {
-      color: #984f10;
-      background: #fffaf3;
+      background: #fff;
+      box-shadow: 0 10px 24px rgba(113,58,0,.16);
     }
 
     .button-hero {
-      color: #ffffff;
-      border-color: rgba(255, 255, 255, 0.36);
-      background: rgba(255, 255, 255, 0.15);
-    }
-
-    .button-hero:hover {
-      background: rgba(255, 255, 255, 0.24);
+      color: #fff;
+      border-color: rgba(255,255,255,.36);
+      background: rgba(255,255,255,.15);
     }
 
     .button-light {
       color: var(--accent-dark);
-      border-color: var(--line-strong);
-      background: #ffffff;
+      border-color: var(--line-accent);
+      background: #fff;
     }
 
-    .button-light:hover {
+    .button-light:hover:not(:disabled) {
       border-color: var(--accent);
       background: var(--accent-soft);
     }
 
     .button-accent {
-      color: #ffffff;
-      background: linear-gradient(
-        180deg,
-        #ffad27,
-        var(--accent)
-      );
-      box-shadow: 0 10px 22px rgba(249, 147, 3, 0.26);
-    }
-
-    .button-accent:hover {
-      background: linear-gradient(
-        180deg,
-        #f99d0d,
-        var(--accent-hover)
-      );
+      color: #fff;
+      background:
+        linear-gradient(
+          180deg,
+          #ffad27,
+          var(--accent)
+        );
+      box-shadow:
+        0 10px 22px rgba(249,147,3,.25);
     }
 
     .button-danger {
@@ -325,43 +399,31 @@
       background: var(--red-soft);
     }
 
-    .button-danger:hover {
-      background: #ffe5e2;
-    }
-
     .button-small {
       min-height: 34px;
       padding: 7px 10px;
-      border-radius: 10px;
+      border-radius: 9px;
       font-size: 12px;
-      box-shadow: none;
     }
 
-    .button:focus-visible,
-    input:focus-visible,
-    select:focus-visible,
-    textarea:focus-visible,
-    a:focus-visible {
-      outline: 3px solid rgba(249, 147, 3, 0.27);
-      outline-offset: 2px;
-    }
+    /* Информация */
 
-    .notificationNote {
+    .infoNote {
       display: flex;
       align-items: flex-start;
       gap: 11px;
-      margin-top: 18px;
+      margin-top: 16px;
       padding: 13px 15px;
       border: 1px solid #f0d0a1;
       border-radius: 16px;
       color: var(--muted);
-      background: rgba(255, 252, 247, 0.94);
+      background: rgba(255,252,247,.95);
       font-size: 13px;
       line-height: 1.45;
       box-shadow: var(--shadow-small);
     }
 
-    .notificationIcon {
+    .infoIcon {
       display: flex;
       flex: 0 0 auto;
       align-items: center;
@@ -371,62 +433,67 @@
       border-radius: 11px;
       color: var(--accent-dark);
       background: var(--accent-soft);
-      font-size: 16px;
     }
+
+    .migrationPanel {
+      display: none;
+      align-items: center;
+      justify-content: space-between;
+      gap: 15px;
+      margin-top: 16px;
+      padding: 15px;
+      border: 1px solid #b8d6f5;
+      border-radius: 16px;
+      background: #f1f7ff;
+      box-shadow: var(--shadow-small);
+      font-size: 13px;
+      line-height: 1.45;
+    }
+
+    .migrationPanel.show {
+      display: flex;
+    }
+
+    .migrationActions {
+      display: flex;
+      flex: 0 0 auto;
+      gap: 8px;
+    }
+
+    /* Статистика */
 
     .stats {
       display: grid;
-      grid-template-columns: repeat(5, minmax(150px, 1fr));
+      grid-template-columns: repeat(5, minmax(150px,1fr));
       gap: 13px;
       margin: 18px 0;
     }
 
     .stat {
-      position: relative;
-      overflow: hidden;
       padding: 16px;
       border: 1px solid var(--line);
       border-radius: 19px;
-      background: rgba(255, 255, 255, 0.94);
+      background: rgba(255,255,255,.95);
       box-shadow: var(--shadow-small);
     }
 
-    .stat::after {
-      content: "";
-      position: absolute;
-      top: -35px;
-      right: -35px;
-      width: 90px;
-      height: 90px;
-      border-radius: 50%;
-      background: rgba(249, 147, 3, 0.07);
-      pointer-events: none;
-    }
-
     .statLabel {
-      position: relative;
-      z-index: 1;
       margin-bottom: 8px;
       color: var(--muted);
       font-size: 11px;
       font-weight: 800;
-      letter-spacing: 0.06em;
+      letter-spacing: .06em;
       text-transform: uppercase;
     }
 
     .statValue {
-      position: relative;
-      z-index: 1;
       color: var(--accent);
       font-size: 28px;
       font-weight: 900;
       line-height: 1;
-      letter-spacing: -0.02em;
     }
 
     .statHint {
-      position: relative;
-      z-index: 1;
       margin-top: 7px;
       color: var(--muted);
       font-size: 11px;
@@ -445,37 +512,37 @@
       color: var(--red);
     }
 
-    .stat.no-date .statValue {
+    .stat.noDate .statValue {
       color: var(--yellow);
     }
 
+    /* Таблица */
+
     .panel {
+      overflow: hidden;
       border: 1px solid var(--line);
       border-top: 4px solid var(--accent);
       border-radius: var(--radius);
-      background: rgba(255, 255, 255, 0.95);
+      background: #fff;
       box-shadow: var(--shadow);
-      overflow: hidden;
     }
 
     .toolbar {
       display: grid;
       grid-template-columns:
-        minmax(230px, 1.6fr)
-        minmax(150px, 0.7fr)
-        minmax(150px, 0.7fr)
-        minmax(150px, 0.7fr)
-        minmax(160px, 0.7fr)
+        minmax(230px,1.5fr)
+        repeat(4,minmax(145px,.7fr))
         auto;
       gap: 10px;
+      align-items: end;
       padding: 16px;
       border-bottom: 1px solid var(--line);
-      background: linear-gradient(
-        180deg,
-        #ffffff,
-        var(--accent-softer)
-      );
-      align-items: end;
+      background:
+        linear-gradient(
+          180deg,
+          #fff,
+          var(--accent-softer)
+        );
     }
 
     .field {
@@ -488,7 +555,7 @@
       color: var(--muted);
       font-size: 11px;
       font-weight: 800;
-      letter-spacing: 0.06em;
+      letter-spacing: .05em;
       text-transform: uppercase;
     }
 
@@ -497,25 +564,22 @@
     .field textarea {
       width: 100%;
       border: 1px solid #d9dde5;
-      border-radius: 12px;
+      border-radius: 11px;
       color: var(--text);
-      background: #ffffff;
+      background: #fff;
       outline: none;
       font-size: 14px;
-      transition:
-        border-color 0.17s ease,
-        box-shadow 0.17s ease;
     }
 
     .field input,
     .field select {
-      min-height: 43px;
-      padding: 10px 11px;
+      min-height: 42px;
+      padding: 9px 10px;
     }
 
     .field textarea {
       min-height: 96px;
-      padding: 11px 12px;
+      padding: 11px;
       resize: vertical;
       line-height: 1.45;
     }
@@ -524,37 +588,13 @@
     .field select:focus,
     .field textarea:focus {
       border-color: var(--accent);
-      box-shadow: 0 0 0 3px rgba(249, 147, 3, 0.14);
-    }
-
-    .field input::placeholder,
-    .field textarea::placeholder {
-      color: #9ca3af;
-    }
-
-    .searchWrap {
-      position: relative;
-    }
-
-    .searchWrap::before {
-      content: "⌕";
-      position: absolute;
-      left: 13px;
-      bottom: 10px;
-      color: var(--accent-secondary);
-      font-size: 20px;
-      line-height: 1;
-      pointer-events: none;
-    }
-
-    .searchWrap input {
-      padding-left: 39px;
+      box-shadow:
+        0 0 0 3px rgba(249,147,3,.13);
     }
 
     .toolbarActions {
       display: flex;
       justify-content: flex-end;
-      gap: 8px;
     }
 
     .secondaryToolbar {
@@ -562,9 +602,9 @@
       align-items: center;
       justify-content: space-between;
       gap: 14px;
-      padding: 12px 16px;
+      padding: 11px 16px;
       border-bottom: 1px solid var(--line);
-      background: #ffffff;
+      background: #fff;
     }
 
     .visibleCount {
@@ -576,136 +616,94 @@
     .secondaryActions {
       display: flex;
       flex-wrap: wrap;
-      justify-content: flex-end;
-      gap: 8px;
-    }
-
-    .hiddenInput {
-      display: none;
+      gap: 7px;
     }
 
     .tableWrap {
       width: 100%;
       overflow: auto;
-      background: #ffffff;
     }
 
     table {
       width: 100%;
-      min-width: 1630px;
+      min-width: 1640px;
       border-collapse: separate;
       border-spacing: 0;
       table-layout: fixed;
     }
 
-    thead th {
+    th {
       position: sticky;
       top: 0;
-      z-index: 3;
-      padding: 12px 10px;
+      z-index: 2;
+      padding: 11px 9px;
       border-bottom: 1px solid #f2bd70;
       color: #8d570d;
       background: #fff2df;
       text-align: left;
-      font-size: 11px;
+      font-size: 10px;
       font-weight: 900;
-      letter-spacing: 0.055em;
+      letter-spacing: .05em;
       text-transform: uppercase;
     }
 
-    tbody td {
-      padding: 12px 10px;
+    td {
+      padding: 11px 9px;
       border-bottom: 1px solid #edf0f4;
-      background: #ffffff;
+      background: #fff;
       vertical-align: top;
       font-size: 13px;
       line-height: 1.4;
       overflow-wrap: anywhere;
-      transition: background 0.15s ease;
     }
 
     tbody tr:hover td {
       background: #fffbf5;
     }
 
-    tbody tr.row-today td {
+    .row-today td {
       background: #edf6ff;
     }
 
-    tbody tr.row-soon td {
-      background: #f2fbf6;
+    .row-soon td {
+      background: #f1faf5;
     }
 
-    tbody tr.row-overdue td {
+    .row-overdue td {
       background: #fff2f0;
     }
 
-    tbody tr.row-closed td {
+    .row-closed td {
       color: #747b86;
       background: #f6f7f9;
     }
 
-    .col-client {
-      width: 185px;
-    }
-
-    .col-business {
-      width: 200px;
-    }
-
-    .col-contacts {
-      width: 160px;
-    }
-
-    .col-method {
-      width: 130px;
-    }
-
-    .col-amount {
-      width: 145px;
-    }
-
-    .col-priority {
-      width: 125px;
-    }
-
-    .col-date {
-      width: 170px;
-    }
-
-    .col-status {
-      width: 150px;
-    }
-
-    .col-dialogue {
-      width: 250px;
-    }
-
-    .col-notes {
-      width: 180px;
-    }
-
-    .col-actions {
-      width: 145px;
-      text-align: right;
-    }
+    .col-client { width: 185px; }
+    .col-business { width: 195px; }
+    .col-contacts { width: 155px; }
+    .col-method { width: 130px; }
+    .col-amount { width: 145px; }
+    .col-priority { width: 125px; }
+    .col-date { width: 170px; }
+    .col-status { width: 150px; }
+    .col-dialogue { width: 250px; }
+    .col-notes { width: 180px; }
+    .col-actions { width: 145px; }
 
     .clientName {
       margin-bottom: 5px;
-      color: var(--text-strong);
+      color: var(--strong);
       font-size: 14px;
       font-weight: 900;
-      line-height: 1.35;
     }
 
     .clientMeta,
-    .cellMuted {
+    .muted {
       color: var(--muted);
       font-size: 12px;
-      line-height: 1.45;
     }
 
-    .businessActivity {
+    .activity {
       margin-top: 5px;
       color: #374151;
       font-weight: 700;
@@ -714,72 +712,48 @@
     .contactLink {
       display: block;
       width: fit-content;
-      max-width: 100%;
-      margin-bottom: 5px;
+      margin-bottom: 4px;
       color: var(--accent-dark);
       font-weight: 700;
       text-decoration: none;
-      word-break: break-word;
     }
 
     .contactLink:hover {
-      color: var(--accent-hover);
       text-decoration: underline;
-      text-underline-offset: 3px;
     }
 
-    .methodPill,
-    .priorityPill,
-    .statusPill,
-    .dateBadge {
+    .pill {
       display: inline-flex;
       align-items: center;
       gap: 6px;
+      padding: 6px 8px;
       border-radius: 999px;
       font-size: 11px;
       font-weight: 900;
-      line-height: 1.25;
     }
 
     .methodPill {
-      padding: 7px 9px;
       color: #924d0d;
       background: var(--accent-soft);
     }
 
-    .amountValue {
-      color: var(--text-strong);
-      font-size: 14px;
-      font-weight: 900;
-      line-height: 1.4;
-    }
-
-    .priorityPill {
-      padding: 7px 9px;
-      border: 1px solid transparent;
-    }
-
     .priority-high {
       color: #9f2722;
-      border-color: #f2b7b2;
       background: #ffe6e3;
     }
 
     .priority-medium {
       color: #9a5a06;
-      border-color: #f2cf91;
       background: #fff1d4;
     }
 
     .priority-low {
       color: #176943;
-      border-color: #b9e5cc;
       background: #e6f7ed;
     }
 
     .priority-none {
       color: #626975;
-      border-color: #d9dde3;
       background: #f1f3f5;
     }
 
@@ -790,15 +764,54 @@
       background: currentColor;
     }
 
+    .status-new {
+      color: #945d08;
+      background: var(--yellow-soft);
+    }
+
+    .status-contacted {
+      color: #2865a9;
+      background: var(--blue-soft);
+    }
+
+    .status-callback {
+      color: #a75f13;
+      background: var(--accent-soft);
+    }
+
+    .status-transition,
+    .status-client {
+      color: #176943;
+      background: var(--green-soft);
+    }
+
+    .status-contract {
+      color: #9a500c;
+      background: #ffe9ce;
+    }
+
+    .status-paused {
+      color: #626975;
+      background: #eff1f4;
+    }
+
+    .status-lost {
+      color: #a1332d;
+      background: var(--red-soft);
+    }
+
     .dateMain {
-      color: var(--text-strong);
+      color: var(--strong);
       font-weight: 900;
-      line-height: 1.4;
     }
 
     .dateBadge {
-      margin-top: 7px;
-      padding: 5px 8px;
+      display: inline-flex;
+      margin-top: 6px;
+      padding: 5px 7px;
+      border-radius: 999px;
+      font-size: 11px;
+      font-weight: 900;
     }
 
     .dateBadge.today {
@@ -826,54 +839,15 @@
       background: var(--gray-soft);
     }
 
-    .statusPill {
-      padding: 7px 9px;
-    }
-
-    .status-new {
-      color: #945d08;
-      background: var(--yellow-soft);
-    }
-
-    .status-contacted {
-      color: #2865a9;
-      background: var(--blue-soft);
-    }
-
-    .status-callback {
-      color: #a75f13;
-      background: var(--accent-soft);
-    }
-
-    .status-transition {
-      color: #176943;
-      background: var(--green-soft);
-    }
-
-    .status-contract {
-      color: #9a500c;
-      background: #ffe9ce;
-    }
-
-    .status-client {
-      color: #176943;
-      background: #dff4e8;
-    }
-
-    .status-paused {
-      color: #626975;
-      background: #eff1f4;
-    }
-
-    .status-lost {
-      color: #a1332d;
-      background: var(--red-soft);
+    .amount {
+      color: var(--strong);
+      font-weight: 900;
     }
 
     .dialogueBlock + .dialogueBlock {
       margin-top: 8px;
       padding-top: 8px;
-      border-top: 1px dashed #f0c78f;
+      border-top: 1px dashed #efc78e;
     }
 
     .dialogueLabel {
@@ -882,17 +856,12 @@
       color: var(--accent-dark);
       font-size: 10px;
       font-weight: 900;
-      letter-spacing: 0.05em;
       text-transform: uppercase;
     }
 
-    .dialogueText {
-      color: #374151;
-      white-space: pre-line;
-    }
-
+    .dialogueText,
     .notesText {
-      color: #4b5563;
+      color: #374151;
       white-space: pre-line;
     }
 
@@ -900,23 +869,20 @@
       display: flex;
       flex-wrap: wrap;
       justify-content: flex-end;
-      gap: 6px;
+      gap: 5px;
     }
 
     .tableButton {
-      appearance: none;
-      min-height: 32px;
-      padding: 6px 9px;
+      padding: 6px 8px;
       border: 1px solid #efc383;
-      border-radius: 9px;
+      border-radius: 8px;
       color: var(--accent-dark);
-      background: #ffffff;
+      background: #fff;
       font-size: 11px;
       font-weight: 900;
     }
 
     .tableButton:hover {
-      color: #9d520e;
       border-color: var(--accent);
       background: var(--accent-soft);
     }
@@ -927,42 +893,23 @@
       background: #fff8f7;
     }
 
-    .tableButton.delete:hover {
-      background: var(--red-soft);
-    }
-
-    .emptyRow td {
-      padding: 54px 20px;
+    .emptyCell {
+      padding: 50px 20px;
       text-align: center;
-      background: #ffffff !important;
-    }
-
-    .emptyIcon {
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      width: 54px;
-      height: 54px;
-      margin: 0 auto 13px;
-      border-radius: 18px;
-      color: var(--accent-dark);
-      background: var(--accent-soft);
-      font-size: 24px;
     }
 
     .emptyTitle {
       margin-bottom: 6px;
-      color: var(--text-strong);
       font-size: 17px;
       font-weight: 900;
     }
 
     .emptyText {
-      max-width: 500px;
-      margin: 0 auto;
       color: var(--muted);
       line-height: 1.5;
     }
+
+    /* Модальное окно */
 
     .modalBackdrop {
       position: fixed;
@@ -972,7 +919,7 @@
       align-items: center;
       justify-content: center;
       padding: 20px;
-      background: rgba(17, 24, 39, 0.48);
+      background: rgba(17,24,39,.48);
       backdrop-filter: blur(4px);
     }
 
@@ -981,14 +928,14 @@
     }
 
     .modal {
-      width: min(980px, 100%);
+      width: min(980px,100%);
       max-height: calc(100vh - 40px);
       overflow: auto;
       border: 1px solid var(--line);
       border-top: 5px solid var(--accent);
       border-radius: 24px;
-      background: #ffffff;
-      box-shadow: 0 30px 90px rgba(17, 24, 39, 0.25);
+      background: #fff;
+      box-shadow: 0 30px 90px rgba(17,24,39,.25);
     }
 
     .modalHeader {
@@ -999,45 +946,31 @@
       align-items: flex-start;
       justify-content: space-between;
       gap: 20px;
-      padding: 20px 22px;
+      padding: 19px 22px;
       border-bottom: 1px solid var(--line);
-      background: rgba(255, 250, 243, 0.97);
-      backdrop-filter: blur(8px);
+      background: rgba(255,250,243,.97);
     }
 
     .modalHeader h2 {
       margin: 0;
-      color: var(--text-strong);
+      color: var(--strong);
       font-size: 23px;
-      line-height: 1.2;
     }
 
     .modalSubtitle {
       margin-top: 5px;
       color: var(--muted);
       font-size: 13px;
-      line-height: 1.45;
     }
 
     .closeButton {
-      appearance: none;
-      display: flex;
-      flex: 0 0 auto;
-      align-items: center;
-      justify-content: center;
       width: 38px;
       height: 38px;
       border: 1px solid #e5bd81;
-      border-radius: 12px;
+      border-radius: 11px;
       color: var(--accent-dark);
-      background: #ffffff;
+      background: #fff;
       font-size: 22px;
-      line-height: 1;
-    }
-
-    .closeButton:hover {
-      border-color: var(--accent);
-      background: var(--accent-soft);
     }
 
     .modalBody {
@@ -1051,8 +984,6 @@
     }
 
     .formSection:last-child {
-      margin-bottom: 0;
-      padding-bottom: 0;
       border-bottom: 0;
     }
 
@@ -1065,15 +996,15 @@
 
     .formGrid {
       display: grid;
-      grid-template-columns: repeat(2, minmax(0, 1fr));
+      grid-template-columns: repeat(2,minmax(0,1fr));
       gap: 13px;
     }
 
-    .formGrid .full {
+    .full {
       grid-column: 1 / -1;
     }
 
-    .requiredMark {
+    .required {
       color: var(--red);
     }
 
@@ -1087,15 +1018,15 @@
     .modalFooter {
       position: sticky;
       bottom: 0;
-      z-index: 3;
       display: flex;
       justify-content: flex-end;
       gap: 9px;
-      padding: 15px 22px;
+      padding: 14px 22px;
       border-top: 1px solid var(--line);
-      background: rgba(255, 250, 243, 0.97);
-      backdrop-filter: blur(8px);
+      background: rgba(255,250,243,.97);
     }
+
+    /* Toast */
 
     .toastStack {
       position: fixed;
@@ -1103,8 +1034,8 @@
       bottom: 20px;
       z-index: 200;
       display: grid;
-      width: min(380px, calc(100vw - 40px));
-      gap: 9px;
+      width: min(390px,calc(100vw - 40px));
+      gap: 8px;
       pointer-events: none;
     }
 
@@ -1112,10 +1043,9 @@
       padding: 13px 15px;
       border: 1px solid var(--line);
       border-left: 5px solid var(--accent);
-      border-radius: 14px;
-      color: var(--text);
-      background: #ffffff;
-      box-shadow: 0 16px 40px rgba(31, 41, 55, 0.18);
+      border-radius: 13px;
+      background: #fff;
+      box-shadow: 0 16px 40px rgba(31,41,55,.18);
       font-size: 13px;
       line-height: 1.45;
     }
@@ -1134,7 +1064,7 @@
 
     @media (max-width: 1300px) {
       .toolbar {
-        grid-template-columns: repeat(3, minmax(0, 1fr));
+        grid-template-columns: repeat(3,minmax(0,1fr));
       }
 
       .toolbarActions {
@@ -1147,18 +1077,14 @@
         padding: 14px;
       }
 
-      .hero {
-        padding: 21px;
-        border-radius: 24px;
-      }
-
       .heroTop {
         flex-direction: column;
       }
 
       .heroActions {
-        justify-content: flex-start;
+        width: 100%;
         min-width: 0;
+        justify-content: flex-start;
       }
 
       h1 {
@@ -1166,34 +1092,31 @@
       }
 
       .stats {
-        grid-template-columns: repeat(2, minmax(0, 1fr));
+        grid-template-columns: repeat(2,minmax(0,1fr));
       }
 
       .toolbar {
-        grid-template-columns: repeat(2, minmax(0, 1fr));
-      }
-
-      .secondaryToolbar {
-        align-items: flex-start;
-        flex-direction: column;
+        grid-template-columns: repeat(2,minmax(0,1fr));
       }
 
       .formGrid {
         grid-template-columns: 1fr;
       }
 
-      .formGrid .full {
+      .full {
         grid-column: auto;
+      }
+
+      .migrationPanel,
+      .secondaryToolbar {
+        align-items: flex-start;
+        flex-direction: column;
       }
     }
 
     @media (max-width: 560px) {
       .app {
         padding: 10px;
-      }
-
-      .hero {
-        padding: 18px;
       }
 
       h1 {
@@ -1205,20 +1128,13 @@
         width: 100%;
       }
 
-      .stats {
-        grid-template-columns: 1fr;
-      }
-
+      .stats,
       .toolbar {
         grid-template-columns: 1fr;
       }
 
       .toolbarActions {
         grid-column: auto;
-      }
-
-      .toolbarActions .button {
-        width: 100%;
       }
 
       .secondaryActions {
@@ -1237,23 +1153,50 @@
         max-height: none;
         border-radius: 0;
       }
-
-      .modalFooter {
-        display: grid;
-        grid-template-columns: 1fr 1fr;
-      }
     }
   </style>
 </head>
 
 <body>
+
+  <section
+    class="loadingScreen"
+    id="loadingScreen"
+  >
+    <div class="loadingCard">
+      <img
+        class="loadingLogo"
+        src="/favicon.png"
+        alt=""
+      >
+
+      <div class="spinner"></div>
+
+      <div class="loadingTitle">
+        Загружаем планировщик
+      </div>
+
+      <div
+        class="loadingText"
+        id="loadingText"
+      >
+        Проверяем авторизацию и подключаемся к общей базе…
+      </div>
+    </div>
+  </section>
+
   <main class="app">
+
     <section class="hero">
       <div class="heroTop">
+
         <div class="heroMain">
-          <a class="backLink" href="../index.html">
-            <span aria-hidden="true">←</span>
-            <span>На главную</span>
+
+          <a
+            class="backLink"
+            href="../index.html"
+          >
+            ← На главную
           </a>
 
           <div class="eyebrow">
@@ -1265,20 +1208,44 @@
           </h1>
 
           <p class="heroSubtitle">
-            Храните контакты, фиксируйте предыдущие разговоры,
-            назначайте приоритет и не забывайте вовремя возвращаться
-            к потенциальным клиентам.
+            Общая рабочая таблица команды. Фиксируйте контакты,
+            предыдущие разговоры, приоритет и дату следующего
+            общения с потенциальным клиентом.
           </p>
+
         </div>
 
         <div class="heroActions">
+
+          <div class="userBadge">
+            <div
+              class="userAvatar"
+              id="userAvatar"
+            >
+              Д
+            </div>
+
+            <div>
+              <div
+                class="userName"
+                id="userName"
+              >
+                Сотрудник
+              </div>
+
+              <div
+                class="userEmail"
+                id="userEmail"
+              ></div>
+            </div>
+          </div>
+
           <button
             class="button button-primary"
             id="addLeadBtn"
             type="button"
           >
-            <span aria-hidden="true">＋</span>
-            Добавить клиента
+            ＋ Добавить клиента
           </button>
 
           <button
@@ -1286,72 +1253,171 @@
             id="notificationBtn"
             type="button"
           >
-            <span aria-hidden="true">🔔</span>
-            Включить уведомления
+            🔔 Включить уведомления
           </button>
+
         </div>
+
       </div>
     </section>
 
-    <div class="notificationNote" id="notificationNote">
-      <div class="notificationIcon" aria-hidden="true">
-        🔔
-      </div>
+    <div
+      class="infoNote"
+      id="notificationNote"
+    >
+      <div class="infoIcon">🔔</div>
 
       <div>
-        Браузерные напоминания появятся в день назначенного контакта,
-        если уведомления разрешены и страница открыта или работает
-        в фоновой вкладке.
+        Ближайшие контакты автоматически поднимаются вверх.
+        В день контакта браузер сможет показать напоминание,
+        если вы разрешите уведомления.
       </div>
     </div>
 
-    <section class="stats" aria-label="Статистика планировщика">
+    <div
+      class="migrationPanel"
+      id="migrationPanel"
+    >
+      <div>
+        <strong>
+          Найдены старые записи на этом компьютере.
+        </strong>
+
+        <br>
+
+        Их можно один раз перенести из старого локального
+        планировщика в общую базу.
+      </div>
+
+      <div class="migrationActions">
+        <button
+          class="button button-light button-small"
+          id="skipMigrationBtn"
+          type="button"
+        >
+          Не переносить
+        </button>
+
+        <button
+          class="button button-accent button-small"
+          id="migrateBtn"
+          type="button"
+        >
+          Перенести записи
+        </button>
+      </div>
+    </div>
+
+    <section class="stats">
+
       <article class="stat">
-        <div class="statLabel">Активные лиды</div>
-        <div class="statValue" id="statActive">0</div>
-        <div class="statHint">Без завершённых и неактуальных</div>
+        <div class="statLabel">
+          Активные лиды
+        </div>
+
+        <div
+          class="statValue"
+          id="statActive"
+        >
+          0
+        </div>
+
+        <div class="statHint">
+          Без завершённых и неактуальных
+        </div>
       </article>
 
       <article class="stat today">
-        <div class="statLabel">На сегодня</div>
-        <div class="statValue" id="statToday">0</div>
-        <div class="statHint">Контакты на текущую дату</div>
+        <div class="statLabel">
+          На сегодня
+        </div>
+
+        <div
+          class="statValue"
+          id="statToday"
+        >
+          0
+        </div>
+
+        <div class="statHint">
+          Контакты на текущую дату
+        </div>
       </article>
 
       <article class="stat soon">
-        <div class="statLabel">Ближайшие 7 дней</div>
-        <div class="statValue" id="statWeek">0</div>
-        <div class="statHint">Включая сегодняшние</div>
+        <div class="statLabel">
+          Ближайшие 7 дней
+        </div>
+
+        <div
+          class="statValue"
+          id="statWeek"
+        >
+          0
+        </div>
+
+        <div class="statHint">
+          Включая сегодняшние
+        </div>
       </article>
 
       <article class="stat overdue">
-        <div class="statLabel">Просрочено</div>
-        <div class="statValue" id="statOverdue">0</div>
-        <div class="statHint">Требуется связаться</div>
+        <div class="statLabel">
+          Просрочено
+        </div>
+
+        <div
+          class="statValue"
+          id="statOverdue"
+        >
+          0
+        </div>
+
+        <div class="statHint">
+          Требуется связаться
+        </div>
       </article>
 
-      <article class="stat no-date">
-        <div class="statLabel">Без даты</div>
-        <div class="statValue" id="statNoDate">0</div>
-        <div class="statHint">Следующий контакт не назначен</div>
+      <article class="stat noDate">
+        <div class="statLabel">
+          Без даты
+        </div>
+
+        <div
+          class="statValue"
+          id="statNoDate"
+        >
+          0
+        </div>
+
+        <div class="statHint">
+          Следующий контакт не назначен
+        </div>
       </article>
+
     </section>
 
     <section class="panel">
+
       <div class="toolbar">
-        <div class="field searchWrap">
-          <label for="searchInput">Поиск</label>
+
+        <div class="field">
+          <label for="searchInput">
+            Поиск
+          </label>
 
           <input
             id="searchInput"
             type="search"
-            placeholder="Клиент, ИНН, телефон, сумма, способ связи..."
+            placeholder="Клиент, телефон, ИНН, сумма..."
             autocomplete="off"
           >
         </div>
 
         <div class="field">
-          <label for="statusFilter">Статус</label>
+          <label for="statusFilter">
+            Статус
+          </label>
 
           <select id="statusFilter">
             <option value="all">Все статусы</option>
@@ -1367,10 +1433,12 @@
         </div>
 
         <div class="field">
-          <label for="priorityFilter">Приоритет</label>
+          <label for="priorityFilter">
+            Приоритет
+          </label>
 
           <select id="priorityFilter">
-            <option value="all">Все приоритеты</option>
+            <option value="all">Все</option>
             <option value="high">Высокий</option>
             <option value="medium">Средний</option>
             <option value="low">Низкий</option>
@@ -1379,28 +1447,46 @@
         </div>
 
         <div class="field">
-          <label for="dateFilter">Дата контакта</label>
+          <label for="dateFilter">
+            Дата контакта
+          </label>
 
           <select id="dateFilter">
             <option value="all">Все записи</option>
             <option value="today">Сегодня</option>
             <option value="week">Ближайшие 7 дней</option>
             <option value="overdue">Просроченные</option>
-            <option value="future">Будущие контакты</option>
+            <option value="future">Будущие</option>
             <option value="nodate">Без даты</option>
             <option value="closed">Завершённые</option>
           </select>
         </div>
 
         <div class="field">
-          <label for="sortSelect">Сортировка</label>
+          <label for="sortSelect">
+            Сортировка
+          </label>
 
           <select id="sortSelect">
-            <option value="nearest">По ближайшей дате</option>
-            <option value="priority">По приоритету</option>
-            <option value="updated">Недавно изменённые</option>
-            <option value="newest">Сначала новые</option>
-            <option value="name">По названию</option>
+            <option value="nearest">
+              По ближайшей дате
+            </option>
+
+            <option value="priority">
+              По приоритету
+            </option>
+
+            <option value="updated">
+              Недавно изменённые
+            </option>
+
+            <option value="newest">
+              Сначала новые
+            </option>
+
+            <option value="name">
+              По названию
+            </option>
           </select>
         </div>
 
@@ -1413,14 +1499,28 @@
             Сбросить
           </button>
         </div>
+
       </div>
 
       <div class="secondaryToolbar">
-        <div class="visibleCount" id="visibleCount">
-          Показано: 0
+
+        <div
+          class="visibleCount"
+          id="visibleCount"
+        >
+          Загружаем данные…
         </div>
 
         <div class="secondaryActions">
+
+          <button
+            class="button button-light button-small"
+            id="refreshBtn"
+            type="button"
+          >
+            ↻ Обновить
+          </button>
+
           <button
             class="button button-light button-small"
             id="exportBtn"
@@ -1429,33 +1529,14 @@
             Скачать копию
           </button>
 
-          <button
-            class="button button-light button-small"
-            id="importBtn"
-            type="button"
-          >
-            Восстановить
-          </button>
-
-          <input
-            class="hiddenInput"
-            id="importInput"
-            type="file"
-            accept=".json,application/json"
-          >
-
-          <button
-            class="button button-danger button-small"
-            id="clearBtn"
-            type="button"
-          >
-            Очистить базу
-          </button>
         </div>
+
       </div>
 
       <div class="tableWrap">
+
         <table>
+
           <thead>
             <tr>
               <th class="col-client">Клиент</th>
@@ -1472,28 +1553,49 @@
             </tr>
           </thead>
 
-          <tbody id="leadTableBody"></tbody>
+          <tbody id="leadTableBody">
+            <tr>
+              <td
+                class="emptyCell"
+                colspan="11"
+              >
+                Загружаем записи…
+              </td>
+            </tr>
+          </tbody>
+
         </table>
+
       </div>
+
     </section>
+
   </main>
 
-  <div class="modalBackdrop" id="modalBackdrop">
+  <!-- Добавление / редактирование -->
+
+  <div
+    class="modalBackdrop"
+    id="modalBackdrop"
+  >
+
     <section
       class="modal"
       role="dialog"
       aria-modal="true"
       aria-labelledby="modalTitle"
     >
+
       <div class="modalHeader">
+
         <div>
           <h2 id="modalTitle">
             Новый потенциальный клиент
           </h2>
 
           <div class="modalSubtitle">
-            Заполните известные данные. Обязательным является только
-            имя или название клиента.
+            Заполните всё, что уже известно.
+            Обязательно только имя или название клиента.
           </div>
         </div>
 
@@ -1505,28 +1607,36 @@
         >
           ×
         </button>
+
       </div>
 
       <form id="leadForm">
+
         <div class="modalBody">
-          <input id="leadId" type="hidden">
+
+          <input
+            id="leadId"
+            type="hidden"
+          >
 
           <section class="formSection">
+
             <h3 class="formSectionTitle">
               Основная информация
             </h3>
 
             <div class="formGrid">
+
               <div class="field">
                 <label for="clientName">
-                  Название или имя клиента
-                  <span class="requiredMark">*</span>
+                  Имя или название
+                  <span class="required">*</span>
                 </label>
 
                 <input
                   id="clientName"
-                  required
                   maxlength="180"
+                  required
                   placeholder="Например: Вдовин Ф. А."
                 >
               </div>
@@ -1540,7 +1650,7 @@
                   id="orgForm"
                   list="orgFormOptions"
                   maxlength="80"
-                  placeholder="ИП, ООО, самозанятый..."
+                  placeholder="ИП, ООО..."
                 >
 
                 <datalist id="orgFormOptions">
@@ -1560,8 +1670,8 @@
 
                 <input
                   id="inn"
-                  inputmode="numeric"
                   maxlength="20"
+                  inputmode="numeric"
                   placeholder="Если известен"
                 >
               </div>
@@ -1574,13 +1684,13 @@
                 <input
                   id="activity"
                   maxlength="180"
-                  placeholder="Например: культурные мероприятия"
+                  placeholder="Культурные мероприятия"
                 >
               </div>
 
               <div class="field full">
                 <label for="source">
-                  Канал поступления лида
+                  Откуда пришёл лид
                 </label>
 
                 <input
@@ -1597,7 +1707,6 @@
                   <option value="Telegram"></option>
                   <option value="WhatsApp"></option>
                   <option value="MAX"></option>
-                  <option value="Instagram"></option>
                   <option value="ВКонтакте"></option>
                   <option value="2ГИС"></option>
                   <option value="Яндекс"></option>
@@ -1605,15 +1714,19 @@
                   <option value="Повторное обращение"></option>
                 </datalist>
               </div>
+
             </div>
+
           </section>
 
           <section class="formSection">
+
             <h3 class="formSectionTitle">
-              Контакты и коммерческие условия
+              Контакты и условия
             </h3>
 
             <div class="formGrid">
+
               <div class="field">
                 <label for="phone">
                   Телефон
@@ -1623,13 +1736,13 @@
                   id="phone"
                   type="tel"
                   maxlength="80"
-                  placeholder="+7 777 000-00-00"
+                  placeholder="+7..."
                 >
               </div>
 
               <div class="field">
                 <label for="email">
-                  Электронная почта
+                  E-mail
                 </label>
 
                 <input
@@ -1642,7 +1755,7 @@
 
               <div class="field">
                 <label for="communicationMethod">
-                  Предпочтительный способ связи
+                  Способ связи
                 </label>
 
                 <select id="communicationMethod">
@@ -1659,19 +1772,14 @@
 
               <div class="field">
                 <label for="estimatedAmount">
-                  Предварительно оговорённая сумма
+                  Предварительная сумма
                 </label>
 
                 <input
                   id="estimatedAmount"
                   maxlength="120"
-                  placeholder="Например: 15 000 ₽/мес."
+                  placeholder="15 000 ₽/мес."
                 >
-
-                <div class="fieldHint">
-                  Можно указать свободно: «от 20 000 ₽»,
-                  «30 000 ₽/квартал» и так далее.
-                </div>
               </div>
 
               <div class="field">
@@ -1689,7 +1797,7 @@
 
               <div class="field">
                 <label for="status">
-                  Текущий статус
+                  Статус
                 </label>
 
                 <select id="status">
@@ -1715,19 +1823,23 @@
                 >
 
                 <div class="fieldHint">
-                  По этой дате выполняется автоматическая сортировка
-                  и отправляется браузерное напоминание.
+                  Именно эта дата используется для сортировки
+                  и напоминаний.
                 </div>
               </div>
+
             </div>
+
           </section>
 
           <section class="formSection">
+
             <h3 class="formSectionTitle">
               История общения
             </h3>
 
             <div class="formGrid">
+
               <div class="field full">
                 <label for="lastDialogue">
                   О чём говорили в прошлый раз
@@ -1736,19 +1848,19 @@
                 <textarea
                   id="lastDialogue"
                   maxlength="3000"
-                  placeholder="Что обсуждали, какие вопросы возникли, о чём договорились..."
+                  placeholder="Что обсуждали и о чём договорились..."
                 ></textarea>
               </div>
 
               <div class="field full">
                 <label for="nextStep">
-                  Что нужно сделать дальше
+                  Что сделать дальше
                 </label>
 
                 <textarea
                   id="nextStep"
                   maxlength="2000"
-                  placeholder="Например: связаться в конце октября и начать подготовку перехода."
+                  placeholder="Позвонить, прислать предложение, подготовить договор..."
                 ></textarea>
               </div>
 
@@ -1760,14 +1872,18 @@
                 <textarea
                   id="notes"
                   maxlength="3000"
-                  placeholder="Особенности бизнеса, пожелания клиента и другая полезная информация."
+                  placeholder="Любая другая полезная информация..."
                 ></textarea>
               </div>
+
             </div>
+
           </section>
+
         </div>
 
         <div class="modalFooter">
+
           <button
             class="button button-light"
             id="cancelBtn"
@@ -1778,13 +1894,18 @@
 
           <button
             class="button button-accent"
+            id="saveLeadBtn"
             type="submit"
           >
             Сохранить запись
           </button>
+
         </div>
+
       </form>
+
     </section>
+
   </div>
 
   <div
@@ -1793,1708 +1914,7 @@
     aria-live="polite"
   ></div>
 
-  <script>
-    'use strict';
+  <script src="./planner.js"></script>
 
-    const STORAGE_KEY = 'jambalance_planner_leads_v1';
-    const SEED_KEY = 'jambalance_planner_seeded_v1';
-    const NOTIFIED_KEY = 'jambalance_planner_notifications_v1';
-
-    const CLOSED_STATUSES = new Set([
-      'client',
-      'lost'
-    ]);
-
-    const STATUS_META = {
-      new: {
-        label: 'Новый лид',
-        className: 'status-new'
-      },
-      contacted: {
-        label: 'Связались',
-        className: 'status-contacted'
-      },
-      callback: {
-        label: 'Назначен контакт',
-        className: 'status-callback'
-      },
-      transition: {
-        label: 'Готовим переход',
-        className: 'status-transition'
-      },
-      contract: {
-        label: 'Заключаем договор',
-        className: 'status-contract'
-      },
-      client: {
-        label: 'Стал клиентом',
-        className: 'status-client'
-      },
-      paused: {
-        label: 'Отложен',
-        className: 'status-paused'
-      },
-      lost: {
-        label: 'Неактуально',
-        className: 'status-lost'
-      }
-    };
-
-    const PRIORITY_META = {
-      high: {
-        label: 'Высокий',
-        className: 'priority-high',
-        order: 1
-      },
-      medium: {
-        label: 'Средний',
-        className: 'priority-medium',
-        order: 2
-      },
-      low: {
-        label: 'Низкий',
-        className: 'priority-low',
-        order: 3
-      },
-      none: {
-        label: 'Не указан',
-        className: 'priority-none',
-        order: 4
-      }
-    };
-
-    const METHOD_META = {
-      phone: 'Телефон',
-      telegram: 'Telegram',
-      whatsapp: 'WhatsApp',
-      max: 'MAX',
-      email: 'E-mail',
-      meeting: 'Личная встреча',
-      other: 'Другое'
-    };
-
-    const elements = {
-      addLeadBtn: document.getElementById('addLeadBtn'),
-      notificationBtn: document.getElementById('notificationBtn'),
-      notificationNote: document.getElementById('notificationNote'),
-
-      statActive: document.getElementById('statActive'),
-      statToday: document.getElementById('statToday'),
-      statWeek: document.getElementById('statWeek'),
-      statOverdue: document.getElementById('statOverdue'),
-      statNoDate: document.getElementById('statNoDate'),
-
-      searchInput: document.getElementById('searchInput'),
-      statusFilter: document.getElementById('statusFilter'),
-      priorityFilter: document.getElementById('priorityFilter'),
-      dateFilter: document.getElementById('dateFilter'),
-      sortSelect: document.getElementById('sortSelect'),
-      resetFiltersBtn: document.getElementById('resetFiltersBtn'),
-
-      exportBtn: document.getElementById('exportBtn'),
-      importBtn: document.getElementById('importBtn'),
-      importInput: document.getElementById('importInput'),
-      clearBtn: document.getElementById('clearBtn'),
-
-      visibleCount: document.getElementById('visibleCount'),
-      leadTableBody: document.getElementById('leadTableBody'),
-
-      modalBackdrop: document.getElementById('modalBackdrop'),
-      modalTitle: document.getElementById('modalTitle'),
-      closeModalBtn: document.getElementById('closeModalBtn'),
-      cancelBtn: document.getElementById('cancelBtn'),
-      leadForm: document.getElementById('leadForm'),
-
-      leadId: document.getElementById('leadId'),
-      clientName: document.getElementById('clientName'),
-      orgForm: document.getElementById('orgForm'),
-      inn: document.getElementById('inn'),
-      activity: document.getElementById('activity'),
-      source: document.getElementById('source'),
-      phone: document.getElementById('phone'),
-      email: document.getElementById('email'),
-      communicationMethod:
-        document.getElementById('communicationMethod'),
-      estimatedAmount:
-        document.getElementById('estimatedAmount'),
-      priority: document.getElementById('priority'),
-      nextContact: document.getElementById('nextContact'),
-      status: document.getElementById('status'),
-      lastDialogue: document.getElementById('lastDialogue'),
-      nextStep: document.getElementById('nextStep'),
-      notes: document.getElementById('notes'),
-
-      toastStack: document.getElementById('toastStack')
-    };
-
-    const state = {
-      search: '',
-      status: 'all',
-      priority: 'all',
-      date: 'all',
-      sort: 'nearest'
-    };
-
-    let leads = [];
-
-    function createId() {
-      if (
-        window.crypto &&
-        typeof window.crypto.randomUUID === 'function'
-      ) {
-        return window.crypto.randomUUID();
-      }
-
-      return (
-        'lead-' +
-        Date.now().toString(36) +
-        '-' +
-        Math.random().toString(36).slice(2, 10)
-      );
-    }
-
-    function cleanText(value, maxLength = 5000) {
-      return String(value ?? '')
-        .trim()
-        .slice(0, maxLength);
-    }
-
-    function escapeHtml(value) {
-      return String(value ?? '')
-        .replaceAll('&', '&amp;')
-        .replaceAll('<', '&lt;')
-        .replaceAll('>', '&gt;')
-        .replaceAll('"', '&quot;')
-        .replaceAll("'", '&#039;');
-    }
-
-    function normalizeSearch(value) {
-      return String(value ?? '')
-        .toLocaleLowerCase('ru-RU')
-        .replace(/\s+/g, ' ')
-        .trim();
-    }
-
-    function padNumber(value) {
-      return String(value).padStart(2, '0');
-    }
-
-    function isValidDate(date) {
-      return (
-        date instanceof Date &&
-        !Number.isNaN(date.getTime())
-      );
-    }
-
-    function toLocalDateTimeInput(date) {
-      if (!isValidDate(date)) {
-        return '';
-      }
-
-      return (
-        date.getFullYear() +
-        '-' +
-        padNumber(date.getMonth() + 1) +
-        '-' +
-        padNumber(date.getDate()) +
-        'T' +
-        padNumber(date.getHours()) +
-        ':' +
-        padNumber(date.getMinutes())
-      );
-    }
-
-    function normalizeDateTime(value) {
-      if (!value) {
-        return '';
-      }
-
-      const parsed = new Date(value);
-
-      return isValidDate(parsed)
-        ? toLocalDateTimeInput(parsed)
-        : '';
-    }
-
-    function normalizeIsoDate(value, fallback) {
-      const parsed = new Date(value);
-
-      return isValidDate(parsed)
-        ? parsed.toISOString()
-        : fallback;
-    }
-
-    function safeId(value) {
-      const stringValue = String(value || '');
-
-      if (/^[a-zA-Z0-9_-]{8,100}$/.test(stringValue)) {
-        return stringValue;
-      }
-
-      return createId();
-    }
-
-    function normalizeLead(rawLead) {
-      const now = new Date().toISOString();
-
-      const status = STATUS_META[rawLead?.status]
-        ? rawLead.status
-        : 'new';
-
-      const priority = PRIORITY_META[rawLead?.priority]
-        ? rawLead.priority
-        : 'none';
-
-      const communicationMethod =
-        METHOD_META[rawLead?.communicationMethod]
-          ? rawLead.communicationMethod
-          : '';
-
-      return {
-        id: safeId(rawLead?.id),
-        clientName: cleanText(rawLead?.clientName, 180),
-        orgForm: cleanText(rawLead?.orgForm, 80),
-        inn: cleanText(rawLead?.inn, 20),
-        activity: cleanText(rawLead?.activity, 180),
-        source: cleanText(rawLead?.source, 140),
-        phone: cleanText(rawLead?.phone, 80),
-        email: cleanText(rawLead?.email, 180),
-        communicationMethod,
-        estimatedAmount:
-          cleanText(rawLead?.estimatedAmount, 120),
-        priority,
-        nextContact: normalizeDateTime(rawLead?.nextContact),
-        status,
-        lastDialogue:
-          cleanText(rawLead?.lastDialogue, 3000),
-        nextStep: cleanText(rawLead?.nextStep, 2000),
-        notes: cleanText(rawLead?.notes, 3000),
-        createdAt: normalizeIsoDate(
-          rawLead?.createdAt,
-          now
-        ),
-        updatedAt: normalizeIsoDate(
-          rawLead?.updatedAt,
-          now
-        )
-      };
-    }
-
-    function createInitialLead() {
-      return normalizeLead({
-        id: createId(),
-        clientName: 'Вдовин Ф. А.',
-        orgForm: 'ИП',
-        activity: 'Культурные мероприятия',
-        source: 'Не указан',
-        communicationMethod: 'phone',
-        estimatedAmount: '',
-        priority: 'high',
-        nextContact: '2026-08-25T10:00',
-        status: 'contract',
-        lastDialogue:
-          'Обсудили дальнейшую работу и возможность заключения договора.',
-        nextStep:
-          'Напомнить о себе 25 августа и продолжить оформление.',
-        notes:
-          'Заключаем договор.',
-        createdAt: new Date().toISOString(),
-        updatedAt: new Date().toISOString()
-      });
-    }
-
-    function initializeStorage() {
-      try {
-        const existingData =
-          localStorage.getItem(STORAGE_KEY);
-
-        const wasSeeded =
-          localStorage.getItem(SEED_KEY) === '1';
-
-        if (existingData === null && !wasSeeded) {
-          localStorage.setItem(
-            STORAGE_KEY,
-            JSON.stringify([createInitialLead()])
-          );
-
-          localStorage.setItem(SEED_KEY, '1');
-        }
-      } catch (error) {
-        console.error(error);
-      }
-    }
-
-    function loadLeads() {
-      try {
-        const raw = localStorage.getItem(STORAGE_KEY);
-
-        if (!raw) {
-          return [];
-        }
-
-        const parsed = JSON.parse(raw);
-
-        if (!Array.isArray(parsed)) {
-          return [];
-        }
-
-        return parsed
-          .map(normalizeLead)
-          .filter((lead) => lead.clientName);
-      } catch (error) {
-        showToast(
-          'Не удалось прочитать сохранённые данные.',
-          'error'
-        );
-
-        return [];
-      }
-    }
-
-    function saveLeads() {
-      try {
-        localStorage.setItem(
-          STORAGE_KEY,
-          JSON.stringify(leads)
-        );
-
-        return true;
-      } catch (error) {
-        showToast(
-          'Не удалось сохранить данные.',
-          'error'
-        );
-
-        return false;
-      }
-    }
-
-    function getDisplayName(lead) {
-      const name = lead.clientName.trim();
-      const form = lead.orgForm.trim();
-
-      if (!form) {
-        return name;
-      }
-
-      const normalizedName = normalizeSearch(name);
-      const normalizedForm = normalizeSearch(form);
-
-      if (
-        normalizedName === normalizedForm ||
-        normalizedName.startsWith(normalizedForm + ' ')
-      ) {
-        return name;
-      }
-
-      return form + ' ' + name;
-    }
-
-    function isClosed(lead) {
-      return CLOSED_STATUSES.has(lead.status);
-    }
-
-    function getLocalDayNumber(date) {
-      return (
-        Date.UTC(
-          date.getFullYear(),
-          date.getMonth(),
-          date.getDate()
-        ) / 86400000
-      );
-    }
-
-    function getDayDifference(value) {
-      if (!value) {
-        return null;
-      }
-
-      const target = new Date(value);
-
-      if (!isValidDate(target)) {
-        return null;
-      }
-
-      return (
-        getLocalDayNumber(target) -
-        getLocalDayNumber(new Date())
-      );
-    }
-
-    function pluralizeDays(value) {
-      const number = Math.abs(value) % 100;
-      const lastDigit = number % 10;
-
-      if (number > 10 && number < 20) {
-        return 'дней';
-      }
-
-      if (lastDigit === 1) {
-        return 'день';
-      }
-
-      if (lastDigit >= 2 && lastDigit <= 4) {
-        return 'дня';
-      }
-
-      return 'дней';
-    }
-
-    function getDueInfo(lead) {
-      if (!lead.nextContact) {
-        return {
-          type: 'no-date',
-          rowClass: '',
-          label: 'Дата не назначена',
-          dateText: 'Не назначен'
-        };
-      }
-
-      const date = new Date(lead.nextContact);
-
-      if (!isValidDate(date)) {
-        return {
-          type: 'no-date',
-          rowClass: '',
-          label: 'Дата не назначена',
-          dateText: 'Не назначен'
-        };
-      }
-
-      const difference =
-        getDayDifference(lead.nextContact);
-
-      const dateText =
-        new Intl.DateTimeFormat(
-          'ru-RU',
-          {
-            day: '2-digit',
-            month: 'long',
-            year: 'numeric',
-            hour: '2-digit',
-            minute: '2-digit'
-          }
-        ).format(date);
-
-      const timeText =
-        new Intl.DateTimeFormat(
-          'ru-RU',
-          {
-            hour: '2-digit',
-            minute: '2-digit'
-          }
-        ).format(date);
-
-      if (difference < 0) {
-        const days = Math.abs(difference);
-
-        return {
-          type: 'overdue',
-          rowClass: 'row-overdue',
-          label:
-            'Просрочено на ' +
-            days +
-            ' ' +
-            pluralizeDays(days),
-          dateText
-        };
-      }
-
-      if (difference === 0) {
-        return {
-          type: 'today',
-          rowClass: 'row-today',
-          label: 'Сегодня, ' + timeText,
-          dateText
-        };
-      }
-
-      if (difference === 1) {
-        return {
-          type: 'soon',
-          rowClass: 'row-soon',
-          label: 'Завтра, ' + timeText,
-          dateText
-        };
-      }
-
-      if (difference <= 7) {
-        return {
-          type: 'soon',
-          rowClass: 'row-soon',
-          label:
-            'Через ' +
-            difference +
-            ' ' +
-            pluralizeDays(difference),
-          dateText
-        };
-      }
-
-      return {
-        type: 'future',
-        rowClass: '',
-        label:
-          'Через ' +
-          difference +
-          ' ' +
-          pluralizeDays(difference),
-        dateText
-      };
-    }
-
-    function getSearchText(lead) {
-      return normalizeSearch(
-        [
-          lead.clientName,
-          lead.orgForm,
-          lead.inn,
-          lead.activity,
-          lead.source,
-          lead.phone,
-          lead.email,
-          METHOD_META[lead.communicationMethod],
-          lead.estimatedAmount,
-          PRIORITY_META[lead.priority]?.label,
-          STATUS_META[lead.status]?.label,
-          lead.lastDialogue,
-          lead.nextStep,
-          lead.notes
-        ].join(' ')
-      );
-    }
-
-    function matchesDateFilter(lead) {
-      if (state.date === 'all') {
-        return true;
-      }
-
-      if (state.date === 'closed') {
-        return isClosed(lead);
-      }
-
-      if (isClosed(lead)) {
-        return false;
-      }
-
-      const difference =
-        getDayDifference(lead.nextContact);
-
-      if (state.date === 'nodate') {
-        return difference === null;
-      }
-
-      if (difference === null) {
-        return false;
-      }
-
-      if (state.date === 'today') {
-        return difference === 0;
-      }
-
-      if (state.date === 'week') {
-        return difference >= 0 && difference <= 7;
-      }
-
-      if (state.date === 'overdue') {
-        return difference < 0;
-      }
-
-      if (state.date === 'future') {
-        return difference > 0;
-      }
-
-      return true;
-    }
-
-    function getVisibleLeads() {
-      const search = normalizeSearch(state.search);
-
-      const filtered = leads.filter((lead) => {
-        if (
-          search &&
-          !getSearchText(lead).includes(search)
-        ) {
-          return false;
-        }
-
-        if (
-          state.status !== 'all' &&
-          lead.status !== state.status
-        ) {
-          return false;
-        }
-
-        if (
-          state.priority !== 'all' &&
-          lead.priority !== state.priority
-        ) {
-          return false;
-        }
-
-        return matchesDateFilter(lead);
-      });
-
-      return sortLeads(filtered);
-    }
-
-    function sortLeads(items) {
-      const copy = [...items];
-
-      if (state.sort === 'name') {
-        return copy.sort((a, b) =>
-          getDisplayName(a).localeCompare(
-            getDisplayName(b),
-            'ru',
-            { sensitivity: 'base' }
-          )
-        );
-      }
-
-      if (state.sort === 'newest') {
-        return copy.sort(
-          (a, b) =>
-            new Date(b.createdAt).getTime() -
-            new Date(a.createdAt).getTime()
-        );
-      }
-
-      if (state.sort === 'updated') {
-        return copy.sort(
-          (a, b) =>
-            new Date(b.updatedAt).getTime() -
-            new Date(a.updatedAt).getTime()
-        );
-      }
-
-      if (state.sort === 'priority') {
-        return copy.sort((a, b) => {
-          const priorityDifference =
-            PRIORITY_META[a.priority].order -
-            PRIORITY_META[b.priority].order;
-
-          if (priorityDifference !== 0) {
-            return priorityDifference;
-          }
-
-          const aDate = a.nextContact
-            ? new Date(a.nextContact).getTime()
-            : Number.MAX_SAFE_INTEGER;
-
-          const bDate = b.nextContact
-            ? new Date(b.nextContact).getTime()
-            : Number.MAX_SAFE_INTEGER;
-
-          return aDate - bDate;
-        });
-      }
-
-      return copy.sort((a, b) => {
-        if (isClosed(a) !== isClosed(b)) {
-          return isClosed(a) ? 1 : -1;
-        }
-
-        if (Boolean(a.nextContact) !== Boolean(b.nextContact)) {
-          return a.nextContact ? -1 : 1;
-        }
-
-        if (a.nextContact && b.nextContact) {
-          const dateDifference =
-            new Date(a.nextContact).getTime() -
-            new Date(b.nextContact).getTime();
-
-          if (dateDifference !== 0) {
-            return dateDifference;
-          }
-        }
-
-        return (
-          PRIORITY_META[a.priority].order -
-          PRIORITY_META[b.priority].order
-        );
-      });
-    }
-
-    function renderStatistics() {
-      const activeLeads =
-        leads.filter((lead) => !isClosed(lead));
-
-      const today = activeLeads.filter(
-        (lead) =>
-          getDayDifference(lead.nextContact) === 0
-      ).length;
-
-      const week = activeLeads.filter((lead) => {
-        const difference =
-          getDayDifference(lead.nextContact);
-
-        return (
-          difference !== null &&
-          difference >= 0 &&
-          difference <= 7
-        );
-      }).length;
-
-      const overdue = activeLeads.filter((lead) => {
-        const difference =
-          getDayDifference(lead.nextContact);
-
-        return (
-          difference !== null &&
-          difference < 0
-        );
-      }).length;
-
-      const noDate = activeLeads.filter(
-        (lead) => !lead.nextContact
-      ).length;
-
-      elements.statActive.textContent =
-        String(activeLeads.length);
-
-      elements.statToday.textContent =
-        String(today);
-
-      elements.statWeek.textContent =
-        String(week);
-
-      elements.statOverdue.textContent =
-        String(overdue);
-
-      elements.statNoDate.textContent =
-        String(noDate);
-    }
-
-    function createLeadRowHtml(lead) {
-      const due = getDueInfo(lead);
-      const statusMeta = STATUS_META[lead.status];
-      const priorityMeta = PRIORITY_META[lead.priority];
-
-      const rowClasses = [];
-
-      if (isClosed(lead)) {
-        rowClasses.push('row-closed');
-      } else if (due.rowClass) {
-        rowClasses.push(due.rowClass);
-      }
-
-      const phoneHref =
-        lead.phone.replace(/[^\d+]/g, '');
-
-      const contacts = [];
-
-      if (lead.phone) {
-        contacts.push(`
-          <a
-            class="contactLink"
-            href="tel:${escapeHtml(phoneHref)}"
-          >
-            ${escapeHtml(lead.phone)}
-          </a>
-        `);
-      }
-
-      if (lead.email) {
-        contacts.push(`
-          <a
-            class="contactLink"
-            href="mailto:${escapeHtml(lead.email)}"
-          >
-            ${escapeHtml(lead.email)}
-          </a>
-        `);
-      }
-
-      const dialogueBlocks = [];
-
-      if (lead.lastDialogue) {
-        dialogueBlocks.push(`
-          <div class="dialogueBlock">
-            <span class="dialogueLabel">
-              Предыдущий диалог
-            </span>
-
-            <div class="dialogueText">
-              ${escapeHtml(lead.lastDialogue)}
-            </div>
-          </div>
-        `);
-      }
-
-      if (lead.nextStep) {
-        dialogueBlocks.push(`
-          <div class="dialogueBlock">
-            <span class="dialogueLabel">
-              Следующий шаг
-            </span>
-
-            <div class="dialogueText">
-              ${escapeHtml(lead.nextStep)}
-            </div>
-          </div>
-        `);
-      }
-
-      return `
-        <tr class="${rowClasses.join(' ')}">
-          <td>
-            <div class="clientName">
-              ${escapeHtml(getDisplayName(lead))}
-            </div>
-
-            <div class="clientMeta">
-              ${
-                lead.inn
-                  ? 'ИНН: ' + escapeHtml(lead.inn)
-                  : 'ИНН не указан'
-              }
-            </div>
-          </td>
-
-          <td>
-            ${
-              lead.source
-                ? `
-                  <div class="clientMeta">
-                    Канал: ${escapeHtml(lead.source)}
-                  </div>
-                `
-                : ''
-            }
-
-            ${
-              lead.activity
-                ? `
-                  <div class="businessActivity">
-                    ${escapeHtml(lead.activity)}
-                  </div>
-                `
-                : '<span class="cellMuted">Не указано</span>'
-            }
-          </td>
-
-          <td>
-            ${
-              contacts.length
-                ? contacts.join('')
-                : '<span class="cellMuted">Не указаны</span>'
-            }
-          </td>
-
-          <td>
-            ${
-              lead.communicationMethod
-                ? `
-                  <span class="methodPill">
-                    ${escapeHtml(
-                      METHOD_META[lead.communicationMethod]
-                    )}
-                  </span>
-                `
-                : '<span class="cellMuted">Не указан</span>'
-            }
-          </td>
-
-          <td>
-            ${
-              lead.estimatedAmount
-                ? `
-                  <div class="amountValue">
-                    ${escapeHtml(lead.estimatedAmount)}
-                  </div>
-                `
-                : '<span class="cellMuted">Не указана</span>'
-            }
-          </td>
-
-          <td>
-            <span
-              class="priorityPill ${escapeHtml(
-                priorityMeta.className
-              )}"
-            >
-              <span class="priorityDot"></span>
-              ${escapeHtml(priorityMeta.label)}
-            </span>
-          </td>
-
-          <td>
-            <div class="dateMain">
-              ${escapeHtml(due.dateText)}
-            </div>
-
-            <span
-              class="dateBadge ${escapeHtml(due.type)}"
-            >
-              ${escapeHtml(due.label)}
-            </span>
-          </td>
-
-          <td>
-            <span
-              class="statusPill ${escapeHtml(
-                statusMeta.className
-              )}"
-            >
-              ${escapeHtml(statusMeta.label)}
-            </span>
-          </td>
-
-          <td>
-            ${
-              dialogueBlocks.length
-                ? dialogueBlocks.join('')
-                : '<span class="cellMuted">Не заполнено</span>'
-            }
-          </td>
-
-          <td>
-            ${
-              lead.notes
-                ? `
-                  <div class="notesText">
-                    ${escapeHtml(lead.notes)}
-                  </div>
-                `
-                : '<span class="cellMuted">Нет примечаний</span>'
-            }
-          </td>
-
-          <td>
-            <div class="rowActions">
-              <button
-                class="tableButton"
-                type="button"
-                data-action="edit"
-                data-id="${escapeHtml(lead.id)}"
-              >
-                Изменить
-              </button>
-
-              <button
-                class="tableButton delete"
-                type="button"
-                data-action="delete"
-                data-id="${escapeHtml(lead.id)}"
-              >
-                Удалить
-              </button>
-            </div>
-          </td>
-        </tr>
-      `;
-    }
-
-    function renderTable() {
-      const visibleLeads = getVisibleLeads();
-
-      elements.visibleCount.textContent =
-        'Показано: ' +
-        visibleLeads.length +
-        ' из ' +
-        leads.length;
-
-      if (!visibleLeads.length) {
-        elements.leadTableBody.innerHTML = `
-          <tr class="emptyRow">
-            <td colspan="11">
-              <div class="emptyIcon">⌕</div>
-
-              <div class="emptyTitle">
-                Записи не найдены
-              </div>
-
-              <div class="emptyText">
-                Измените фильтры или добавьте нового
-                потенциального клиента.
-              </div>
-            </td>
-          </tr>
-        `;
-
-        return;
-      }
-
-      elements.leadTableBody.innerHTML =
-        visibleLeads
-          .map(createLeadRowHtml)
-          .join('');
-    }
-
-    function render() {
-      renderStatistics();
-      renderTable();
-    }
-
-    function resetLeadForm() {
-      elements.leadForm.reset();
-      elements.leadId.value = '';
-      elements.status.value = 'new';
-      elements.priority.value = 'none';
-      elements.communicationMethod.value = '';
-    }
-
-    function openLeadModal(lead = null) {
-      resetLeadForm();
-
-      if (lead) {
-        elements.modalTitle.textContent =
-          'Редактирование клиента';
-
-        elements.leadId.value = lead.id;
-        elements.clientName.value = lead.clientName;
-        elements.orgForm.value = lead.orgForm;
-        elements.inn.value = lead.inn;
-        elements.activity.value = lead.activity;
-        elements.source.value = lead.source;
-        elements.phone.value = lead.phone;
-        elements.email.value = lead.email;
-        elements.communicationMethod.value =
-          lead.communicationMethod;
-        elements.estimatedAmount.value =
-          lead.estimatedAmount;
-        elements.priority.value = lead.priority;
-        elements.nextContact.value = lead.nextContact;
-        elements.status.value = lead.status;
-        elements.lastDialogue.value = lead.lastDialogue;
-        elements.nextStep.value = lead.nextStep;
-        elements.notes.value = lead.notes;
-      } else {
-        elements.modalTitle.textContent =
-          'Новый потенциальный клиент';
-      }
-
-      elements.modalBackdrop.classList.add('show');
-      document.body.classList.add('modal-open');
-
-      setTimeout(() => {
-        elements.clientName.focus();
-      }, 40);
-    }
-
-    function closeLeadModal() {
-      elements.modalBackdrop.classList.remove('show');
-      document.body.classList.remove('modal-open');
-      resetLeadForm();
-    }
-
-    function handleLeadSubmit(event) {
-      event.preventDefault();
-
-      const clientName =
-        elements.clientName.value.trim();
-
-      if (!clientName) {
-        showToast(
-          'Укажите имя или название клиента.',
-          'warning'
-        );
-
-        elements.clientName.focus();
-        return;
-      }
-
-      const id = elements.leadId.value.trim();
-
-      const existingIndex =
-        leads.findIndex((lead) => lead.id === id);
-
-      const existingLead =
-        existingIndex >= 0
-          ? leads[existingIndex]
-          : null;
-
-      const now = new Date().toISOString();
-
-      const lead = normalizeLead({
-        id: existingLead?.id || createId(),
-        clientName,
-        orgForm: elements.orgForm.value,
-        inn: elements.inn.value,
-        activity: elements.activity.value,
-        source: elements.source.value,
-        phone: elements.phone.value,
-        email: elements.email.value,
-        communicationMethod:
-          elements.communicationMethod.value,
-        estimatedAmount:
-          elements.estimatedAmount.value,
-        priority: elements.priority.value,
-        nextContact: elements.nextContact.value,
-        status: elements.status.value,
-        lastDialogue: elements.lastDialogue.value,
-        nextStep: elements.nextStep.value,
-        notes: elements.notes.value,
-        createdAt: existingLead?.createdAt || now,
-        updatedAt: now
-      });
-
-      if (existingIndex >= 0) {
-        leads[existingIndex] = lead;
-      } else {
-        leads.push(lead);
-      }
-
-      if (!saveLeads()) {
-        return;
-      }
-
-      render();
-      closeLeadModal();
-
-      showToast(
-        existingLead
-          ? 'Запись обновлена.'
-          : 'Потенциальный клиент добавлен.',
-        'success'
-      );
-
-      checkTodayNotifications();
-    }
-
-    function editLead(id) {
-      const lead =
-        leads.find((item) => item.id === id);
-
-      if (lead) {
-        openLeadModal(lead);
-      }
-    }
-
-    function deleteLead(id) {
-      const lead =
-        leads.find((item) => item.id === id);
-
-      if (!lead) {
-        return;
-      }
-
-      const confirmed = window.confirm(
-        'Удалить запись «' +
-        getDisplayName(lead) +
-        '»?'
-      );
-
-      if (!confirmed) {
-        return;
-      }
-
-      leads = leads.filter(
-        (item) => item.id !== id
-      );
-
-      saveLeads();
-      render();
-
-      showToast('Запись удалена.', 'success');
-    }
-
-    function resetFilters() {
-      state.search = '';
-      state.status = 'all';
-      state.priority = 'all';
-      state.date = 'all';
-      state.sort = 'nearest';
-
-      elements.searchInput.value = '';
-      elements.statusFilter.value = 'all';
-      elements.priorityFilter.value = 'all';
-      elements.dateFilter.value = 'all';
-      elements.sortSelect.value = 'nearest';
-
-      render();
-    }
-
-    function showToast(message, type = 'success') {
-      const toast = document.createElement('div');
-
-      toast.className = 'toast ' + type;
-      toast.textContent = message;
-
-      elements.toastStack.appendChild(toast);
-
-      setTimeout(() => {
-        toast.remove();
-      }, 4200);
-    }
-
-    function downloadBlob(blob, fileName) {
-      const url = URL.createObjectURL(blob);
-      const link = document.createElement('a');
-
-      link.href = url;
-      link.download = fileName;
-
-      document.body.appendChild(link);
-      link.click();
-      link.remove();
-
-      setTimeout(() => {
-        URL.revokeObjectURL(url);
-      }, 1000);
-    }
-
-    function exportBackup() {
-      const payload = {
-        application:
-          'ДжемБаланс — планировщик потенциальных клиентов',
-        version: 2,
-        exportedAt: new Date().toISOString(),
-        leads
-      };
-
-      const blob = new Blob(
-        [JSON.stringify(payload, null, 2)],
-        {
-          type: 'application/json;charset=utf-8'
-        }
-      );
-
-      const today = new Date();
-
-      downloadBlob(
-        blob,
-        'jambalance-planner-' +
-        today.getFullYear() +
-        '-' +
-        padNumber(today.getMonth() + 1) +
-        '-' +
-        padNumber(today.getDate()) +
-        '.json'
-      );
-
-      showToast(
-        'Резервная копия скачана.',
-        'success'
-      );
-    }
-
-    function importBackup(file) {
-      if (!file) {
-        return;
-      }
-
-      const reader = new FileReader();
-
-      reader.onload = () => {
-        try {
-          const parsed =
-            JSON.parse(String(reader.result));
-
-          const importedData =
-            Array.isArray(parsed)
-              ? parsed
-              : parsed?.leads;
-
-          if (!Array.isArray(importedData)) {
-            throw new Error();
-          }
-
-          const importedLeads =
-            importedData
-              .map(normalizeLead)
-              .filter((lead) => lead.clientName);
-
-          const confirmed = window.confirm(
-            'Найдено записей: ' +
-            importedLeads.length +
-            '. Текущая база будет заменена. Продолжить?'
-          );
-
-          if (!confirmed) {
-            return;
-          }
-
-          leads = importedLeads;
-          saveLeads();
-          render();
-
-          showToast(
-            'Резервная копия восстановлена.',
-            'success'
-          );
-        } catch (error) {
-          showToast(
-            'Не удалось восстановить данные.',
-            'error'
-          );
-        } finally {
-          elements.importInput.value = '';
-        }
-      };
-
-      reader.readAsText(file, 'utf-8');
-    }
-
-    function clearDatabase() {
-      const confirmed = window.confirm(
-        'Удалить все записи из планировщика?'
-      );
-
-      if (!confirmed) {
-        return;
-      }
-
-      leads = [];
-      saveLeads();
-      render();
-
-      showToast(
-        'База планировщика очищена.',
-        'success'
-      );
-    }
-
-    function getTodayKey() {
-      const today = new Date();
-
-      return (
-        today.getFullYear() +
-        '-' +
-        padNumber(today.getMonth() + 1) +
-        '-' +
-        padNumber(today.getDate())
-      );
-    }
-
-    function loadNotificationHistory() {
-      try {
-        const raw =
-          localStorage.getItem(NOTIFIED_KEY);
-
-        return raw ? JSON.parse(raw) : {};
-      } catch (error) {
-        return {};
-      }
-    }
-
-    function saveNotificationHistory(history) {
-      localStorage.setItem(
-        NOTIFIED_KEY,
-        JSON.stringify(history)
-      );
-    }
-
-    function updateNotificationInterface() {
-      if (!('Notification' in window)) {
-        elements.notificationBtn.disabled = true;
-        elements.notificationBtn.textContent =
-          'Уведомления недоступны';
-
-        return;
-      }
-
-      if (Notification.permission === 'granted') {
-        elements.notificationBtn.innerHTML =
-          '<span>✓</span> Уведомления включены';
-
-        return;
-      }
-
-      if (Notification.permission === 'denied') {
-        elements.notificationBtn.innerHTML =
-          '<span>×</span> Уведомления запрещены';
-
-        return;
-      }
-
-      elements.notificationBtn.innerHTML =
-        '<span>🔔</span> Включить уведомления';
-    }
-
-    async function requestNotifications() {
-      if (!('Notification' in window)) {
-        showToast(
-          'Браузер не поддерживает уведомления.',
-          'warning'
-        );
-
-        return;
-      }
-
-      if (
-        !window.isSecureContext &&
-        window.location.hostname !== 'localhost'
-      ) {
-        showToast(
-          'Для уведомлений требуется HTTPS.',
-          'warning'
-        );
-
-        return;
-      }
-
-      if (Notification.permission === 'denied') {
-        showToast(
-          'Уведомления запрещены в браузере.',
-          'warning'
-        );
-
-        return;
-      }
-
-      const permission =
-        await Notification.requestPermission();
-
-      updateNotificationInterface();
-
-      if (permission === 'granted') {
-        showToast(
-          'Уведомления включены.',
-          'success'
-        );
-
-        checkTodayNotifications();
-      }
-    }
-
-    function checkTodayNotifications() {
-      if (
-        !('Notification' in window) ||
-        Notification.permission !== 'granted'
-      ) {
-        return;
-      }
-
-      const todayKey = getTodayKey();
-      const history = loadNotificationHistory();
-
-      const todayLeads = leads.filter(
-        (lead) =>
-          !isClosed(lead) &&
-          getDayDifference(lead.nextContact) === 0
-      );
-
-      todayLeads.forEach((lead) => {
-        const key = lead.id + ':' + todayKey;
-
-        if (history[key]) {
-          return;
-        }
-
-        const bodyParts = [];
-
-        if (lead.nextStep) {
-          bodyParts.push(lead.nextStep);
-        }
-
-        if (lead.communicationMethod) {
-          bodyParts.push(
-            'Связь: ' +
-            METHOD_META[lead.communicationMethod]
-          );
-        }
-
-        if (lead.phone) {
-          bodyParts.push(
-            'Телефон: ' + lead.phone
-          );
-        }
-
-        const notification =
-          new Notification(
-            'Сегодня назначен контакт: ' +
-            getDisplayName(lead),
-            {
-              body:
-                bodyParts.join(' · ').slice(0, 220) ||
-                'Откройте планировщик для подробностей.',
-              icon: '/favicon.png',
-              tag:
-                'jambalance-' +
-                lead.id +
-                '-' +
-                todayKey
-            }
-          );
-
-        notification.onclick = () => {
-          window.focus();
-          openLeadModal(lead);
-          notification.close();
-        };
-
-        history[key] = Date.now();
-      });
-
-      saveNotificationHistory(history);
-    }
-
-    function bindEvents() {
-      elements.addLeadBtn.addEventListener(
-        'click',
-        () => openLeadModal()
-      );
-
-      elements.closeModalBtn.addEventListener(
-        'click',
-        closeLeadModal
-      );
-
-      elements.cancelBtn.addEventListener(
-        'click',
-        closeLeadModal
-      );
-
-      elements.modalBackdrop.addEventListener(
-        'click',
-        (event) => {
-          if (event.target === elements.modalBackdrop) {
-            closeLeadModal();
-          }
-        }
-      );
-
-      elements.leadForm.addEventListener(
-        'submit',
-        handleLeadSubmit
-      );
-
-      elements.searchInput.addEventListener(
-        'input',
-        () => {
-          state.search =
-            elements.searchInput.value;
-
-          renderTable();
-        }
-      );
-
-      elements.statusFilter.addEventListener(
-        'change',
-        () => {
-          state.status =
-            elements.statusFilter.value;
-
-          renderTable();
-        }
-      );
-
-      elements.priorityFilter.addEventListener(
-        'change',
-        () => {
-          state.priority =
-            elements.priorityFilter.value;
-
-          renderTable();
-        }
-      );
-
-      elements.dateFilter.addEventListener(
-        'change',
-        () => {
-          state.date =
-            elements.dateFilter.value;
-
-          renderTable();
-        }
-      );
-
-      elements.sortSelect.addEventListener(
-        'change',
-        () => {
-          state.sort =
-            elements.sortSelect.value;
-
-          renderTable();
-        }
-      );
-
-      elements.resetFiltersBtn.addEventListener(
-        'click',
-        resetFilters
-      );
-
-      elements.exportBtn.addEventListener(
-        'click',
-        exportBackup
-      );
-
-      elements.importBtn.addEventListener(
-        'click',
-        () => elements.importInput.click()
-      );
-
-      elements.importInput.addEventListener(
-        'change',
-        () => {
-          importBackup(
-            elements.importInput.files?.[0]
-          );
-        }
-      );
-
-      elements.clearBtn.addEventListener(
-        'click',
-        clearDatabase
-      );
-
-      elements.notificationBtn.addEventListener(
-        'click',
-        requestNotifications
-      );
-
-      elements.leadTableBody.addEventListener(
-        'click',
-        (event) => {
-          const button =
-            event.target.closest(
-              'button[data-action]'
-            );
-
-          if (!button) {
-            return;
-          }
-
-          if (button.dataset.action === 'edit') {
-            editLead(button.dataset.id);
-          }
-
-          if (button.dataset.action === 'delete') {
-            deleteLead(button.dataset.id);
-          }
-        }
-      );
-
-      document.addEventListener(
-        'keydown',
-        (event) => {
-          if (
-            event.key === 'Escape' &&
-            elements.modalBackdrop.classList.contains(
-              'show'
-            )
-          ) {
-            closeLeadModal();
-          }
-        }
-      );
-
-      window.addEventListener(
-        'focus',
-        () => {
-          render();
-          checkTodayNotifications();
-        }
-      );
-    }
-
-    function initialize() {
-      initializeStorage();
-      leads = loadLeads();
-
-      bindEvents();
-      updateNotificationInterface();
-      render();
-      checkTodayNotifications();
-
-      setInterval(() => {
-        render();
-        checkTodayNotifications();
-      }, 60000);
-    }
-
-    initialize();
-  </script>
 </body>
 </html>
