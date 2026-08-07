@@ -1026,7 +1026,57 @@
       border-top: 1px solid var(--line);
       background: rgba(255,250,243,.97);
     }
+.quickContactCard {
+  width: min(560px, 100%);
+  border: 1px solid var(--line);
+  border-top: 5px solid var(--accent);
+  border-radius: 22px;
+  background: #ffffff;
+  box-shadow: 0 30px 90px rgba(17, 24, 39, .24);
+  overflow: hidden;
+}
 
+.quickContactBody {
+  padding: 20px 22px;
+}
+
+.quickContactClientName {
+  margin-bottom: 16px;
+  padding: 12px 14px;
+  border: 1px solid #f0d0a1;
+  border-radius: 14px;
+  color: var(--accent-dark);
+  background: var(--accent-soft);
+  font-size: 14px;
+  font-weight: 900;
+}
+
+.quickContactGrid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 13px;
+}
+
+.quickContactGrid .full {
+  grid-column: 1 / -1;
+}
+
+.quickContactHint {
+  margin-top: 6px;
+  color: var(--muted);
+  font-size: 11px;
+  line-height: 1.45;
+}
+
+@media (max-width: 560px) {
+  .quickContactGrid {
+    grid-template-columns: 1fr;
+  }
+
+  .quickContactGrid .full {
+    grid-column: auto;
+  }
+}
     /* Toast */
 
     .toastStack {
@@ -1947,7 +1997,152 @@
     </section>
 
   </div>
+<div
+  class="modalBackdrop"
+  id="quickContactBackdrop"
+>
+  <section
+    class="quickContactCard"
+    role="dialog"
+    aria-modal="true"
+    aria-labelledby="quickContactTitle"
+  >
 
+    <div class="modalHeader">
+
+      <div>
+        <h2 id="quickContactTitle">
+          Связались с клиентом
+        </h2>
+
+        <div class="modalSubtitle">
+          Зафиксируйте результат разговора
+          и назначьте следующий контакт.
+        </div>
+      </div>
+
+      <button
+        class="closeButton"
+        id="quickContactCloseBtn"
+        type="button"
+        aria-label="Закрыть"
+      >
+        ×
+      </button>
+
+    </div>
+
+    <form id="quickContactForm">
+
+      <div class="quickContactBody">
+
+        <input
+          id="quickContactLeadId"
+          type="hidden"
+        >
+
+        <div
+          class="quickContactClientName"
+          id="quickContactClient"
+        >
+          Клиент
+        </div>
+
+        <div class="quickContactGrid">
+
+          <div class="field">
+            <label for="quickContactPreset">
+              Следующий контакт
+            </label>
+
+            <select id="quickContactPreset">
+              <option value="tomorrow">
+                Завтра
+              </option>
+
+              <option value="week" selected>
+                Через неделю
+              </option>
+
+              <option value="month">
+                Через месяц
+              </option>
+
+              <option value="custom">
+                Выбрать дату вручную
+              </option>
+            </select>
+          </div>
+
+          <div class="field">
+            <label for="quickContactDate">
+              Точная дата и время
+            </label>
+
+            <input
+              id="quickContactDate"
+              type="datetime-local"
+              required
+            >
+          </div>
+
+          <div class="field full">
+            <label for="quickContactResponsible">
+              Ответственный
+            </label>
+
+            <select id="quickContactResponsible">
+              <option value="">
+                Не назначен
+              </option>
+            </select>
+          </div>
+
+          <div class="field full">
+            <label for="quickContactComment">
+              Что обсудили
+            </label>
+
+            <textarea
+              id="quickContactComment"
+              maxlength="3000"
+              placeholder="Например: договорились вернуться к вопросу через неделю, ждёт окончание текущего договора..."
+            ></textarea>
+
+            <div class="quickContactHint">
+              Этот текст станет актуальным
+              содержимым поля «Предыдущий диалог».
+            </div>
+          </div>
+
+        </div>
+
+      </div>
+
+      <div class="modalFooter">
+
+        <button
+          class="button button-light"
+          id="quickContactCancelBtn"
+          type="button"
+        >
+          Отмена
+        </button>
+
+        <button
+          class="button button-accent"
+          id="quickContactSaveBtn"
+          type="submit"
+        >
+          Сохранить
+        </button>
+
+      </div>
+
+    </form>
+
+  </section>
+</div>
   <div
     class="toastStack"
     id="toastStack"

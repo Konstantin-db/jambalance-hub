@@ -1,8 +1,9 @@
 'use strict';
 
 /* ============================================================
-   ДЖЕМБАЛАНС — PLANNER v2.1
+   ДЖЕМБАЛАНС — PLANNER v2.2
    Supabase + Auth + Realtime + Responsible users
+   + Quick action "Связался"
    ============================================================ */
 
 
@@ -278,7 +279,45 @@ const elements = {
     document.getElementById('notes'),
 
   toastStack:
-    document.getElementById('toastStack')
+    document.getElementById('toastStack'),
+
+  /* Быстрая кнопка "Связался" */
+
+  quickContactBackdrop:
+    document.getElementById('quickContactBackdrop'),
+
+  quickContactForm:
+    document.getElementById('quickContactForm'),
+
+  quickContactTitle:
+    document.getElementById('quickContactTitle'),
+
+  quickContactClient:
+    document.getElementById('quickContactClient'),
+
+  quickContactLeadId:
+    document.getElementById('quickContactLeadId'),
+
+  quickContactPreset:
+    document.getElementById('quickContactPreset'),
+
+  quickContactDate:
+    document.getElementById('quickContactDate'),
+
+  quickContactComment:
+    document.getElementById('quickContactComment'),
+
+  quickContactResponsible:
+    document.getElementById('quickContactResponsible'),
+
+  quickContactCloseBtn:
+    document.getElementById('quickContactCloseBtn'),
+
+  quickContactCancelBtn:
+    document.getElementById('quickContactCancelBtn'),
+
+  quickContactSaveBtn:
+    document.getElementById('quickContactSaveBtn')
 };
 
 
@@ -313,6 +352,8 @@ let isLoadingLeads = false;
 
 let saveInProgress = false;
 
+let quickContactSaveInProgress = false;
+
 
 /* ============================================================
    6. HELPERS
@@ -341,19 +382,25 @@ function escapeHtml(value) {
 }
 
 function padNumber(value) {
-  return String(value).padStart(2, '0');
+  return String(value)
+    .padStart(2, '0');
 }
 
 function isValidDate(date) {
   return (
     date instanceof Date &&
-    !Number.isNaN(date.getTime())
+    !Number.isNaN(
+      date.getTime()
+    )
   );
 }
 
 function pluralizeDays(value) {
-  const number = Math.abs(value) % 100;
-  const lastDigit = number % 10;
+  const number =
+    Math.abs(value) % 100;
+
+  const lastDigit =
+    number % 10;
 
   if (
     number >= 11 &&
@@ -377,8 +424,11 @@ function pluralizeDays(value) {
 }
 
 function pluralizeRecords(value) {
-  const number = Math.abs(value) % 100;
-  const digit = number % 10;
+  const number =
+    Math.abs(value) % 100;
+
+  const digit =
+    number % 10;
 
   if (
     number >= 11 &&
@@ -404,7 +454,10 @@ function pluralizeRecords(value) {
 function getInitials(name, email) {
   const source =
     cleanText(name, 200) ||
-    cleanText(email, 200).split('@')[0] ||
+    cleanText(
+      email,
+      200
+    ).split('@')[0] ||
     'Д';
 
   const words =
@@ -412,16 +465,22 @@ function getInitials(name, email) {
       .split(/\s+/)
       .filter(Boolean);
 
-  if (words.length >= 2) {
+  if (
+    words.length >= 2
+  ) {
     return (
       words[0][0] +
       words[1][0]
-    ).toLocaleUpperCase('ru-RU');
+    ).toLocaleUpperCase(
+      'ru-RU'
+    );
   }
 
   return source
     .slice(0, 2)
-    .toLocaleUpperCase('ru-RU');
+    .toLocaleUpperCase(
+      'ru-RU'
+    );
 }
 
 function getDisplayName(lead) {
@@ -448,7 +507,8 @@ function getDisplayName(lead) {
     normalizeSearch(form);
 
   if (
-    normalizedName === normalizedForm ||
+    normalizedName ===
+      normalizedForm ||
     normalizedName.startsWith(
       normalizedForm + ' '
     )
@@ -456,7 +516,11 @@ function getDisplayName(lead) {
     return name;
   }
 
-  return form + ' ' + name;
+  return (
+    form +
+    ' ' +
+    name
+  );
 }
 
 function isClosed(lead) {
@@ -502,7 +566,9 @@ function getProfileDisplayName(profile) {
 }
 
 function getResponsibleDisplayName(lead) {
-  if (!lead.responsible_user) {
+  if (
+    !lead.responsible_user
+  ) {
     return 'Не назначен';
   }
 
@@ -522,7 +588,7 @@ function getResponsibleDisplayName(lead) {
 
 
 /* ============================================================
-   8. DATES
+   8. DATE HELPERS
    ============================================================ */
 
 function toLocalDateTimeInput(value) {
@@ -599,8 +665,12 @@ function getDayDifference(value) {
   }
 
   return (
-    getLocalDayNumber(target) -
-    getLocalDayNumber(new Date())
+    getLocalDayNumber(
+      target
+    ) -
+    getLocalDayNumber(
+      new Date()
+    )
   );
 }
 
@@ -633,8 +703,10 @@ function getDueInfo(lead) {
     return {
       type: 'no-date',
       rowClass: '',
-      label: 'Дата не назначена',
-      dateText: 'Не назначен'
+      label:
+        'Дата не назначена',
+      dateText:
+        'Не назначен'
     };
   }
 
@@ -647,8 +719,10 @@ function getDueInfo(lead) {
     return {
       type: 'no-date',
       rowClass: '',
-      label: 'Дата не назначена',
-      dateText: 'Не назначен'
+      label:
+        'Дата не назначена',
+      dateText:
+        'Не назначен'
     };
   }
 
@@ -679,7 +753,8 @@ function getDueInfo(lead) {
 
     return {
       type: 'overdue',
-      rowClass: 'row-overdue',
+      rowClass:
+        'row-overdue',
 
       label:
         'Просрочено на ' +
@@ -694,9 +769,13 @@ function getDueInfo(lead) {
   if (difference === 0) {
     return {
       type: 'today',
-      rowClass: 'row-today',
+      rowClass:
+        'row-today',
+
       label:
-        'Сегодня, ' + time,
+        'Сегодня, ' +
+        time,
+
       dateText
     };
   }
@@ -704,9 +783,13 @@ function getDueInfo(lead) {
   if (difference === 1) {
     return {
       type: 'soon',
-      rowClass: 'row-soon',
+      rowClass:
+        'row-soon',
+
       label:
-        'Завтра, ' + time,
+        'Завтра, ' +
+        time,
+
       dateText
     };
   }
@@ -714,7 +797,8 @@ function getDueInfo(lead) {
   if (difference <= 7) {
     return {
       type: 'soon',
-      rowClass: 'row-soon',
+      rowClass:
+        'row-soon',
 
       label:
         'Через ' +
@@ -744,6 +828,118 @@ function getDueInfo(lead) {
   };
 }
 
+function addDays(
+  date,
+  numberOfDays
+) {
+  const result =
+    new Date(date);
+
+  result.setDate(
+    result.getDate() +
+    numberOfDays
+  );
+
+  return result;
+}
+
+function addMonths(
+  date,
+  numberOfMonths
+) {
+  const result =
+    new Date(date);
+
+  const originalDay =
+    result.getDate();
+
+  result.setDate(1);
+
+  result.setMonth(
+    result.getMonth() +
+    numberOfMonths
+  );
+
+  const maxDay =
+    new Date(
+      result.getFullYear(),
+      result.getMonth() + 1,
+      0
+    ).getDate();
+
+  result.setDate(
+    Math.min(
+      originalDay,
+      maxDay
+    )
+  );
+
+  return result;
+}
+
+function getDefaultContactTime(
+  date
+) {
+  const result =
+    new Date(date);
+
+  /*
+   * Если сейчас ещё до 18:00,
+   * для будущего контакта ставим 10:00.
+   */
+
+  result.setHours(
+    10,
+    0,
+    0,
+    0
+  );
+
+  return result;
+}
+
+function getPresetDate(
+  preset
+) {
+  const now =
+    new Date();
+
+  if (
+    preset === 'tomorrow'
+  ) {
+    return getDefaultContactTime(
+      addDays(
+        now,
+        1
+      )
+    );
+  }
+
+  if (
+    preset === 'week'
+  ) {
+    return getDefaultContactTime(
+      addDays(
+        now,
+        7
+      )
+    );
+  }
+
+  if (
+    preset === 'month'
+  ) {
+    return getDefaultContactTime(
+      addMonths(
+        now,
+        1
+      )
+    );
+  }
+
+  return null;
+}
+
 
 /* ============================================================
    9. TOAST
@@ -754,7 +950,9 @@ function showToast(
   type = 'success',
   duration = 4200
 ) {
-  if (!elements.toastStack) {
+  if (
+    !elements.toastStack
+  ) {
     return;
   }
 
@@ -770,7 +968,9 @@ function showToast(
     message;
 
   elements.toastStack
-    .appendChild(toast);
+    .appendChild(
+      toast
+    );
 
   window.setTimeout(
     () => {
@@ -782,15 +982,16 @@ function showToast(
 
 
 /* ============================================================
-   10. LOADING SCREEN
+   10. LOADING
    ============================================================ */
 
 function setLoadingText(text) {
   if (
     elements.loadingText
   ) {
-    elements.loadingText.textContent =
-      text;
+    elements.loadingText
+      .textContent =
+        text;
   }
 }
 
@@ -813,8 +1014,13 @@ function redirectToLogin() {
 }
 
 function showFatalError(message) {
-  if (!elements.loadingScreen) {
-    window.alert(message);
+  if (
+    !elements.loadingScreen
+  ) {
+    window.alert(
+      message
+    );
+
     return;
   }
 
@@ -851,7 +1057,9 @@ function showFatalError(message) {
           margin-bottom:18px;
         "
       >
-        ${escapeHtml(message)}
+        ${escapeHtml(
+          message
+        )}
       </div>
 
       <a
@@ -875,7 +1083,7 @@ function showFatalError(message) {
 
 
 /* ============================================================
-   11. CREATE SUPABASE CLIENT
+   11. SUPABASE CLIENT
    ============================================================ */
 
 function createSupabaseClient() {
@@ -897,9 +1105,14 @@ function createSupabaseClient() {
         SUPABASE_PUBLISHABLE_KEY,
         {
           auth: {
-            persistSession: true,
-            autoRefreshToken: true,
-            detectSessionInUrl: true
+            persistSession:
+              true,
+
+            autoRefreshToken:
+              true,
+
+            detectSessionInUrl:
+              true
           }
         }
       );
@@ -930,7 +1143,9 @@ async function ensureAuthenticated() {
   const session =
     data?.session;
 
-  if (!session?.user) {
+  if (
+    !session?.user
+  ) {
     redirectToLogin();
 
     return false;
@@ -952,7 +1167,9 @@ async function loadCurrentProfile() {
     error
   } =
     await supabaseClient
-      .from('profiles')
+      .from(
+        'profiles'
+      )
       .select(
         'id, full_name, email, position, role, is_active'
       )
@@ -971,7 +1188,8 @@ async function loadCurrentProfile() {
 
   if (
     data &&
-    data.is_active === false
+    data.is_active ===
+      false
   ) {
     await supabaseClient
       .auth
@@ -997,7 +1215,8 @@ async function loadCurrentProfile() {
         'Сотрудник',
 
       email:
-        currentUser.email || ''
+        currentUser.email ||
+        ''
     };
 
   renderCurrentUser();
@@ -1008,49 +1227,56 @@ async function loadCurrentProfile() {
 function renderCurrentUser() {
   const name =
     cleanText(
-      currentProfile?.full_name,
+      currentProfile
+        ?.full_name,
       200
     ) ||
-    currentUser?.email
+    currentUser
+      ?.email
       ?.split('@')[0] ||
     'Сотрудник';
 
   const email =
     cleanText(
-      currentProfile?.email,
+      currentProfile
+        ?.email,
       200
     ) ||
-    currentUser?.email ||
+    currentUser
+      ?.email ||
     '';
 
   if (
     elements.userName
   ) {
-    elements.userName.textContent =
-      name;
+    elements.userName
+      .textContent =
+        name;
   }
 
   if (
     elements.userEmail
   ) {
-    elements.userEmail.textContent =
-      email;
+    elements.userEmail
+      .textContent =
+        email;
   }
 
   if (
     elements.userAvatar
   ) {
-    elements.userAvatar.textContent =
-      getInitials(
-        name,
-        email
-      );
+    elements.userAvatar
+      .textContent =
+        getInitials(
+          name,
+          email
+        );
   }
 }
 
 
 /* ============================================================
-   13. LOAD PROFILES
+   13. PROFILES
    ============================================================ */
 
 async function loadProfiles() {
@@ -1063,7 +1289,9 @@ async function loadProfiles() {
     error
   } =
     await supabaseClient
-      .from('profiles')
+      .from(
+        'profiles'
+      )
       .select(
         'id, full_name, email, position, role, is_active'
       )
@@ -1074,7 +1302,8 @@ async function loadProfiles() {
       .order(
         'full_name',
         {
-          ascending: true
+          ascending:
+            true
         }
       );
 
@@ -1086,11 +1315,6 @@ async function loadProfiles() {
     Array.isArray(data)
       ? data
       : [];
-
-  /*
-   * На случай если профиль текущего пользователя
-   * ещё не попал в список.
-   */
 
   if (
     currentProfile &&
@@ -1127,14 +1351,10 @@ async function loadProfiles() {
    ============================================================ */
 
 function renderResponsibleOptions() {
-  /*
-   * Поле в форме.
-   */
-
   if (
     elements.responsibleUser
   ) {
-    const previousValue =
+    const oldValue =
       elements.responsibleUser
         .value;
 
@@ -1168,7 +1388,9 @@ function renderResponsibleOptions() {
               profile.id
             )}"
           >
-            ${escapeHtml(label)}
+            ${escapeHtml(
+              label
+            )}
           </option>
         `);
       }
@@ -1179,27 +1401,23 @@ function renderResponsibleOptions() {
         options.join('');
 
     if (
-      previousValue &&
+      oldValue &&
       profiles.some(
         (profile) =>
           profile.id ===
-            previousValue
+            oldValue
       )
     ) {
       elements.responsibleUser
         .value =
-          previousValue;
+          oldValue;
     }
   }
-
-  /*
-   * Фильтр.
-   */
 
   if (
     elements.responsibleFilter
   ) {
-    const previousValue =
+    const oldValue =
       elements.responsibleFilter
         .value ||
       state.responsible ||
@@ -1233,7 +1451,7 @@ function renderResponsibleOptions() {
       .innerHTML =
         options.join('');
 
-    const validValues =
+    const allowed =
       new Set([
         'all',
         'mine',
@@ -1245,13 +1463,13 @@ function renderResponsibleOptions() {
       ]);
 
     if (
-      validValues.has(
-        previousValue
+      allowed.has(
+        oldValue
       )
     ) {
       elements.responsibleFilter
         .value =
-          previousValue;
+          oldValue;
     } else {
       elements.responsibleFilter
         .value =
@@ -1260,6 +1478,59 @@ function renderResponsibleOptions() {
       state.responsible =
         'all';
     }
+  }
+
+  renderQuickContactResponsibleOptions();
+}
+
+function renderQuickContactResponsibleOptions() {
+  if (
+    !elements.quickContactResponsible
+  ) {
+    return;
+  }
+
+  const oldValue =
+    elements.quickContactResponsible
+      .value;
+
+  const options = [
+    '<option value="">Не назначен</option>'
+  ];
+
+  profiles.forEach(
+    (profile) => {
+      options.push(`
+        <option
+          value="${escapeHtml(
+            profile.id
+          )}"
+        >
+          ${escapeHtml(
+            getProfileDisplayName(
+              profile
+            )
+          )}
+        </option>
+      `);
+    }
+  );
+
+  elements.quickContactResponsible
+    .innerHTML =
+      options.join('');
+
+  if (
+    oldValue &&
+    profiles.some(
+      (profile) =>
+        profile.id ===
+          oldValue
+    )
+  ) {
+    elements.quickContactResponsible
+      .value =
+        oldValue;
   }
 }
 
@@ -1271,7 +1542,9 @@ function renderResponsibleOptions() {
 async function loadLeads({
   silent = false
 } = {}) {
-  if (isLoadingLeads) {
+  if (
+    isLoadingLeads
+  ) {
     return;
   }
 
@@ -1302,7 +1575,8 @@ async function loadLeads({
         .order(
           'created_at',
           {
-            ascending: false
+            ascending:
+              false
           }
         );
 
@@ -1388,23 +1662,29 @@ function getSearchText(lead) {
 
 
 /* ============================================================
-   17. DATE FILTER
+   17. FILTERS
    ============================================================ */
 
 function matchesDateFilter(lead) {
   if (
-    state.date === 'all'
+    state.date ===
+    'all'
   ) {
     return true;
   }
 
   if (
-    state.date === 'closed'
+    state.date ===
+    'closed'
   ) {
-    return isClosed(lead);
+    return isClosed(
+      lead
+    );
   }
 
-  if (isClosed(lead)) {
+  if (
+    isClosed(lead)
+  ) {
     return false;
   }
 
@@ -1414,25 +1694,34 @@ function matchesDateFilter(lead) {
     );
 
   if (
-    state.date === 'nodate'
+    state.date ===
+    'nodate'
   ) {
-    return difference === null;
+    return (
+      difference ===
+      null
+    );
   }
 
   if (
-    difference === null
+    difference ===
+    null
   ) {
     return false;
   }
 
   if (
-    state.date === 'today'
+    state.date ===
+    'today'
   ) {
-    return difference === 0;
+    return (
+      difference === 0
+    );
   }
 
   if (
-    state.date === 'week'
+    state.date ===
+    'week'
   ) {
     return (
       difference >= 0 &&
@@ -1441,24 +1730,25 @@ function matchesDateFilter(lead) {
   }
 
   if (
-    state.date === 'overdue'
+    state.date ===
+    'overdue'
   ) {
-    return difference < 0;
+    return (
+      difference < 0
+    );
   }
 
   if (
-    state.date === 'future'
+    state.date ===
+    'future'
   ) {
-    return difference > 0;
+    return (
+      difference > 0
+    );
   }
 
   return true;
 }
-
-
-/* ============================================================
-   18. RESPONSIBLE FILTER
-   ============================================================ */
 
 function matchesResponsibleFilter(
   lead
@@ -1484,7 +1774,9 @@ function matchesResponsibleFilter(
     state.responsible ===
     'none'
   ) {
-    return !lead.responsible_user;
+    return (
+      !lead.responsible_user
+    );
   }
 
   return (
@@ -1492,11 +1784,6 @@ function matchesResponsibleFilter(
     state.responsible
   );
 }
-
-
-/* ============================================================
-   19. VISIBLE LEADS
-   ============================================================ */
 
 function getVisibleLeads() {
   const search =
@@ -1509,8 +1796,11 @@ function getVisibleLeads() {
       (lead) => {
         if (
           search &&
-          !getSearchText(lead)
-            .includes(search)
+          !getSearchText(
+            lead
+          ).includes(
+            search
+          )
         ) {
           return false;
         }
@@ -1557,7 +1847,7 @@ function getVisibleLeads() {
 
 
 /* ============================================================
-   20. SORT
+   18. SORT
    ============================================================ */
 
 function sortLeads(items) {
@@ -1566,7 +1856,8 @@ function sortLeads(items) {
   ];
 
   if (
-    state.sort === 'name'
+    state.sort ===
+    'name'
   ) {
     return copy.sort(
       (a, b) =>
@@ -1647,14 +1938,16 @@ function sortLeads(items) {
             ? new Date(
                 a.next_contact
               ).getTime()
-            : Number.MAX_SAFE_INTEGER;
+            : Number
+                .MAX_SAFE_INTEGER;
 
         const bDate =
           b.next_contact
             ? new Date(
                 b.next_contact
               ).getTime()
-            : Number.MAX_SAFE_INTEGER;
+            : Number
+                .MAX_SAFE_INTEGER;
 
         return (
           aDate -
@@ -1663,15 +1956,6 @@ function sortLeads(items) {
       }
     );
   }
-
-  /*
-   * Основной режим:
-   *
-   * 1. Активные выше закрытых.
-   * 2. С датой выше записей без даты.
-   * 3. Ближайшая дата выше.
-   * 4. При одинаковой дате — приоритет.
-   */
 
   return copy.sort(
     (a, b) => {
@@ -1748,7 +2032,9 @@ function sortLeads(items) {
         priorityDifference !==
         0
       ) {
-        return priorityDifference;
+        return (
+          priorityDifference
+        );
       }
 
       return getDisplayName(a)
@@ -1766,7 +2052,7 @@ function sortLeads(items) {
 
 
 /* ============================================================
-   21. STATISTICS
+   19. STATISTICS
    ============================================================ */
 
 function renderStatistics() {
@@ -1793,8 +2079,7 @@ function renderStatistics() {
           );
 
         return (
-          difference !==
-            null &&
+          difference !== null &&
           difference >= 0 &&
           difference <= 7
         );
@@ -1810,8 +2095,7 @@ function renderStatistics() {
           );
 
         return (
-          difference !==
-            null &&
+          difference !== null &&
           difference < 0
         );
       }
@@ -1826,49 +2110,60 @@ function renderStatistics() {
   if (
     elements.statActive
   ) {
-    elements.statActive.textContent =
-      String(
-        active.length
-      );
+    elements.statActive
+      .textContent =
+        String(
+          active.length
+        );
   }
 
   if (
     elements.statToday
   ) {
-    elements.statToday.textContent =
-      String(today);
+    elements.statToday
+      .textContent =
+        String(today);
   }
 
   if (
     elements.statWeek
   ) {
-    elements.statWeek.textContent =
-      String(week);
+    elements.statWeek
+      .textContent =
+        String(week);
   }
 
   if (
     elements.statOverdue
   ) {
-    elements.statOverdue.textContent =
-      String(overdue);
+    elements.statOverdue
+      .textContent =
+        String(
+          overdue
+        );
   }
 
   if (
     elements.statNoDate
   ) {
-    elements.statNoDate.textContent =
-      String(noDate);
+    elements.statNoDate
+      .textContent =
+        String(
+          noDate
+        );
   }
 }
 
 
 /* ============================================================
-   22. TABLE ROW
+   20. TABLE ROW
    ============================================================ */
 
 function createLeadRowHtml(lead) {
   const due =
-    getDueInfo(lead);
+    getDueInfo(
+      lead
+    );
 
   const status =
     STATUS_META[
@@ -1885,7 +2180,9 @@ function createLeadRowHtml(lead) {
 
   const classes = [];
 
-  if (isClosed(lead)) {
+  if (
+    isClosed(lead)
+  ) {
     classes.push(
       'row-closed'
     );
@@ -1946,11 +2243,15 @@ function createLeadRowHtml(lead) {
     dialogue.push(`
       <div class="dialogueBlock">
 
-        <span class="dialogueLabel">
+        <span
+          class="dialogueLabel"
+        >
           Предыдущий диалог
         </span>
 
-        <div class="dialogueText">
+        <div
+          class="dialogueText"
+        >
           ${escapeHtml(
             lead.last_dialogue
           )}
@@ -1966,11 +2267,15 @@ function createLeadRowHtml(lead) {
     dialogue.push(`
       <div class="dialogueBlock">
 
-        <span class="dialogueLabel">
+        <span
+          class="dialogueLabel"
+        >
           Следующий шаг
         </span>
 
-        <div class="dialogueText">
+        <div
+          class="dialogueText"
+        >
           ${escapeHtml(
             lead.next_step
           )}
@@ -1982,7 +2287,9 @@ function createLeadRowHtml(lead) {
 
   const business = [];
 
-  if (lead.source) {
+  if (
+    lead.source
+  ) {
     business.push(`
       <div class="clientMeta">
         Канал:
@@ -1993,7 +2300,9 @@ function createLeadRowHtml(lead) {
     `);
   }
 
-  if (lead.activity) {
+  if (
+    lead.activity
+  ) {
     business.push(`
       <div class="activity">
         ${escapeHtml(
@@ -2074,6 +2383,23 @@ function createLeadRowHtml(lead) {
     `;
   }
 
+  const quickContactButton =
+    isClosed(lead)
+      ? ''
+      : `
+        <button
+          class="tableButton"
+          type="button"
+          data-action="contacted"
+          data-id="${escapeHtml(
+            lead.id
+          )}"
+          title="Зафиксировать контакт и назначить следующий"
+        >
+          📞 Связался
+        </button>
+      `;
+
   return `
     <tr
       class="${classes.join(
@@ -2105,27 +2431,22 @@ function createLeadRowHtml(lead) {
       </td>
 
       <td>
-
         ${
           business.length
             ? business.join('')
             : '<span class="muted">Не указано</span>'
         }
-
       </td>
 
       <td>
-
         ${
           contacts.length
             ? contacts.join('')
             : '<span class="muted">Не указаны</span>'
         }
-
       </td>
 
       <td>
-
         ${
           methodLabel
             ? `
@@ -2139,11 +2460,9 @@ function createLeadRowHtml(lead) {
             `
             : '<span class="muted">Не указан</span>'
         }
-
       </td>
 
       <td>
-
         ${
           lead.estimated_amount
             ? `
@@ -2155,7 +2474,6 @@ function createLeadRowHtml(lead) {
             `
             : '<span class="muted">Не указана</span>'
         }
-
       </td>
 
       <td>
@@ -2184,7 +2502,9 @@ function createLeadRowHtml(lead) {
 
       <td>
 
-        <div class="dateMain">
+        <div
+          class="dateMain"
+        >
           ${escapeHtml(
             due.dateText
           )}
@@ -2217,17 +2537,14 @@ function createLeadRowHtml(lead) {
       </td>
 
       <td>
-
         ${
           dialogue.length
             ? dialogue.join('')
             : '<span class="muted">Не заполнено</span>'
         }
-
       </td>
 
       <td>
-
         ${
           lead.notes
             ? `
@@ -2241,12 +2558,15 @@ function createLeadRowHtml(lead) {
             `
             : '<span class="muted">Нет примечаний</span>'
         }
-
       </td>
 
       <td>
 
-        <div class="rowActions">
+        <div
+          class="rowActions"
+        >
+
+          ${quickContactButton}
 
           <button
             class="tableButton"
@@ -2280,7 +2600,7 @@ function createLeadRowHtml(lead) {
 
 
 /* ============================================================
-   23. TABLE RENDER
+   21. TABLE RENDER
    ============================================================ */
 
 function renderTable() {
@@ -2296,15 +2616,17 @@ function renderTable() {
   if (
     elements.visibleCount
   ) {
-    elements.visibleCount.textContent =
-      'Показано: ' +
-      visible.length +
-      ' из ' +
-      leads.length;
+    elements.visibleCount
+      .textContent =
+        'Показано: ' +
+        visible.length +
+        ' из ' +
+        leads.length;
   }
 
   if (
-    visible.length === 0
+    visible.length ===
+    0
   ) {
     elements.leadTableBody
       .innerHTML = `
@@ -2315,11 +2637,15 @@ function renderTable() {
             colspan="12"
           >
 
-            <div class="emptyTitle">
+            <div
+              class="emptyTitle"
+            >
               Записей не найдено
             </div>
 
-            <div class="emptyText">
+            <div
+              class="emptyText"
+            >
               Измените фильтры или добавьте нового
               потенциального клиента.
             </div>
@@ -2348,7 +2674,7 @@ function render() {
 
 
 /* ============================================================
-   24. FORM
+   22. MAIN FORM
    ============================================================ */
 
 function resetLeadForm() {
@@ -2358,22 +2684,25 @@ function resetLeadForm() {
   if (
     elements.leadId
   ) {
-    elements.leadId.value =
-      '';
+    elements.leadId
+      .value =
+        '';
   }
 
   if (
     elements.priority
   ) {
-    elements.priority.value =
-      'none';
+    elements.priority
+      .value =
+        'none';
   }
 
   if (
     elements.status
   ) {
-    elements.status.value =
-      'new';
+    elements.status
+      .value =
+        'new';
   }
 
   if (
@@ -2383,11 +2712,6 @@ function resetLeadForm() {
       .value =
         '';
   }
-
-  /*
-   * По умолчанию новый лид назначается
-   * на текущего сотрудника.
-   */
 
   if (
     elements.responsibleUser &&
@@ -2405,8 +2729,9 @@ function openLeadModal(
   resetLeadForm();
 
   if (lead) {
-    elements.modalTitle.textContent =
-      'Редактирование клиента';
+    elements.modalTitle
+      .textContent =
+        'Редактирование клиента';
 
     elements.leadId.value =
       lead.id;
@@ -2454,9 +2779,10 @@ function openLeadModal(
     if (
       elements.responsibleUser
     ) {
-      elements.responsibleUser.value =
-        lead.responsible_user ||
-        '';
+      elements.responsibleUser
+        .value =
+          lead.responsible_user ||
+          '';
     }
 
     elements.status.value =
@@ -2480,8 +2806,9 @@ function openLeadModal(
       lead.notes ||
       '';
   } else {
-    elements.modalTitle.textContent =
-      'Новый потенциальный клиент';
+    elements.modalTitle
+      .textContent =
+        'Новый потенциальный клиент';
   }
 
   elements.modalBackdrop
@@ -2516,11 +2843,6 @@ function closeLeadModal() {
 
   resetLeadForm();
 }
-
-
-/* ============================================================
-   25. COLLECT FORM DATA
-   ============================================================ */
 
 function collectLeadFormData() {
   return {
@@ -2631,7 +2953,7 @@ function collectLeadFormData() {
 
 
 /* ============================================================
-   26. SAVE
+   23. MAIN SAVE
    ============================================================ */
 
 async function handleLeadSubmit(
@@ -2639,7 +2961,9 @@ async function handleLeadSubmit(
 ) {
   event.preventDefault();
 
-  if (saveInProgress) {
+  if (
+    saveInProgress
+  ) {
     return;
   }
 
@@ -2686,7 +3010,9 @@ async function handleLeadSubmit(
       : null;
 
   try {
-    if (existingLead) {
+    if (
+      existingLead
+    ) {
       payload.updated_by =
         currentUser.id;
 
@@ -2730,12 +3056,6 @@ async function handleLeadSubmit(
 
       payload.updated_by =
         currentUser.id;
-
-      /*
-       * Если поле ответственного не было
-       * добавлено в HTML или осталось пустым,
-       * всё равно назначаем текущего пользователя.
-       */
 
       if (
         !payload.responsible_user
@@ -2805,7 +3125,9 @@ async function handleLeadSubmit(
 function upsertLeadLocally(
   lead
 ) {
-  if (!lead?.id) {
+  if (
+    !lead?.id
+  ) {
     return;
   }
 
@@ -2816,7 +3138,9 @@ function upsertLeadLocally(
         lead.id
     );
 
-  if (index >= 0) {
+  if (
+    index >= 0
+  ) {
     leads[index] =
       lead;
   } else {
@@ -2828,7 +3152,391 @@ function upsertLeadLocally(
 
 
 /* ============================================================
-   27. EDIT
+   24. QUICK CONTACT
+   ============================================================ */
+
+function resetQuickContactForm() {
+  elements.quickContactForm
+    ?.reset();
+
+  if (
+    elements.quickContactLeadId
+  ) {
+    elements.quickContactLeadId
+      .value =
+        '';
+  }
+
+  if (
+    elements.quickContactPreset
+  ) {
+    elements.quickContactPreset
+      .value =
+        'week';
+  }
+
+  if (
+    elements.quickContactDate
+  ) {
+    elements.quickContactDate
+      .value =
+        toLocalDateTimeInput(
+          getPresetDate(
+            'week'
+          )
+        );
+  }
+
+  if (
+    elements.quickContactComment
+  ) {
+    elements.quickContactComment
+      .value =
+        '';
+  }
+}
+
+function openQuickContactModal(id) {
+  const lead =
+    leads.find(
+      (item) =>
+        item.id === id
+    );
+
+  if (!lead) {
+    showToast(
+      'Запись не найдена.',
+      'warning'
+    );
+
+    return;
+  }
+
+  if (
+    isClosed(lead)
+  ) {
+    showToast(
+      'Эта запись уже завершена.',
+      'warning'
+    );
+
+    return;
+  }
+
+  /*
+   * На случай, если HTML ещё не обновлён.
+   */
+
+  if (
+    !elements.quickContactBackdrop ||
+    !elements.quickContactForm
+  ) {
+    showToast(
+      'Для кнопки «Связался» нужно добавить небольшое окно в planner.html.',
+      'warning',
+      6000
+    );
+
+    return;
+  }
+
+  resetQuickContactForm();
+
+  elements.quickContactLeadId
+    .value =
+      lead.id;
+
+  if (
+    elements.quickContactClient
+  ) {
+    elements.quickContactClient
+      .textContent =
+        getDisplayName(
+          lead
+        );
+  }
+
+  if (
+    elements.quickContactTitle
+  ) {
+    elements.quickContactTitle
+      .textContent =
+        'Связались с клиентом';
+  }
+
+  if (
+    elements.quickContactResponsible
+  ) {
+    elements.quickContactResponsible
+      .value =
+        lead.responsible_user ||
+        currentUser?.id ||
+        '';
+  }
+
+  elements.quickContactPreset
+    .value =
+      'week';
+
+  elements.quickContactDate
+    .value =
+      toLocalDateTimeInput(
+        getPresetDate(
+          'week'
+        )
+      );
+
+  elements.quickContactBackdrop
+    .classList.add(
+      'show'
+    );
+
+  document.body
+    .classList.add(
+      'modal-open'
+    );
+
+  window.setTimeout(
+    () => {
+      elements.quickContactComment
+        ?.focus();
+    },
+    50
+  );
+}
+
+function closeQuickContactModal() {
+  elements.quickContactBackdrop
+    ?.classList.remove(
+      'show'
+    );
+
+  document.body
+    .classList.remove(
+      'modal-open'
+    );
+
+  resetQuickContactForm();
+}
+
+function applyQuickContactPreset() {
+  if (
+    !elements.quickContactPreset ||
+    !elements.quickContactDate
+  ) {
+    return;
+  }
+
+  const preset =
+    elements.quickContactPreset
+      .value;
+
+  if (
+    preset ===
+    'custom'
+  ) {
+    elements.quickContactDate
+      .focus();
+
+    return;
+  }
+
+  const date =
+    getPresetDate(
+      preset
+    );
+
+  if (date) {
+    elements.quickContactDate
+      .value =
+        toLocalDateTimeInput(
+          date
+        );
+  }
+}
+
+async function handleQuickContactSubmit(
+  event
+) {
+  event.preventDefault();
+
+  if (
+    quickContactSaveInProgress
+  ) {
+    return;
+  }
+
+  const id =
+    cleanText(
+      elements.quickContactLeadId
+        ?.value,
+      100
+    );
+
+  const lead =
+    leads.find(
+      (item) =>
+        item.id === id
+    );
+
+  if (!lead) {
+    showToast(
+      'Запись уже была изменена или удалена.',
+      'warning'
+    );
+
+    closeQuickContactModal();
+
+    await loadLeads({
+      silent: true
+    });
+
+    return;
+  }
+
+  const nextContact =
+    toDatabaseTimestamp(
+      elements.quickContactDate
+        ?.value
+    );
+
+  if (!nextContact) {
+    showToast(
+      'Укажите дату следующего контакта.',
+      'warning'
+    );
+
+    elements.quickContactDate
+      ?.focus();
+
+    return;
+  }
+
+  const comment =
+    cleanText(
+      elements.quickContactComment
+        ?.value,
+      3000
+    );
+
+  const responsibleUser =
+    elements.quickContactResponsible
+      ?.value ||
+    lead.responsible_user ||
+    currentUser?.id ||
+    null;
+
+  const payload = {
+    next_contact:
+      nextContact,
+
+    status:
+      'callback',
+
+    responsible_user:
+      responsibleUser,
+
+    updated_by:
+      currentUser.id
+  };
+
+  /*
+   * Если сотрудник написал комментарий,
+   * он становится актуальным описанием
+   * последнего разговора.
+   *
+   * Старый текст намеренно не копим бесконечной лентой:
+   * пользователь просил не делать историю изменений.
+   */
+
+  if (comment) {
+    payload.last_dialogue =
+      comment;
+  }
+
+  quickContactSaveInProgress =
+    true;
+
+  if (
+    elements.quickContactSaveBtn
+  ) {
+    elements.quickContactSaveBtn.disabled =
+      true;
+
+    elements.quickContactSaveBtn.textContent =
+      'Сохраняем…';
+  }
+
+  try {
+    const {
+      data,
+      error
+    } =
+      await supabaseClient
+        .from(
+          'planner_leads'
+        )
+        .update(
+          payload
+        )
+        .eq(
+          'id',
+          lead.id
+        )
+        .select()
+        .single();
+
+    if (error) {
+      throw error;
+    }
+
+    upsertLeadLocally(
+      data
+    );
+
+    render();
+
+    closeQuickContactModal();
+
+    showToast(
+      'Контакт зафиксирован. Следующая дата назначена.',
+      'success',
+      5200
+    );
+
+    checkTodayNotifications();
+  } catch (error) {
+    console.error(
+      'Ошибка быстрого контакта:',
+      error
+    );
+
+    showToast(
+      getFriendlyDatabaseError(
+        error
+      ),
+      'error',
+      6000
+    );
+  } finally {
+    quickContactSaveInProgress =
+      false;
+
+    if (
+      elements.quickContactSaveBtn
+    ) {
+      elements.quickContactSaveBtn.disabled =
+        false;
+
+      elements.quickContactSaveBtn.textContent =
+        'Сохранить';
+    }
+  }
+}
+
+
+/* ============================================================
+   25. EDIT
    ============================================================ */
 
 function editLead(id) {
@@ -2858,7 +3566,7 @@ function editLead(id) {
 
 
 /* ============================================================
-   28. DELETE
+   26. DELETE
    ============================================================ */
 
 async function deleteLead(id) {
@@ -2875,12 +3583,16 @@ async function deleteLead(id) {
   const confirmed =
     window.confirm(
       'Удалить запись «' +
-      getDisplayName(lead) +
+      getDisplayName(
+        lead
+      ) +
       '»?\n\n' +
       'Это действие нельзя отменить.'
     );
 
-  if (!confirmed) {
+  if (
+    !confirmed
+  ) {
     return;
   }
 
@@ -2931,7 +3643,7 @@ async function deleteLead(id) {
 
 
 /* ============================================================
-   29. DATABASE ERROR
+   27. DATABASE ERRORS
    ============================================================ */
 
 function getFriendlyDatabaseError(
@@ -2991,7 +3703,7 @@ function getFriendlyDatabaseError(
 
 
 /* ============================================================
-   30. REALTIME — LEADS
+   28. REALTIME — LEADS
    ============================================================ */
 
 function subscribeToRealtime() {
@@ -3007,7 +3719,7 @@ function subscribeToRealtime() {
   realtimeChannel =
     supabaseClient
       .channel(
-        'jambalance-planner-leads-v21'
+        'jambalance-planner-leads-v22'
       )
       .on(
         'postgres_changes',
@@ -3083,7 +3795,9 @@ function handleRealtimeInsert(
   const lead =
     payload.new;
 
-  if (!lead?.id) {
+  if (
+    !lead?.id
+  ) {
     return;
   }
 
@@ -3100,7 +3814,9 @@ function handleRealtimeInsert(
 
   render();
 
-  if (!existed) {
+  if (
+    !existed
+  ) {
     showToast(
       'В таблице появилась новая запись.',
       'success'
@@ -3116,7 +3832,9 @@ function handleRealtimeUpdate(
   const lead =
     payload.new;
 
-  if (!lead?.id) {
+  if (
+    !lead?.id
+  ) {
     return;
   }
 
@@ -3154,7 +3872,7 @@ function handleRealtimeDelete(
 
 
 /* ============================================================
-   31. REALTIME — PROFILES
+   29. REALTIME — PROFILES
    ============================================================ */
 
 function subscribeToProfilesRealtime() {
@@ -3170,14 +3888,16 @@ function subscribeToProfilesRealtime() {
   profilesRealtimeChannel =
     supabaseClient
       .channel(
-        'jambalance-profiles-v21'
+        'jambalance-profiles-v22'
       )
       .on(
         'postgres_changes',
         {
           event: '*',
-          schema: 'public',
-          table: 'profiles'
+          schema:
+            'public',
+          table:
+            'profiles'
         },
         async () => {
           try {
@@ -3197,7 +3917,7 @@ function subscribeToProfilesRealtime() {
 
 
 /* ============================================================
-   32. RESET FILTERS
+   30. RESET FILTERS
    ============================================================ */
 
 function resetFilters() {
@@ -3266,7 +3986,7 @@ function resetFilters() {
 
 
 /* ============================================================
-   33. EXPORT
+   31. EXPORT
    ============================================================ */
 
 function downloadBlob(
@@ -3314,7 +4034,7 @@ function exportBackup() {
       'ДжемБаланс — планировщик',
 
     version:
-      '2.1',
+      '2.2',
 
     exportedAt:
       new Date()
@@ -3352,8 +4072,7 @@ function exportBackup() {
     today.getFullYear() +
     '-' +
     padNumber(
-      today.getMonth() +
-      1
+      today.getMonth() + 1
     ) +
     '-' +
     padNumber(
@@ -3374,7 +4093,7 @@ function exportBackup() {
 
 
 /* ============================================================
-   34. LEGACY LOCAL STORAGE
+   32. LEGACY DATA
    ============================================================ */
 
 function getLegacyLeads() {
@@ -3616,7 +4335,9 @@ async function migrateLegacyData() {
       'После переноса они станут видны всем сотрудникам.'
     );
 
-  if (!confirmed) {
+  if (
+    !confirmed
+  ) {
     return;
   }
 
@@ -3705,7 +4426,9 @@ function skipLegacyMigration() {
       'Они останутся только в браузере этого компьютера.'
     );
 
-  if (!confirmed) {
+  if (
+    !confirmed
+  ) {
     return;
   }
 
@@ -3722,7 +4445,7 @@ function skipLegacyMigration() {
 
 
 /* ============================================================
-   35. NOTIFICATIONS
+   33. NOTIFICATIONS
    ============================================================ */
 
 function getTodayKey() {
@@ -3733,8 +4456,7 @@ function getTodayKey() {
     today.getFullYear() +
     '-' +
     padNumber(
-      today.getMonth() +
-      1
+      today.getMonth() + 1
     ) +
     '-' +
     padNumber(
@@ -3786,8 +4508,7 @@ function saveNotificationHistory(
         1000
       );
 
-    const cleaned =
-      {};
+    const cleaned = {};
 
     Object.entries(
       history
@@ -3954,11 +4675,6 @@ function checkTodayNotifications() {
   const history =
     loadNotificationHistory();
 
-  /*
-   * Уведомляем только ответственного сотрудника
-   * или по лидам без ответственного.
-   */
-
   const todayLeads =
     leads.filter(
       (lead) => {
@@ -4000,8 +4716,7 @@ function checkTodayNotifications() {
         return;
       }
 
-      const parts =
-        [];
+      const parts = [];
 
       if (
         lead.next_step
@@ -4093,7 +4808,9 @@ function checkTodayNotifications() {
     }
   );
 
-  if (changed) {
+  if (
+    changed
+  ) {
     saveNotificationHistory(
       history
     );
@@ -4102,7 +4819,7 @@ function checkTodayNotifications() {
 
 
 /* ============================================================
-   36. EVENTS
+   34. EVENTS
    ============================================================ */
 
 function bindEvents() {
@@ -4270,16 +4987,88 @@ function bindEvents() {
 
         if (
           action ===
+          'contacted'
+        ) {
+          openQuickContactModal(
+            id
+          );
+
+          return;
+        }
+
+        if (
+          action ===
           'edit'
         ) {
-          editLead(id);
+          editLead(
+            id
+          );
+
+          return;
         }
 
         if (
           action ===
           'delete'
         ) {
-          deleteLead(id);
+          deleteLead(
+            id
+          );
+        }
+      }
+    );
+
+  /*
+   * Quick contact modal
+   */
+
+  elements.quickContactCloseBtn
+    ?.addEventListener(
+      'click',
+      closeQuickContactModal
+    );
+
+  elements.quickContactCancelBtn
+    ?.addEventListener(
+      'click',
+      closeQuickContactModal
+    );
+
+  elements.quickContactBackdrop
+    ?.addEventListener(
+      'click',
+      (event) => {
+        if (
+          event.target ===
+          elements.quickContactBackdrop
+        ) {
+          closeQuickContactModal();
+        }
+      }
+    );
+
+  elements.quickContactForm
+    ?.addEventListener(
+      'submit',
+      handleQuickContactSubmit
+    );
+
+  elements.quickContactPreset
+    ?.addEventListener(
+      'change',
+      applyQuickContactPreset
+    );
+
+  elements.quickContactDate
+    ?.addEventListener(
+      'input',
+      () => {
+        if (
+          elements.quickContactPreset
+        ) {
+          elements.quickContactPreset
+            .value =
+              'custom';
         }
       }
     );
@@ -4288,8 +5077,24 @@ function bindEvents() {
     'keydown',
     (event) => {
       if (
-        event.key ===
-          'Escape' &&
+        event.key !==
+        'Escape'
+      ) {
+        return;
+      }
+
+      if (
+        elements.quickContactBackdrop
+          ?.classList.contains(
+            'show'
+          )
+      ) {
+        closeQuickContactModal();
+
+        return;
+      }
+
+      if (
         elements.modalBackdrop
           ?.classList.contains(
             'show'
@@ -4354,11 +5159,12 @@ function bindEvents() {
 
 
 /* ============================================================
-   37. AUTH WATCHER
+   35. AUTH WATCHER
    ============================================================ */
 
 function bindAuthWatcher() {
-  supabaseClient.auth
+  supabaseClient
+    .auth
     .onAuthStateChange(
       (
         event,
@@ -4382,14 +5188,16 @@ function bindAuthWatcher() {
 
 
 /* ============================================================
-   38. PERIODIC TASKS
+   36. PERIODIC TASKS
    ============================================================ */
 
 function startPeriodicTasks() {
   window.setInterval(
     () => {
       renderStatistics();
+
       renderTable();
+
       checkTodayNotifications();
     },
     60000
@@ -4412,7 +5220,7 @@ function startPeriodicTasks() {
 
 
 /* ============================================================
-   39. INITIALIZE
+   37. INITIALIZE
    ============================================================ */
 
 async function initialize() {
@@ -4430,14 +5238,18 @@ async function initialize() {
     const authenticated =
       await ensureAuthenticated();
 
-    if (!authenticated) {
+    if (
+      !authenticated
+    ) {
       return;
     }
 
     const profileLoaded =
       await loadCurrentProfile();
 
-    if (!profileLoaded) {
+    if (
+      !profileLoaded
+    ) {
       return;
     }
 
@@ -4483,7 +5295,7 @@ async function initialize() {
 
 
 /* ============================================================
-   40. START
+   38. START
    ============================================================ */
 
 initialize();
