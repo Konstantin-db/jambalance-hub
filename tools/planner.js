@@ -1,11 +1,17 @@
 'use strict';
 
 /* ============================================================
-   ДЖЕМБАЛАНС — PLANNER v2.4
-   Supabase + Auth + Realtime + Responsible users
-   + Quick contact
-   + Private files
-   + Smart reminders
+   ДЖЕМБАЛАНС — PLANNER v2.5
+
+   Supabase
+   Авторизация
+   Realtime
+   Ответственные сотрудники
+   Быстрый контакт "Связался"
+   Файлы
+   Умные напоминания
+   Кликабельная сводка
+   Быстрые действия
    ============================================================ */
 
 
@@ -43,14 +49,14 @@ const MIGRATION_DONE_KEY =
   'jambalance_planner_migration_done_v2';
 
 const NOTIFICATION_HISTORY_KEY =
-  'jambalance_planner_notifications_v24';
+  'jambalance_planner_notifications_v25';
 
 const DAILY_SUMMARY_HISTORY_KEY =
-  'jambalance_planner_daily_summary_v24';
+  'jambalance_planner_daily_summary_v25';
 
 
 /* ============================================================
-   3. SMART REMINDER SETTINGS
+   3. REMINDERS
    ============================================================ */
 
 const REMINDER_SOON_MINUTES =
@@ -61,7 +67,7 @@ const OVERDUE_NOTIFICATION_COOLDOWN_HOURS =
 
 
 /* ============================================================
-   4. DICTIONARIES
+   4. СПРАВОЧНИКИ
    ============================================================ */
 
 const CLOSED_STATUSES =
@@ -235,6 +241,8 @@ const elements = {
   leadTableBody:
     document.getElementById('leadTableBody'),
 
+  /* Основная карточка */
+
   modalBackdrop:
     document.getElementById('modalBackdrop'),
 
@@ -307,7 +315,7 @@ const elements = {
   toastStack:
     document.getElementById('toastStack'),
 
-  /* Quick contact */
+  /* Быстрый контакт */
 
   quickContactBackdrop:
     document.getElementById('quickContactBackdrop'),
@@ -345,7 +353,7 @@ const elements = {
   quickContactSaveBtn:
     document.getElementById('quickContactSaveBtn'),
 
-  /* Files */
+  /* Файлы */
 
   filesBackdrop:
     document.getElementById('filesBackdrop'),
@@ -383,7 +391,7 @@ const elements = {
   selectedFileName:
     document.getElementById('selectedFileName'),
 
-  /* Smart summary — появится после HTML-патча */
+  /* Умная сводка */
 
   smartSummary:
     document.getElementById('smartSummary'),
@@ -398,7 +406,83 @@ const elements = {
     document.getElementById('smartSummaryWeek'),
 
   smartSummaryText:
-    document.getElementById('smartSummaryText')
+    document.getElementById('smartSummaryText'),
+
+  /* ========================================================
+     v2.5 — Быстрые действия
+     Эти элементы добавим следующим HTML-патчем.
+     ======================================================== */
+
+  quickActionsBackdrop:
+    document.getElementById('quickActionsBackdrop'),
+
+  quickActionsClient:
+    document.getElementById('quickActionsClient'),
+
+  quickActionsLeadId:
+    document.getElementById('quickActionsLeadId'),
+
+  quickActionsCloseBtn:
+    document.getElementById('quickActionsCloseBtn'),
+
+  quickActionsCancelBtn:
+    document.getElementById('quickActionsCancelBtn'),
+
+  quickActionRescheduleBtn:
+    document.getElementById('quickActionRescheduleBtn'),
+
+  quickActionPauseBtn:
+    document.getElementById('quickActionPauseBtn'),
+
+  quickActionClientBtn:
+    document.getElementById('quickActionClientBtn'),
+
+  quickActionLostBtn:
+    document.getElementById('quickActionLostBtn'),
+
+  quickActionDeleteBtn:
+    document.getElementById('quickActionDeleteBtn'),
+
+  /* Быстрое назначение даты */
+
+  actionScheduleBackdrop:
+    document.getElementById('actionScheduleBackdrop'),
+
+  actionScheduleTitle:
+    document.getElementById('actionScheduleTitle'),
+
+  actionScheduleSubtitle:
+    document.getElementById('actionScheduleSubtitle'),
+
+  actionScheduleForm:
+    document.getElementById('actionScheduleForm'),
+
+  actionScheduleLeadId:
+    document.getElementById('actionScheduleLeadId'),
+
+  actionScheduleMode:
+    document.getElementById('actionScheduleMode'),
+
+  actionScheduleClient:
+    document.getElementById('actionScheduleClient'),
+
+  actionSchedulePreset:
+    document.getElementById('actionSchedulePreset'),
+
+  actionScheduleDate:
+    document.getElementById('actionScheduleDate'),
+
+  actionScheduleComment:
+    document.getElementById('actionScheduleComment'),
+
+  actionScheduleCloseBtn:
+    document.getElementById('actionScheduleCloseBtn'),
+
+  actionScheduleCancelBtn:
+    document.getElementById('actionScheduleCancelBtn'),
+
+  actionScheduleSaveBtn:
+    document.getElementById('actionScheduleSaveBtn')
 };
 
 
@@ -438,6 +522,8 @@ let isLoadingLeads = false;
 let saveInProgress = false;
 
 let quickContactSaveInProgress = false;
+
+let actionScheduleSaveInProgress = false;
 
 let fileUploadInProgress = false;
 
@@ -567,34 +653,6 @@ function pluralizeRecords(value) {
   return 'записей';
 }
 
-function pluralizeFiles(value) {
-  const number =
-    Math.abs(value) % 100;
-
-  const last =
-    number % 10;
-
-  if (
-    number >= 11 &&
-    number <= 19
-  ) {
-    return 'файлов';
-  }
-
-  if (last === 1) {
-    return 'файл';
-  }
-
-  if (
-    last >= 2 &&
-    last <= 4
-  ) {
-    return 'файла';
-  }
-
-  return 'файлов';
-}
-
 function getInitials(
   name,
   email
@@ -639,13 +697,13 @@ function getInitials(
 function getDisplayName(lead) {
   const name =
     cleanText(
-      lead.client_name,
+      lead?.client_name,
       180
     );
 
   const form =
     cleanText(
-      lead.org_form,
+      lead?.org_form,
       80
     );
 
@@ -678,7 +736,7 @@ function getDisplayName(lead) {
 
 function isClosed(lead) {
   return CLOSED_STATUSES.has(
-    lead.status
+    lead?.status
   );
 }
 
@@ -716,7 +774,8 @@ function getProfileById(id) {
     profiles.find(
       (profile) =>
         profile.id === id
-    ) || null
+    ) ||
+    null
   );
 }
 
@@ -740,7 +799,7 @@ function getProfileDisplayName(profile) {
 
 function getResponsibleDisplayName(lead) {
   if (
-    !lead.responsible_user
+    !lead?.responsible_user
   ) {
     return 'Не назначен';
   }
@@ -1158,7 +1217,9 @@ function showToast(
   type = 'success',
   duration = 4200
 ) {
-  if (!elements.toastStack) {
+  if (
+    !elements.toastStack
+  ) {
     return;
   }
 
@@ -1223,7 +1284,9 @@ function showFatalError(message) {
   if (
     !elements.loadingScreen
   ) {
-    window.alert(message);
+    window.alert(
+      message
+    );
 
     return;
   }
@@ -1261,7 +1324,9 @@ function showFatalError(message) {
           margin-bottom:18px;
         "
       >
-        ${escapeHtml(message)}
+        ${escapeHtml(
+          message
+        )}
       </div>
 
       <a
@@ -1317,7 +1382,7 @@ function createSupabaseClient() {
 
 
 /* ============================================================
-   13. AUTH / PROFILE
+   13. AUTH
    ============================================================ */
 
 async function ensureAuthenticated() {
@@ -1352,6 +1417,10 @@ async function ensureAuthenticated() {
 }
 
 async function loadCurrentProfile() {
+  setLoadingText(
+    'Загружаем профиль…'
+  );
+
   const {
     data,
     error
@@ -1395,7 +1464,8 @@ async function loadCurrentProfile() {
         currentUser
           .user_metadata
           ?.full_name ||
-        currentUser.email
+        currentUser
+          .email
           ?.split('@')[0] ||
         'Сотрудник',
 
@@ -1448,7 +1518,16 @@ function renderCurrentUser() {
   }
 }
 
+
+/* ============================================================
+   14. PROFILES
+   ============================================================ */
+
 async function loadProfiles() {
+  setLoadingText(
+    'Загружаем сотрудников…'
+  );
+
   const {
     data,
     error
@@ -1504,41 +1583,43 @@ async function loadProfiles() {
 }
 
 function renderResponsibleOptions() {
-  const createOptions =
-    (
-      includeFilters = false
-    ) => {
-      const options =
-        includeFilters
-          ? [
-              '<option value="all">Все сотрудники</option>',
-              '<option value="mine">Только мои</option>',
-              '<option value="none">Не назначен</option>'
-            ]
-          : [
-              '<option value="">Не назначен</option>'
-            ];
+  const normalOptions = [
+    '<option value="">Не назначен</option>'
+  ];
 
-      profiles.forEach(
-        (profile) => {
-          options.push(`
-            <option
-              value="${escapeHtml(
-                profile.id
-              )}"
-            >
-              ${escapeHtml(
-                getProfileDisplayName(
-                  profile
-                )
-              )}
-            </option>
-          `);
-        }
-      );
+  profiles.forEach(
+    (profile) => {
+      const name =
+        getProfileDisplayName(
+          profile
+        );
 
-      return options.join('');
-    };
+      const position =
+        cleanText(
+          profile.position,
+          120
+        );
+
+      const label =
+        position
+          ? name +
+            ' — ' +
+            position
+          : name;
+
+      normalOptions.push(`
+        <option
+          value="${escapeHtml(
+            profile.id
+          )}"
+        >
+          ${escapeHtml(
+            label
+          )}
+        </option>
+      `);
+    }
+  );
 
   if (
     elements.responsibleUser
@@ -1549,7 +1630,7 @@ function renderResponsibleOptions() {
 
     elements.responsibleUser
       .innerHTML =
-        createOptions();
+        normalOptions.join('');
 
     if (old) {
       elements.responsibleUser.value =
@@ -1566,7 +1647,7 @@ function renderResponsibleOptions() {
 
     elements.quickContactResponsible
       .innerHTML =
-        createOptions();
+        normalOptions.join('');
 
     if (old) {
       elements.quickContactResponsible
@@ -1581,31 +1662,85 @@ function renderResponsibleOptions() {
     const old =
       elements.responsibleFilter
         .value ||
-      state.responsible;
+      state.responsible ||
+      'all';
+
+    const filterOptions = [
+      '<option value="all">Все сотрудники</option>',
+      '<option value="mine">Только мои</option>',
+      '<option value="none">Не назначен</option>'
+    ];
+
+    profiles.forEach(
+      (profile) => {
+        filterOptions.push(`
+          <option
+            value="${escapeHtml(
+              profile.id
+            )}"
+          >
+            ${escapeHtml(
+              getProfileDisplayName(
+                profile
+              )
+            )}
+          </option>
+        `);
+      }
+    );
 
     elements.responsibleFilter
       .innerHTML =
-        createOptions(true);
+        filterOptions.join('');
+
+    const allowed =
+      new Set([
+        'all',
+        'mine',
+        'none',
+        ...profiles.map(
+          (profile) =>
+            profile.id
+        )
+      ]);
 
     elements.responsibleFilter.value =
-      old || 'all';
+      allowed.has(old)
+        ? old
+        : 'all';
+
+    state.responsible =
+      elements.responsibleFilter.value;
   }
 }
 
 
 /* ============================================================
-   14. LOAD DATA
+   15. LOAD DATA
    ============================================================ */
 
 async function loadLeads({
   silent = false
 } = {}) {
-  if (isLoadingLeads) {
+  if (
+    isLoadingLeads
+  ) {
     return;
   }
 
   isLoadingLeads =
     true;
+
+  if (
+    !silent &&
+    elements.refreshBtn
+  ) {
+    elements.refreshBtn.disabled =
+      true;
+
+    elements.refreshBtn.textContent =
+      'Обновляем…';
+  }
 
   try {
     const [
@@ -1631,6 +1766,12 @@ async function loadLeads({
             'is',
             null
           )
+          .order(
+            'created_at',
+            {
+              ascending: false
+            }
+          )
       ]);
 
     if (
@@ -1646,12 +1787,18 @@ async function loadLeads({
     }
 
     leads =
-      leadsResult.data ||
-      [];
+      Array.isArray(
+        leadsResult.data
+      )
+        ? leadsResult.data
+        : [];
 
     crmFiles =
-      filesResult.data ||
-      [];
+      Array.isArray(
+        filesResult.data
+      )
+        ? filesResult.data
+        : [];
 
     render();
 
@@ -1664,6 +1811,7 @@ async function loadLeads({
     runSmartReminders();
   } catch (error) {
     console.error(
+      'Ошибка загрузки:',
       error
     );
 
@@ -1676,20 +1824,44 @@ async function loadLeads({
   } finally {
     isLoadingLeads =
       false;
+
+    if (
+      !silent &&
+      elements.refreshBtn
+    ) {
+      elements.refreshBtn.disabled =
+        false;
+
+      elements.refreshBtn.textContent =
+        '↻ Обновить';
+    }
   }
 }
 
 
 /* ============================================================
-   15. FILE HELPERS
+   16. FILE HELPERS
    ============================================================ */
 
 function getLeadFiles(leadId) {
+  if (!leadId) {
+    return [];
+  }
+
   return crmFiles
     .filter(
       (file) =>
         file.lead_id ===
         leadId
+    )
+    .sort(
+      (a, b) =>
+        new Date(
+          b.created_at || 0
+        ).getTime() -
+        new Date(
+          a.created_at || 0
+        ).getTime()
     );
 }
 
@@ -1704,8 +1876,13 @@ function formatFileSize(bytes) {
     Number(bytes);
 
   if (
-    value < 1024
+    !Number.isFinite(value) ||
+    value < 0
   ) {
+    return '';
+  }
+
+  if (value < 1024) {
     return (
       value +
       ' Б'
@@ -1739,6 +1916,13 @@ function formatFileDate(value) {
     return '';
   }
 
+  const date =
+    new Date(value);
+
+  if (!isValidDate(date)) {
+    return '';
+  }
+
   return new Intl.DateTimeFormat(
     'ru-RU',
     {
@@ -1748,9 +1932,7 @@ function formatFileDate(value) {
       hour: '2-digit',
       minute: '2-digit'
     }
-  ).format(
-    new Date(value)
-  );
+  ).format(date);
 }
 
 function sanitizeStorageFileName(fileName) {
@@ -1769,8 +1951,9 @@ function sanitizeStorageFileName(fileName) {
           .slice(
             dot + 1
           )
+          .toLowerCase()
           .replace(
-            /[^a-zA-Z0-9]/g,
+            /[^a-z0-9]/g,
             ''
           )
           .slice(
@@ -1788,6 +1971,11 @@ function sanitizeStorageFileName(fileName) {
           )
         : original
     )
+      .normalize('NFKD')
+      .replace(
+        /[\u0300-\u036f]/g,
+        ''
+      )
       .replace(
         /[^a-zA-Z0-9_-]+/g,
         '-'
@@ -1803,23 +1991,21 @@ function sanitizeStorageFileName(fileName) {
     'file';
 
   return extension
-    ? base +
-      '.' +
-      extension
+    ? `${base}.${extension}`
     : base;
 }
 
 function getFileIcon(file) {
   const mime =
     String(
-      file.mime_type ||
+      file?.mime_type ||
       ''
     ).toLowerCase();
 
   const name =
     String(
-      file.original_file_name ||
-      file.file_name ||
+      file?.original_file_name ||
+      file?.file_name ||
       ''
     ).toLowerCase();
 
@@ -1832,9 +2018,7 @@ function getFileIcon(file) {
   }
 
   if (
-    name.endsWith(
-      '.pdf'
-    )
+    name.endsWith('.pdf')
   ) {
     return '📕';
   }
@@ -1860,8 +2044,51 @@ function getFileIcon(file) {
 
 
 /* ============================================================
-   16. FILTER / SORT
+   17. SEARCH / FILTER
    ============================================================ */
+
+function getSearchText(lead) {
+  return normalizeSearch(
+    [
+      lead.client_name,
+      lead.org_form,
+      lead.inn,
+      lead.activity,
+      lead.source,
+      lead.phone,
+      lead.email,
+
+      METHOD_META[
+        lead.communication_method
+      ],
+
+      lead.estimated_amount,
+
+      PRIORITY_META[
+        lead.priority
+      ]?.label,
+
+      STATUS_META[
+        lead.status
+      ]?.label,
+
+      getResponsibleDisplayName(
+        lead
+      ),
+
+      lead.last_dialogue,
+      lead.next_step,
+      lead.notes,
+
+      ...getLeadFiles(
+        lead.id
+      ).map(
+        (file) =>
+          file.original_file_name
+      )
+    ].join(' ')
+  );
+}
 
 function matchesResponsibleFilter(
   lead
@@ -1900,13 +2127,15 @@ function matchesResponsibleFilter(
 
 function matchesDateFilter(lead) {
   if (
-    state.date === 'all'
+    state.date ===
+    'all'
   ) {
     return true;
   }
 
   if (
-    state.date === 'closed'
+    state.date ===
+    'closed'
   ) {
     return isClosed(
       lead
@@ -1919,7 +2148,7 @@ function matchesDateFilter(lead) {
     return false;
   }
 
-  const diff =
+  const difference =
     getDayDifference(
       lead.next_contact
     );
@@ -1928,11 +2157,13 @@ function matchesDateFilter(lead) {
     state.date ===
     'nodate'
   ) {
-    return diff === null;
+    return (
+      difference === null
+    );
   }
 
   if (
-    diff === null
+    difference === null
   ) {
     return false;
   }
@@ -1941,7 +2172,9 @@ function matchesDateFilter(lead) {
     state.date ===
     'today'
   ) {
-    return diff === 0;
+    return (
+      difference === 0
+    );
   }
 
   if (
@@ -1949,8 +2182,8 @@ function matchesDateFilter(lead) {
     'week'
   ) {
     return (
-      diff >= 0 &&
-      diff <= 7
+      difference >= 0 &&
+      difference <= 7
     );
   }
 
@@ -1958,53 +2191,21 @@ function matchesDateFilter(lead) {
     state.date ===
     'overdue'
   ) {
-    return diff < 0;
+    return (
+      difference < 0
+    );
   }
 
   if (
     state.date ===
     'future'
   ) {
-    return diff > 0;
+    return (
+      difference > 0
+    );
   }
 
   return true;
-}
-
-function getSearchText(lead) {
-  return normalizeSearch(
-    [
-      lead.client_name,
-      lead.org_form,
-      lead.inn,
-      lead.activity,
-      lead.source,
-      lead.phone,
-      lead.email,
-      METHOD_META[
-        lead.communication_method
-      ],
-      lead.estimated_amount,
-      PRIORITY_META[
-        lead.priority
-      ]?.label,
-      STATUS_META[
-        lead.status
-      ]?.label,
-      getResponsibleDisplayName(
-        lead
-      ),
-      lead.last_dialogue,
-      lead.next_step,
-      lead.notes,
-      ...getLeadFiles(
-        lead.id
-      ).map(
-        (file) =>
-          file.original_file_name
-      )
-    ].join(' ')
-  );
 }
 
 function getVisibleLeads() {
@@ -2013,7 +2214,7 @@ function getVisibleLeads() {
       state.search
     );
 
-  return sortLeads(
+  const filtered =
     leads.filter(
       (lead) => {
         if (
@@ -2060,9 +2261,17 @@ function getVisibleLeads() {
           lead
         );
       }
-    )
+    );
+
+  return sortLeads(
+    filtered
   );
 }
+
+
+/* ============================================================
+   18. SORT
+   ============================================================ */
 
 function sortLeads(items) {
   const copy =
@@ -2090,10 +2299,10 @@ function sortLeads(items) {
       (a, b) =>
         new Date(
           b.created_at || 0
-        ) -
+        ).getTime() -
         new Date(
           a.created_at || 0
-        )
+        ).getTime()
     );
   }
 
@@ -2105,10 +2314,10 @@ function sortLeads(items) {
       (a, b) =>
         new Date(
           b.updated_at || 0
-        ) -
+        ).getTime() -
         new Date(
           a.updated_at || 0
-        )
+        ).getTime()
     );
   }
 
@@ -2117,21 +2326,53 @@ function sortLeads(items) {
     'priority'
   ) {
     return copy.sort(
-      (a, b) =>
-        (
-          PRIORITY_META[
-            a.priority ||
-            'none'
-          ]?.order ||
-          4
-        ) -
-        (
-          PRIORITY_META[
-            b.priority ||
-            'none'
-          ]?.order ||
-          4
-        )
+      (a, b) => {
+        const priorityDifference =
+          (
+            PRIORITY_META[
+              a.priority ||
+              'none'
+            ]?.order ||
+            4
+          ) -
+          (
+            PRIORITY_META[
+              b.priority ||
+              'none'
+            ]?.order ||
+            4
+          );
+
+        if (
+          priorityDifference !==
+          0
+        ) {
+          return (
+            priorityDifference
+          );
+        }
+
+        const aDate =
+          a.next_contact
+            ? new Date(
+                a.next_contact
+              ).getTime()
+            : Number
+                .MAX_SAFE_INTEGER;
+
+        const bDate =
+          b.next_contact
+            ? new Date(
+                b.next_contact
+              ).getTime()
+            : Number
+                .MAX_SAFE_INTEGER;
+
+        return (
+          aDate -
+          bDate
+        );
+      }
     );
   }
 
@@ -2194,7 +2435,7 @@ function sortLeads(items) {
 
 
 /* ============================================================
-   17. STATISTICS / SMART SUMMARY
+   19. STATISTICS / SMART SUMMARY
    ============================================================ */
 
 function getReminderScopeLeads() {
@@ -2216,11 +2457,11 @@ function getReminderScopeLeads() {
 }
 
 function getSmartSummaryData() {
-  const ownLeads =
+  const scoped =
     getReminderScopeLeads();
 
   const today =
-    ownLeads.filter(
+    scoped.filter(
       (lead) =>
         getDayDifference(
           lead.next_contact
@@ -2228,32 +2469,32 @@ function getSmartSummaryData() {
     );
 
   const overdue =
-    ownLeads.filter(
+    scoped.filter(
       (lead) => {
-        const diff =
+        const difference =
           getDayDifference(
             lead.next_contact
           );
 
         return (
-          diff !== null &&
-          diff < 0
+          difference !== null &&
+          difference < 0
         );
       }
     );
 
   const week =
-    ownLeads.filter(
+    scoped.filter(
       (lead) => {
-        const diff =
+        const difference =
           getDayDifference(
             lead.next_contact
           );
 
         return (
-          diff !== null &&
-          diff >= 0 &&
-          diff <= 7
+          difference !== null &&
+          difference >= 0 &&
+          difference <= 7
         );
       }
     );
@@ -2283,15 +2524,15 @@ function renderStatistics() {
   const week =
     active.filter(
       (lead) => {
-        const diff =
+        const difference =
           getDayDifference(
             lead.next_contact
           );
 
         return (
-          diff !== null &&
-          diff >= 0 &&
-          diff <= 7
+          difference !== null &&
+          difference >= 0 &&
+          difference <= 7
         );
       }
     ).length;
@@ -2299,14 +2540,14 @@ function renderStatistics() {
   const overdue =
     active.filter(
       (lead) => {
-        const diff =
+        const difference =
           getDayDifference(
             lead.next_contact
           );
 
         return (
-          diff !== null &&
-          diff < 0
+          difference !== null &&
+          difference < 0
         );
       }
     ).length;
@@ -2356,34 +2597,39 @@ function renderStatistics() {
 
   renderSmartSummary();
 }
+
 function updateSmartSummarySelection() {
-  if (!elements.smartSummary) {
+  if (
+    !elements.smartSummary
+  ) {
     return;
   }
 
   const items =
-    elements.smartSummary.querySelectorAll(
-      '[data-summary-filter]'
-    );
+    elements.smartSummary
+      .querySelectorAll(
+        '[data-summary-filter]'
+      );
 
   items.forEach(
     (item) => {
-      const isActive =
+      const active =
         item.dataset.summaryFilter ===
         state.date;
 
       item.classList.toggle(
         'active',
-        isActive
+        active
       );
 
       item.setAttribute(
         'aria-pressed',
-        String(isActive)
+        String(active)
       );
     }
   );
 }
+
 function renderSmartSummary() {
   if (
     !elements.smartSummary
@@ -2394,32 +2640,32 @@ function renderSmartSummary() {
   const summary =
     getSmartSummaryData();
 
-  elements.smartSummaryToday
-    ?.replaceChildren(
-      document.createTextNode(
-        String(
-          summary.today.length
-        )
-      )
-    );
+  if (
+    elements.smartSummaryToday
+  ) {
+    elements.smartSummaryToday.textContent =
+      String(
+        summary.today.length
+      );
+  }
 
-  elements.smartSummaryOverdue
-    ?.replaceChildren(
-      document.createTextNode(
-        String(
-          summary.overdue.length
-        )
-      )
-    );
+  if (
+    elements.smartSummaryOverdue
+  ) {
+    elements.smartSummaryOverdue.textContent =
+      String(
+        summary.overdue.length
+      );
+  }
 
-  elements.smartSummaryWeek
-    ?.replaceChildren(
-      document.createTextNode(
-        String(
-          summary.week.length
-        )
-      )
-    );
+  if (
+    elements.smartSummaryWeek
+  ) {
+    elements.smartSummaryWeek.textContent =
+      String(
+        summary.week.length
+      );
+  }
 
   if (
     elements.smartSummaryText
@@ -2439,12 +2685,13 @@ function renderSmartSummary() {
         'Просроченных и сегодняшних контактов нет.';
     }
   }
-updateSmartSummarySelection();
+
+  updateSmartSummarySelection();
 }
 
 
 /* ============================================================
-   18. TABLE
+   20. TABLE
    ============================================================ */
 
 function createLeadRowHtml(lead) {
@@ -2471,55 +2718,61 @@ function createLeadRowHtml(lead) {
       lead.responsible_user
     );
 
-  const responsibleHtml =
-    responsible
-      ? `
-        <div
+  let responsibleHtml =
+    '<span class="muted">Не назначен</span>';
+
+  if (responsible) {
+    const name =
+      getProfileDisplayName(
+        responsible
+      );
+
+    responsibleHtml = `
+      <div
+        style="
+          display:flex;
+          align-items:center;
+          gap:7px;
+        "
+      >
+        <span
           style="
-            display:flex;
+            display:inline-flex;
             align-items:center;
-            gap:7px;
+            justify-content:center;
+            flex:0 0 auto;
+            width:27px;
+            height:27px;
+            border-radius:50%;
+            color:#a85b17;
+            background:#fff3e3;
+            font-size:10px;
+            font-weight:900;
           "
         >
-          <span
-            style="
-              display:inline-flex;
-              align-items:center;
-              justify-content:center;
-              width:27px;
-              height:27px;
-              border-radius:50%;
-              color:#a85b17;
-              background:#fff3e3;
-              font-size:10px;
-              font-weight:900;
-            "
-          >
-            ${escapeHtml(
-              getInitials(
-                getProfileDisplayName(
-                  responsible
-                ),
-                responsible.email
-              )
-            )}
-          </span>
+          ${escapeHtml(
+            getInitials(
+              name,
+              responsible.email
+            )
+          )}
+        </span>
 
-          <span
-            style="
-              font-size:12px;
-              font-weight:800;
-            "
-          >
-            ${escapeHtml(
-              getProfileDisplayName(
-                responsible
-              )
-            )}
-          </span>
-        </div>
-      `
-      : '<span class="muted">Не назначен</span>';
+        <span
+          style="
+            color:#374151;
+            font-size:12px;
+            font-weight:800;
+            line-height:1.3;
+          "
+        >
+          ${escapeHtml(
+            name
+          )}
+        </span>
+      </div>
+    `;
+  }
 
   const methodLabel =
     METHOD_META[
@@ -2531,14 +2784,112 @@ function createLeadRowHtml(lead) {
       lead.id
     );
 
+  const contacts = [];
+
+  if (lead.phone) {
+    contacts.push(`
+      <a
+        class="contactLink"
+        href="tel:${escapeHtml(
+          String(
+            lead.phone
+          ).replace(
+            /[^\d+]/g,
+            ''
+          )
+        )}"
+      >
+        ${escapeHtml(
+          lead.phone
+        )}
+      </a>
+    `);
+  }
+
+  if (lead.email) {
+    contacts.push(`
+      <a
+        class="contactLink"
+        href="mailto:${escapeHtml(
+          lead.email
+        )}"
+      >
+        ${escapeHtml(
+          lead.email
+        )}
+      </a>
+    `);
+  }
+
+  const dialogue = [];
+
+  if (
+    lead.last_dialogue
+  ) {
+    dialogue.push(`
+      <div class="dialogueBlock">
+
+        <span class="dialogueLabel">
+          Предыдущий диалог
+        </span>
+
+        <div class="dialogueText">
+          ${escapeHtml(
+            lead.last_dialogue
+          )}
+        </div>
+
+      </div>
+    `);
+  }
+
+  if (
+    lead.next_step
+  ) {
+    dialogue.push(`
+      <div class="dialogueBlock">
+
+        <span class="dialogueLabel">
+          Следующий шаг
+        </span>
+
+        <div class="dialogueText">
+          ${escapeHtml(
+            lead.next_step
+          )}
+        </div>
+
+      </div>
+    `);
+  }
+
+  const quickContactButton =
+    isClosed(lead)
+      ? ''
+      : `
+        <button
+          class="tableButton"
+          type="button"
+          data-action="contacted"
+          data-id="${escapeHtml(
+            lead.id
+          )}"
+        >
+          Связался
+        </button>
+      `;
+
   return `
-    <tr class="${
-      isClosed(lead)
-        ? 'row-closed'
-        : due.rowClass
-    }">
+    <tr
+      class="${
+        isClosed(lead)
+          ? 'row-closed'
+          : due.rowClass
+      }"
+    >
 
       <td>
+
         <div class="clientName">
           ${escapeHtml(
             getDisplayName(
@@ -2557,9 +2908,12 @@ function createLeadRowHtml(lead) {
               : 'ИНН не указан'
           }
         </div>
+
       </td>
 
+
       <td>
+
         ${
           lead.source
             ? `
@@ -2584,55 +2938,23 @@ function createLeadRowHtml(lead) {
             `
             : '<span class="muted">Не указано</span>'
         }
+
       </td>
 
+
       <td>
-        ${
-          lead.phone
-            ? `
-              <a
-                class="contactLink"
-                href="tel:${escapeHtml(
-                  lead.phone.replace(
-                    /[^\d+]/g,
-                    ''
-                  )
-                )}"
-              >
-                ${escapeHtml(
-                  lead.phone
-                )}
-              </a>
-            `
-            : ''
-        }
 
         ${
-          lead.email
-            ? `
-              <a
-                class="contactLink"
-                href="mailto:${escapeHtml(
-                  lead.email
-                )}"
-              >
-                ${escapeHtml(
-                  lead.email
-                )}
-              </a>
-            `
-            : ''
+          contacts.length
+            ? contacts.join('')
+            : '<span class="muted">Не указаны</span>'
         }
 
-        ${
-          !lead.phone &&
-          !lead.email
-            ? '<span class="muted">Не указаны</span>'
-            : ''
-        }
       </td>
 
+
       <td>
+
         ${
           methodLabel
             ? `
@@ -2644,9 +2966,12 @@ function createLeadRowHtml(lead) {
             `
             : '<span class="muted">Не указан</span>'
         }
+
       </td>
 
+
       <td>
+
         ${
           lead.estimated_amount
             ? `
@@ -2658,9 +2983,12 @@ function createLeadRowHtml(lead) {
             `
             : '<span class="muted">Не указана</span>'
         }
+
       </td>
 
+
       <td>
+
         <span
           class="pill ${escapeHtml(
             priority.className
@@ -2672,13 +3000,17 @@ function createLeadRowHtml(lead) {
             priority.label
           )}
         </span>
+
       </td>
+
 
       <td>
         ${responsibleHtml}
       </td>
 
+
       <td>
+
         <div class="dateMain">
           ${escapeHtml(
             due.dateText
@@ -2694,9 +3026,12 @@ function createLeadRowHtml(lead) {
             due.label
           )}
         </span>
+
       </td>
 
+
       <td>
+
         <span
           class="pill ${escapeHtml(
             status.className
@@ -2706,54 +3041,23 @@ function createLeadRowHtml(lead) {
             status.label
           )}
         </span>
+
       </td>
 
+
       <td>
-        ${
-          lead.last_dialogue
-            ? `
-              <div class="dialogueBlock">
-                <span class="dialogueLabel">
-                  Предыдущий диалог
-                </span>
-
-                <div class="dialogueText">
-                  ${escapeHtml(
-                    lead.last_dialogue
-                  )}
-                </div>
-              </div>
-            `
-            : ''
-        }
 
         ${
-          lead.next_step
-            ? `
-              <div class="dialogueBlock">
-                <span class="dialogueLabel">
-                  Следующий шаг
-                </span>
-
-                <div class="dialogueText">
-                  ${escapeHtml(
-                    lead.next_step
-                  )}
-                </div>
-              </div>
-            `
-            : ''
+          dialogue.length
+            ? dialogue.join('')
+            : '<span class="muted">Не заполнено</span>'
         }
 
-        ${
-          !lead.last_dialogue &&
-          !lead.next_step
-            ? '<span class="muted">Не заполнено</span>'
-            : ''
-        }
       </td>
 
+
       <td>
+
         ${
           lead.notes
             ? `
@@ -2765,27 +3069,26 @@ function createLeadRowHtml(lead) {
             `
             : '<span class="muted">Нет примечаний</span>'
         }
+
       </td>
 
+
       <td>
+
         <div class="rowActions">
 
-          ${
-            isClosed(lead)
-              ? ''
-              : `
-                <button
-                  class="tableButton"
-                  type="button"
-                  data-action="contacted"
-                  data-id="${escapeHtml(
-                    lead.id
-                  )}"
-                >
-                  📞 Связался
-                </button>
-              `
-          }
+          ${quickContactButton}
+
+          <button
+            class="tableButton"
+            type="button"
+            data-action="quick-actions"
+            data-id="${escapeHtml(
+              lead.id
+            )}"
+          >
+            Действия
+          </button>
 
           <button
             class="tableButton"
@@ -2795,8 +3098,8 @@ function createLeadRowHtml(lead) {
               lead.id
             )}"
           >
-            📎 Файлы${
-              files
+            Файлы${
+              files > 0
                 ? ' (' +
                   files +
                   ')'
@@ -2815,18 +3118,8 @@ function createLeadRowHtml(lead) {
             Изменить
           </button>
 
-          <button
-            class="tableButton delete"
-            type="button"
-            data-action="delete"
-            data-id="${escapeHtml(
-              lead.id
-            )}"
-          >
-            Удалить
-          </button>
-
         </div>
+
       </td>
 
     </tr>
@@ -2834,6 +3127,12 @@ function createLeadRowHtml(lead) {
 }
 
 function renderTable() {
+  if (
+    !elements.leadTableBody
+  ) {
+    return;
+  }
+
   const visible =
     getVisibleLeads();
 
@@ -2849,6 +3148,7 @@ function renderTable() {
   ) {
     elements.leadTableBody.innerHTML = `
       <tr>
+
         <td
           class="emptyCell"
           colspan="12"
@@ -2861,6 +3161,7 @@ function renderTable() {
             Измените фильтры или добавьте нового потенциального клиента.
           </div>
         </td>
+
       </tr>
     `;
 
@@ -2882,7 +3183,7 @@ function render() {
 
 
 /* ============================================================
-   19. MAIN FORM
+   21. MAIN FORM
    ============================================================ */
 
 function resetLeadForm() {
@@ -2911,8 +3212,15 @@ function resetLeadForm() {
   }
 
   if (
+    elements.communicationMethod
+  ) {
+    elements.communicationMethod.value =
+      '';
+  }
+
+  if (
     elements.responsibleUser &&
-    currentUser
+    currentUser?.id
   ) {
     elements.responsibleUser.value =
       currentUser.id;
@@ -2995,10 +3303,15 @@ function openLeadModal(
     elements.notes.value =
       lead.notes ||
       '';
+  } else if (
+    elements.modalTitle
+  ) {
+    elements.modalTitle.textContent =
+      'Новый потенциальный клиент';
   }
 
   elements.modalBackdrop
-    .classList.add(
+    ?.classList.add(
       'show'
     );
 
@@ -3006,6 +3319,14 @@ function openLeadModal(
     .classList.add(
       'modal-open'
     );
+
+  window.setTimeout(
+    () => {
+      elements.clientName
+        ?.focus();
+    },
+    40
+  );
 }
 
 function closeLeadModal() {
@@ -3026,98 +3347,113 @@ function collectLeadFormData() {
   return {
     client_name:
       cleanText(
-        elements.clientName.value,
+        elements.clientName
+          ?.value,
         180
       ),
 
     org_form:
       cleanText(
-        elements.orgForm.value,
+        elements.orgForm
+          ?.value,
         80
       ) ||
       null,
 
     inn:
       cleanText(
-        elements.inn.value,
+        elements.inn
+          ?.value,
         20
       ) ||
       null,
 
     activity:
       cleanText(
-        elements.activity.value,
+        elements.activity
+          ?.value,
         180
       ) ||
       null,
 
     source:
       cleanText(
-        elements.source.value,
+        elements.source
+          ?.value,
         140
       ) ||
       null,
 
     phone:
       cleanText(
-        elements.phone.value,
+        elements.phone
+          ?.value,
         80
       ) ||
       null,
 
     email:
       cleanText(
-        elements.email.value,
+        elements.email
+          ?.value,
         180
       ) ||
       null,
 
     communication_method:
       elements.communicationMethod
-        .value ||
+        ?.value ||
       null,
 
     estimated_amount:
       cleanText(
-        elements.estimatedAmount.value,
+        elements.estimatedAmount
+          ?.value,
         120
       ) ||
       null,
 
     priority:
-      elements.priority.value ||
+      elements.priority
+        ?.value ||
       'none',
 
     responsible_user:
-      elements.responsibleUser.value ||
+      elements.responsibleUser
+        ?.value ||
       null,
 
     status:
-      elements.status.value ||
+      elements.status
+        ?.value ||
       'new',
 
     next_contact:
       toDatabaseTimestamp(
-        elements.nextContact.value
+        elements.nextContact
+          ?.value
       ),
 
     last_dialogue:
       cleanText(
-        elements.lastDialogue.value,
+        elements.lastDialogue
+          ?.value,
         3000
       ) ||
       null,
 
     next_step:
       cleanText(
-        elements.nextStep.value,
+        elements.nextStep
+          ?.value,
         2000
       ) ||
       null,
 
     notes:
       cleanText(
-        elements.notes.value,
+        elements.notes
+          ?.value,
         3000
       ) ||
       null
@@ -3146,24 +3482,34 @@ async function handleLeadSubmit(
       'warning'
     );
 
+    elements.clientName
+      ?.focus();
+
     return;
   }
 
   saveInProgress =
     true;
 
-  elements.saveLeadBtn.disabled =
-    true;
+  if (
+    elements.saveLeadBtn
+  ) {
+    elements.saveLeadBtn.disabled =
+      true;
 
-  elements.saveLeadBtn.textContent =
-    'Сохраняем…';
+    elements.saveLeadBtn.textContent =
+      'Сохраняем…';
+  }
 
   try {
     const id =
       cleanText(
-        elements.leadId.value,
+        elements.leadId
+          ?.value,
         100
       );
+
+    let savedLead;
 
     if (id) {
       payload.updated_by =
@@ -3175,7 +3521,9 @@ async function handleLeadSubmit(
       } =
         await supabaseClient
           .from('planner_leads')
-          .update(payload)
+          .update(
+            payload
+          )
           .eq(
             'id',
             id
@@ -3187,9 +3535,8 @@ async function handleLeadSubmit(
         throw error;
       }
 
-      upsertLeadLocally(
-        data
-      );
+      savedLead =
+        data;
     } else {
       payload.created_by =
         currentUser.id;
@@ -3207,7 +3554,9 @@ async function handleLeadSubmit(
       } =
         await supabaseClient
           .from('planner_leads')
-          .insert(payload)
+          .insert(
+            payload
+          )
           .select()
           .single();
 
@@ -3215,10 +3564,13 @@ async function handleLeadSubmit(
         throw error;
       }
 
-      upsertLeadLocally(
-        data
-      );
+      savedLead =
+        data;
     }
+
+    upsertLeadLocally(
+      savedLead
+    );
 
     render();
 
@@ -3232,6 +3584,7 @@ async function handleLeadSubmit(
     );
   } catch (error) {
     console.error(
+      'Ошибка сохранения:',
       error
     );
 
@@ -3243,19 +3596,30 @@ async function handleLeadSubmit(
     saveInProgress =
       false;
 
-    elements.saveLeadBtn.disabled =
-      false;
+    if (
+      elements.saveLeadBtn
+    ) {
+      elements.saveLeadBtn.disabled =
+        false;
 
-    elements.saveLeadBtn.textContent =
-      'Сохранить запись';
+      elements.saveLeadBtn.textContent =
+        'Сохранить запись';
+    }
   }
 }
 
 function upsertLeadLocally(lead) {
+  if (
+    !lead?.id
+  ) {
+    return;
+  }
+
   const index =
     leads.findIndex(
       (item) =>
-        item.id === lead.id
+        item.id ===
+        lead.id
     );
 
   if (
@@ -3272,8 +3636,45 @@ function upsertLeadLocally(lead) {
 
 
 /* ============================================================
-   20. QUICK CONTACT
+   22. QUICK CONTACT — "СВЯЗАЛСЯ"
    ============================================================ */
+
+function resetQuickContactForm() {
+  elements.quickContactForm
+    ?.reset();
+
+  if (
+    elements.quickContactLeadId
+  ) {
+    elements.quickContactLeadId.value =
+      '';
+  }
+
+  if (
+    elements.quickContactPreset
+  ) {
+    elements.quickContactPreset.value =
+      'week';
+  }
+
+  if (
+    elements.quickContactDate
+  ) {
+    elements.quickContactDate.value =
+      toLocalDateTimeInput(
+        getPresetDate(
+          'week'
+        )
+      );
+  }
+
+  if (
+    elements.quickContactComment
+  ) {
+    elements.quickContactComment.value =
+      '';
+  }
+}
 
 function openQuickContactModal(id) {
   const lead =
@@ -3282,12 +3683,38 @@ function openQuickContactModal(id) {
         item.id === id
     );
 
-  if (
-    !lead ||
-    !elements.quickContactBackdrop
-  ) {
+  if (!lead) {
+    showToast(
+      'Запись не найдена.',
+      'warning'
+    );
+
     return;
   }
+
+  if (
+    isClosed(lead)
+  ) {
+    showToast(
+      'Эта запись уже завершена.',
+      'warning'
+    );
+
+    return;
+  }
+
+  if (
+    !elements.quickContactBackdrop
+  ) {
+    showToast(
+      'Окно быстрого контакта не найдено.',
+      'error'
+    );
+
+    return;
+  }
+
+  resetQuickContactForm();
 
   elements.quickContactLeadId.value =
     lead.id;
@@ -3307,12 +3734,10 @@ function openQuickContactModal(id) {
       )
     );
 
-  elements.quickContactComment.value =
-    '';
-
   elements.quickContactResponsible.value =
     lead.responsible_user ||
-    currentUser.id;
+    currentUser?.id ||
+    '';
 
   elements.quickContactBackdrop
     .classList.add(
@@ -3323,6 +3748,14 @@ function openQuickContactModal(id) {
     .classList.add(
       'modal-open'
     );
+
+  window.setTimeout(
+    () => {
+      elements.quickContactComment
+        ?.focus();
+    },
+    40
+  );
 }
 
 function closeQuickContactModal() {
@@ -3335,16 +3768,29 @@ function closeQuickContactModal() {
     .classList.remove(
       'modal-open'
     );
+
+  resetQuickContactForm();
 }
 
 function applyQuickContactPreset() {
+  if (
+    !elements.quickContactPreset ||
+    !elements.quickContactDate
+  ) {
+    return;
+  }
+
   const preset =
     elements.quickContactPreset
       .value;
 
   if (
-    preset === 'custom'
+    preset ===
+    'custom'
   ) {
+    elements.quickContactDate
+      .focus();
+
     return;
   }
 
@@ -3377,17 +3823,22 @@ async function handleQuickContactSubmit(
       (item) =>
         item.id ===
         elements.quickContactLeadId
-          .value
+          ?.value
     );
 
   if (!lead) {
+    showToast(
+      'Запись не найдена.',
+      'warning'
+    );
+
     return;
   }
 
   const nextContact =
     toDatabaseTimestamp(
       elements.quickContactDate
-        .value
+        ?.value
     );
 
   if (!nextContact) {
@@ -3402,14 +3853,21 @@ async function handleQuickContactSubmit(
   quickContactSaveInProgress =
     true;
 
-  elements.quickContactSaveBtn.disabled =
-    true;
+  if (
+    elements.quickContactSaveBtn
+  ) {
+    elements.quickContactSaveBtn.disabled =
+      true;
+
+    elements.quickContactSaveBtn.textContent =
+      'Сохраняем…';
+  }
 
   try {
     const comment =
       cleanText(
         elements.quickContactComment
-          .value,
+          ?.value,
         3000
       );
 
@@ -3422,7 +3880,8 @@ async function handleQuickContactSubmit(
 
       responsible_user:
         elements.quickContactResponsible
-          .value ||
+          ?.value ||
+        lead.responsible_user ||
         currentUser.id,
 
       updated_by:
@@ -3440,7 +3899,9 @@ async function handleQuickContactSubmit(
     } =
       await supabaseClient
         .from('planner_leads')
-        .update(payload)
+        .update(
+          payload
+        )
         .eq(
           'id',
           lead.id
@@ -3460,14 +3921,15 @@ async function handleQuickContactSubmit(
 
     closeQuickContactModal();
 
+    runSmartReminders();
+
     showToast(
       'Контакт зафиксирован.',
       'success'
     );
-
-    runSmartReminders();
   } catch (error) {
     console.error(
+      'Quick contact:',
       error
     );
 
@@ -3479,40 +3941,742 @@ async function handleQuickContactSubmit(
     quickContactSaveInProgress =
       false;
 
-    elements.quickContactSaveBtn.disabled =
-      false;
+    if (
+      elements.quickContactSaveBtn
+    ) {
+      elements.quickContactSaveBtn.disabled =
+        false;
+
+      elements.quickContactSaveBtn.textContent =
+        'Сохранить';
+    }
   }
 }
 
 
 /* ============================================================
-   21. FILES
+   23. v2.5 — QUICK ACTIONS MENU
    ============================================================ */
 
-function openFilesModal(id) {
-  const lead =
+function getLeadById(id) {
+  return (
     leads.find(
-      (item) =>
-        item.id === id
+      (lead) =>
+        lead.id === id
+    ) ||
+    null
+  );
+}
+
+function openQuickActionsModal(id) {
+  const lead =
+    getLeadById(id);
+
+  if (!lead) {
+    showToast(
+      'Запись не найдена.',
+      'warning'
+    );
+
+    return;
+  }
+
+  if (
+    !elements.quickActionsBackdrop
+  ) {
+    showToast(
+      'Для быстрых действий нужно добавить окно в planner.html.',
+      'warning',
+      6000
+    );
+
+    return;
+  }
+
+  elements.quickActionsLeadId.value =
+    lead.id;
+
+  elements.quickActionsClient.textContent =
+    getDisplayName(
+      lead
+    );
+
+  /*
+   * Если запись уже стала клиентом —
+   * скрываем бессмысленную кнопку
+   * "Стал клиентом".
+   */
+
+  if (
+    elements.quickActionClientBtn
+  ) {
+    elements.quickActionClientBtn.hidden =
+      lead.status ===
+      'client';
+  }
+
+  /*
+   * Если уже неактуальна —
+   * скрываем "Неактуально".
+   */
+
+  if (
+    elements.quickActionLostBtn
+  ) {
+    elements.quickActionLostBtn.hidden =
+      lead.status ===
+      'lost';
+  }
+
+  elements.quickActionsBackdrop
+    .classList.add(
+      'show'
+    );
+
+  document.body
+    .classList.add(
+      'modal-open'
+    );
+}
+
+function closeQuickActionsModal() {
+  elements.quickActionsBackdrop
+    ?.classList.remove(
+      'show'
+    );
+
+  document.body
+    .classList.remove(
+      'modal-open'
     );
 
   if (
-    !lead ||
+    elements.quickActionsLeadId
+  ) {
+    elements.quickActionsLeadId.value =
+      '';
+  }
+}
+
+function getActiveQuickActionLead() {
+  const id =
+    elements.quickActionsLeadId
+      ?.value;
+
+  return getLeadById(
+    id
+  );
+}
+
+
+/* ============================================================
+   24. QUICK ACTION — STATUS
+   ============================================================ */
+
+async function setLeadStatusQuickly(
+  lead,
+  status,
+  {
+    clearDate = false,
+    successMessage =
+      'Статус обновлён.'
+  } = {}
+) {
+  if (!lead) {
+    return false;
+  }
+
+  const payload = {
+    status,
+    updated_by:
+      currentUser.id
+  };
+
+  if (clearDate) {
+    payload.next_contact =
+      null;
+  }
+
+  try {
+    const {
+      data,
+      error
+    } =
+      await supabaseClient
+        .from('planner_leads')
+        .update(
+          payload
+        )
+        .eq(
+          'id',
+          lead.id
+        )
+        .select()
+        .single();
+
+    if (error) {
+      throw error;
+    }
+
+    upsertLeadLocally(
+      data
+    );
+
+    render();
+
+    runSmartReminders();
+
+    showToast(
+      successMessage,
+      'success'
+    );
+
+    return true;
+  } catch (error) {
+    console.error(
+      'Quick status:',
+      error
+    );
+
+    showToast(
+      'Не удалось изменить статус.',
+      'error'
+    );
+
+    return false;
+  }
+}
+
+async function markLeadAsClient() {
+  const lead =
+    getActiveQuickActionLead();
+
+  if (!lead) {
+    return;
+  }
+
+  const confirmed =
+    window.confirm(
+      'Отметить «' +
+      getDisplayName(lead) +
+      '» как клиента?\n\n' +
+      'Запись останется в Planner, но перестанет участвовать в активных напоминаниях.'
+    );
+
+  if (!confirmed) {
+    return;
+  }
+
+  const success =
+    await setLeadStatusQuickly(
+      lead,
+      'client',
+      {
+        clearDate: true,
+        successMessage:
+          'Лид отмечен как клиент.'
+      }
+    );
+
+  if (success) {
+    closeQuickActionsModal();
+  }
+}
+
+async function markLeadAsLost() {
+  const lead =
+    getActiveQuickActionLead();
+
+  if (!lead) {
+    return;
+  }
+
+  const confirmed =
+    window.confirm(
+      'Отметить «' +
+      getDisplayName(lead) +
+      '» как неактуальный?\n\n' +
+      'Запись не удалится и останется доступна в Planner.'
+    );
+
+  if (!confirmed) {
+    return;
+  }
+
+  const success =
+    await setLeadStatusQuickly(
+      lead,
+      'lost',
+      {
+        clearDate: true,
+        successMessage:
+          'Лид отмечен как неактуальный.'
+      }
+    );
+
+  if (success) {
+    closeQuickActionsModal();
+  }
+}
+
+
+/* ============================================================
+   25. QUICK ACTION — RESCHEDULE / PAUSE
+   ============================================================ */
+
+function resetActionScheduleForm() {
+  elements.actionScheduleForm
+    ?.reset();
+
+  if (
+    elements.actionScheduleLeadId
+  ) {
+    elements.actionScheduleLeadId.value =
+      '';
+  }
+
+  if (
+    elements.actionScheduleMode
+  ) {
+    elements.actionScheduleMode.value =
+      '';
+  }
+
+  if (
+    elements.actionSchedulePreset
+  ) {
+    elements.actionSchedulePreset.value =
+      'week';
+  }
+
+  if (
+    elements.actionScheduleDate
+  ) {
+    elements.actionScheduleDate.value =
+      toLocalDateTimeInput(
+        getPresetDate(
+          'week'
+        )
+      );
+  }
+
+  if (
+    elements.actionScheduleComment
+  ) {
+    elements.actionScheduleComment.value =
+      '';
+  }
+}
+
+function openActionScheduleModal(
+  lead,
+  mode
+) {
+  if (!lead) {
+    return;
+  }
+
+  if (
+    !elements.actionScheduleBackdrop
+  ) {
+    showToast(
+      'Для этого действия нужно добавить небольшое окно в planner.html.',
+      'warning',
+      6000
+    );
+
+    return;
+  }
+
+  resetActionScheduleForm();
+
+  elements.actionScheduleLeadId.value =
+    lead.id;
+
+  elements.actionScheduleMode.value =
+    mode;
+
+  elements.actionScheduleClient.textContent =
+    getDisplayName(
+      lead
+    );
+
+  elements.actionSchedulePreset.value =
+    'week';
+
+  elements.actionScheduleDate.value =
+    toLocalDateTimeInput(
+      getPresetDate(
+        'week'
+      )
+    );
+
+  if (
+    mode ===
+    'reschedule'
+  ) {
+    elements.actionScheduleTitle.textContent =
+      'Перенести контакт';
+
+    if (
+      elements.actionScheduleSubtitle
+    ) {
+      elements.actionScheduleSubtitle.textContent =
+        'Назначьте новую дату контакта. Статус лида останется прежним.';
+    }
+  }
+
+  if (
+    mode ===
+    'pause'
+  ) {
+    elements.actionScheduleTitle.textContent =
+      'Отложить лид';
+
+    if (
+      elements.actionScheduleSubtitle
+    ) {
+      elements.actionScheduleSubtitle.textContent =
+        'Укажите дату, когда нужно вернуться к этому лиду.';
+    }
+  }
+
+  closeQuickActionsModal();
+
+  elements.actionScheduleBackdrop
+    .classList.add(
+      'show'
+    );
+
+  document.body
+    .classList.add(
+      'modal-open'
+    );
+}
+
+function closeActionScheduleModal() {
+  elements.actionScheduleBackdrop
+    ?.classList.remove(
+      'show'
+    );
+
+  document.body
+    .classList.remove(
+      'modal-open'
+    );
+
+  resetActionScheduleForm();
+}
+
+function openRescheduleFromQuickActions() {
+  const lead =
+    getActiveQuickActionLead();
+
+  if (!lead) {
+    return;
+  }
+
+  openActionScheduleModal(
+    lead,
+    'reschedule'
+  );
+}
+
+function openPauseFromQuickActions() {
+  const lead =
+    getActiveQuickActionLead();
+
+  if (!lead) {
+    return;
+  }
+
+  openActionScheduleModal(
+    lead,
+    'pause'
+  );
+}
+
+function applyActionSchedulePreset() {
+  if (
+    !elements.actionSchedulePreset ||
+    !elements.actionScheduleDate
+  ) {
+    return;
+  }
+
+  const preset =
+    elements.actionSchedulePreset
+      .value;
+
+  if (
+    preset ===
+    'custom'
+  ) {
+    elements.actionScheduleDate
+      .focus();
+
+    return;
+  }
+
+  const date =
+    getPresetDate(
+      preset
+    );
+
+  if (date) {
+    elements.actionScheduleDate.value =
+      toLocalDateTimeInput(
+        date
+      );
+  }
+}
+
+async function handleActionScheduleSubmit(
+  event
+) {
+  event.preventDefault();
+
+  if (
+    actionScheduleSaveInProgress
+  ) {
+    return;
+  }
+
+  const lead =
+    getLeadById(
+      elements.actionScheduleLeadId
+        ?.value
+    );
+
+  if (!lead) {
+    showToast(
+      'Запись не найдена.',
+      'warning'
+    );
+
+    closeActionScheduleModal();
+
+    return;
+  }
+
+  const mode =
+    elements.actionScheduleMode
+      ?.value;
+
+  if (
+    mode !== 'reschedule' &&
+    mode !== 'pause'
+  ) {
+    return;
+  }
+
+  const nextContact =
+    toDatabaseTimestamp(
+      elements.actionScheduleDate
+        ?.value
+    );
+
+  if (!nextContact) {
+    showToast(
+      'Укажите дату.',
+      'warning'
+    );
+
+    elements.actionScheduleDate
+      ?.focus();
+
+    return;
+  }
+
+  const comment =
+    cleanText(
+      elements.actionScheduleComment
+        ?.value,
+      2000
+    );
+
+  const payload = {
+    next_contact:
+      nextContact,
+
+    updated_by:
+      currentUser.id
+  };
+
+  if (
+    mode ===
+    'pause'
+  ) {
+    payload.status =
+      'paused';
+  }
+
+  /*
+   * Комментарий при переносе/отложении
+   * становится новым "Следующим шагом".
+   */
+
+  if (comment) {
+    payload.next_step =
+      comment;
+  }
+
+  actionScheduleSaveInProgress =
+    true;
+
+  if (
+    elements.actionScheduleSaveBtn
+  ) {
+    elements.actionScheduleSaveBtn.disabled =
+      true;
+
+    elements.actionScheduleSaveBtn.textContent =
+      'Сохраняем…';
+  }
+
+  try {
+    const {
+      data,
+      error
+    } =
+      await supabaseClient
+        .from('planner_leads')
+        .update(
+          payload
+        )
+        .eq(
+          'id',
+          lead.id
+        )
+        .select()
+        .single();
+
+    if (error) {
+      throw error;
+    }
+
+    upsertLeadLocally(
+      data
+    );
+
+    render();
+
+    closeActionScheduleModal();
+
+    runSmartReminders();
+
+    showToast(
+      mode === 'pause'
+        ? 'Лид отложен.'
+        : 'Дата контакта перенесена.',
+      'success'
+    );
+  } catch (error) {
+    console.error(
+      'Schedule action:',
+      error
+    );
+
+    showToast(
+      'Не удалось сохранить действие.',
+      'error'
+    );
+  } finally {
+    actionScheduleSaveInProgress =
+      false;
+
+    if (
+      elements.actionScheduleSaveBtn
+    ) {
+      elements.actionScheduleSaveBtn.disabled =
+        false;
+
+      elements.actionScheduleSaveBtn.textContent =
+        'Сохранить';
+    }
+  }
+}
+
+
+/* ============================================================
+   26. FILES
+   ============================================================ */
+
+function resetFileUploadForm() {
+  if (
+    elements.fileInput
+  ) {
+    elements.fileInput.value =
+      '';
+  }
+
+  if (
+    elements.fileDescription
+  ) {
+    elements.fileDescription.value =
+      '';
+  }
+
+  updateSelectedFileDisplay();
+}
+
+function updateSelectedFileDisplay() {
+  if (
+    !elements.selectedFileName
+  ) {
+    return;
+  }
+
+  const file =
+    elements.fileInput
+      ?.files?.[0];
+
+  if (!file) {
+    elements.selectedFileName.textContent =
+      'Файл не выбран';
+
+    return;
+  }
+
+  elements.selectedFileName.textContent =
+    file.name +
+    ' · ' +
+    formatFileSize(
+      file.size
+    );
+}
+
+function openFilesModal(id) {
+  const lead =
+    getLeadById(id);
+
+  if (!lead) {
+    showToast(
+      'Запись не найдена.',
+      'warning'
+    );
+
+    return;
+  }
+
+  if (
     !elements.filesBackdrop
   ) {
     return;
   }
 
   activeFilesLeadId =
-    id;
+    lead.id;
 
   elements.filesLeadId.value =
-    id;
+    lead.id;
 
   elements.filesClient.textContent =
     getDisplayName(
       lead
     );
+
+  resetFileUploadForm();
 
   renderFilesList();
 
@@ -3541,19 +4705,22 @@ function closeFilesModal() {
   activeFilesLeadId =
     null;
 
-  if (
-    elements.fileInput
-  ) {
-    elements.fileInput.value =
-      '';
-  }
+  resetFileUploadForm();
 }
 
 function renderFilesList() {
   if (
-    !elements.filesList ||
+    !elements.filesList
+  ) {
+    return;
+  }
+
+  if (
     !activeFilesLeadId
   ) {
+    elements.filesList.innerHTML =
+      '';
+
     return;
   }
 
@@ -3567,6 +4734,7 @@ function renderFilesList() {
   ) {
     elements.filesList.innerHTML = `
       <div class="filesEmpty">
+
         <div class="filesEmptyIcon">
           📎
         </div>
@@ -3574,6 +4742,11 @@ function renderFilesList() {
         <div class="filesEmptyTitle">
           Файлов пока нет
         </div>
+
+        <div class="filesEmptyText">
+          Прикрепите первый файл к этому потенциальному клиенту.
+        </div>
+
       </div>
     `;
 
@@ -3597,7 +4770,8 @@ function renderFilesList() {
               <div class="fileName">
                 ${escapeHtml(
                   file.original_file_name ||
-                  file.file_name
+                  file.file_name ||
+                  'Файл'
                 )}
               </div>
 
@@ -3637,6 +4811,7 @@ function renderFilesList() {
 
               <button
                 class="tableButton"
+                type="button"
                 data-file-action="open"
                 data-file-id="${escapeHtml(
                   file.id
@@ -3647,6 +4822,7 @@ function renderFilesList() {
 
               <button
                 class="tableButton delete"
+                type="button"
                 data-file-action="delete"
                 data-file-id="${escapeHtml(
                   file.id
@@ -3673,6 +4849,13 @@ async function uploadSelectedFile() {
     !activeFilesLeadId ||
     fileUploadInProgress
   ) {
+    if (!file) {
+      showToast(
+        'Сначала выберите файл.',
+        'warning'
+      );
+    }
+
     return;
   }
 
@@ -3688,26 +4871,33 @@ async function uploadSelectedFile() {
     return;
   }
 
+  const safeName =
+    sanitizeStorageFileName(
+      file.name
+    );
+
+  const path =
+    'leads/' +
+    activeFilesLeadId +
+    '/' +
+    createRandomId() +
+    '_' +
+    safeName;
+
   fileUploadInProgress =
     true;
 
-  elements.uploadFileBtn.disabled =
-    true;
+  if (
+    elements.uploadFileBtn
+  ) {
+    elements.uploadFileBtn.disabled =
+      true;
+
+    elements.uploadFileBtn.textContent =
+      'Загружаем…';
+  }
 
   try {
-    const safeName =
-      sanitizeStorageFileName(
-        file.name
-      );
-
-    const path =
-      'leads/' +
-      activeFilesLeadId +
-      '/' +
-      createRandomId() +
-      '_' +
-      safeName;
-
     const {
       error:
         uploadError
@@ -3721,7 +4911,15 @@ async function uploadSelectedFile() {
           path,
           file,
           {
-            upsert: false
+            cacheControl:
+              '3600',
+
+            upsert:
+              false,
+
+            contentType:
+              file.type ||
+              undefined
           }
         );
 
@@ -3745,7 +4943,10 @@ async function uploadSelectedFile() {
             safeName,
 
           original_file_name:
-            file.name,
+            cleanText(
+              file.name,
+              255
+            ),
 
           storage_bucket:
             STORAGE_BUCKET,
@@ -3787,19 +4988,25 @@ async function uploadSelectedFile() {
       throw error;
     }
 
-    crmFiles.push(
-      data
-    );
-
-    elements.fileInput.value =
-      '';
+    const index =
+      crmFiles.findIndex(
+        (item) =>
+          item.id ===
+          data.id
+      );
 
     if (
-      elements.fileDescription
+      index >= 0
     ) {
-      elements.fileDescription.value =
-        '';
+      crmFiles[index] =
+        data;
+    } else {
+      crmFiles.push(
+        data
+      );
     }
+
+    resetFileUploadForm();
 
     renderFilesList();
 
@@ -3811,6 +5018,7 @@ async function uploadSelectedFile() {
     );
   } catch (error) {
     console.error(
+      'Upload:',
       error
     );
 
@@ -3822,8 +5030,15 @@ async function uploadSelectedFile() {
     fileUploadInProgress =
       false;
 
-    elements.uploadFileBtn.disabled =
-      false;
+    if (
+      elements.uploadFileBtn
+    ) {
+      elements.uploadFileBtn.disabled =
+        false;
+
+      elements.uploadFileBtn.textContent =
+        '＋ Прикрепить файл';
+    }
   }
 }
 
@@ -3864,6 +5079,14 @@ async function openFile(id) {
       throw error;
     }
 
+    if (
+      !data?.signedUrl
+    ) {
+      throw new Error(
+        'Signed URL missing'
+      );
+    }
+
     if (popup) {
       popup.location.href =
         data.signedUrl;
@@ -3873,6 +5096,11 @@ async function openFile(id) {
     }
   } catch (error) {
     popup?.close();
+
+    console.error(
+      'Open file:',
+      error
+    );
 
     showToast(
       'Не удалось открыть файл.',
@@ -3906,15 +5134,29 @@ async function deleteFile(id) {
   }
 
   try {
-    await supabaseClient
-      .storage
-      .from(
-        file.storage_bucket ||
-        STORAGE_BUCKET
-      )
-      .remove([
-        file.storage_path
-      ]);
+    if (
+      file.storage_path
+    ) {
+      const {
+        error:
+          storageError
+      } =
+        await supabaseClient
+          .storage
+          .from(
+            file.storage_bucket ||
+            STORAGE_BUCKET
+          )
+          .remove([
+            file.storage_path
+          ]);
+
+      if (
+        storageError
+      ) {
+        throw storageError;
+      }
+    }
 
     const {
       error
@@ -3947,6 +5189,7 @@ async function deleteFile(id) {
     );
   } catch (error) {
     console.error(
+      'Delete file:',
       error
     );
 
@@ -3959,68 +5202,120 @@ async function deleteFile(id) {
 
 
 /* ============================================================
-   22. EDIT / DELETE LEAD
+   27. EDIT / DELETE LEAD
    ============================================================ */
 
 function editLead(id) {
   const lead =
-    leads.find(
-      (item) =>
-        item.id === id
+    getLeadById(id);
+
+  if (!lead) {
+    showToast(
+      'Запись не найдена.',
+      'warning'
     );
 
-  if (lead) {
-    openLeadModal(
-      lead
-    );
+    return;
   }
+
+  openLeadModal(
+    lead
+  );
 }
 
 async function deleteLead(id) {
   const lead =
-    leads.find(
-      (item) =>
-        item.id === id
-    );
+    getLeadById(id);
 
   if (!lead) {
     return;
   }
 
-  if (
-    !window.confirm(
+  const files =
+    getLeadFiles(
+      id
+    );
+
+  const warning =
+    files.length
+      ? (
+          '\n\nТакже будут удалены прикреплённые файлы: ' +
+          files.length +
+          '.'
+        )
+      : '';
+
+  const confirmed =
+    window.confirm(
       'Удалить запись «' +
       getDisplayName(
         lead
       ) +
-      '»?'
-    )
-  ) {
+      '»?' +
+      warning +
+      '\n\nЭто действие нельзя отменить.'
+    );
+
+  if (!confirmed) {
     return;
   }
 
   try {
-    const files =
-      getLeadFiles(
-        id
-      );
+    const storageGroups =
+      new Map();
 
-    if (
-      files.length
+    files.forEach(
+      (file) => {
+        if (
+          !file.storage_path
+        ) {
+          return;
+        }
+
+        const bucket =
+          file.storage_bucket ||
+          STORAGE_BUCKET;
+
+        if (
+          !storageGroups.has(
+            bucket
+          )
+        ) {
+          storageGroups.set(
+            bucket,
+            []
+          );
+        }
+
+        storageGroups
+          .get(bucket)
+          .push(
+            file.storage_path
+          );
+      }
+    );
+
+    for (
+      const [
+        bucket,
+        paths
+      ] of storageGroups
     ) {
-      await supabaseClient
-        .storage
-        .from(
-          STORAGE_BUCKET
-        )
-        .remove(
-          files
-            .map(
-              (file) =>
-                file.storage_path
-            )
-            .filter(Boolean)
-        );
+      if (
+        paths.length > 0
+      ) {
+        const {
+          error
+        } =
+          await supabaseClient
+            .storage
+            .from(bucket)
+            .remove(paths);
+
+        if (error) {
+          throw error;
+        }
+      }
     }
 
     const {
@@ -4058,6 +5353,7 @@ async function deleteLead(id) {
     );
   } catch (error) {
     console.error(
+      'Delete lead:',
       error
     );
 
@@ -4068,9 +5364,24 @@ async function deleteLead(id) {
   }
 }
 
+async function deleteLeadFromQuickActions() {
+  const lead =
+    getActiveQuickActionLead();
+
+  if (!lead) {
+    return;
+  }
+
+  closeQuickActionsModal();
+
+  await deleteLead(
+    lead.id
+  );
+}
+
 
 /* ============================================================
-   23. SMART NOTIFICATIONS
+   28. SMART NOTIFICATIONS
    ============================================================ */
 
 function getTodayKey() {
@@ -4120,7 +5431,7 @@ function writeJsonStorage(
       )
     );
   } catch {
-    /* ignore */
+    /* Ничего */
   }
 }
 
@@ -4136,11 +5447,13 @@ function saveNotificationHistory(
 ) {
   const cutoff =
     Date.now() -
-    90 *
+    (
+      90 *
       24 *
       60 *
       60 *
-      1000;
+      1000
+    );
 
   const cleaned = {};
 
@@ -4166,20 +5479,6 @@ function saveNotificationHistory(
   writeJsonStorage(
     NOTIFICATION_HISTORY_KEY,
     cleaned
-  );
-}
-
-function mayNotifyLead(lead) {
-  if (
-    isClosed(lead)
-  ) {
-    return false;
-  }
-
-  return (
-    !lead.responsible_user ||
-    lead.responsible_user ===
-      currentUser?.id
   );
 }
 
@@ -4350,13 +5649,8 @@ function runOneHourNotifications(
           return;
         }
 
-        const dateKey =
-          new Date(
-            lead.next_contact
-          ).toISOString();
-
         const key =
-          `soon:${lead.id}:${dateKey}`;
+          `soon:${lead.id}:${lead.next_contact}`;
 
         if (
           history[key]
@@ -4411,14 +5705,14 @@ function runOverdueNotifications(
   getReminderScopeLeads()
     .filter(
       (lead) => {
-        const diff =
+        const difference =
           getDayDifference(
             lead.next_contact
           );
 
         return (
-          diff !== null &&
-          diff < 0
+          difference !== null &&
+          difference < 0
         );
       }
     )
@@ -4503,12 +5797,6 @@ function showDailySummaryIfNeeded() {
   const summary =
     getSmartSummaryData();
 
-  /*
-   * Сводку показываем внутри страницы toast-ом.
-   * Браузерное системное уведомление — только если
-   * сегодня или просрочено действительно что-то есть.
-   */
-
   const text =
     `Сегодня: ${summary.today.length}. ` +
     `Просрочено: ${summary.overdue.length}. ` +
@@ -4577,7 +5865,7 @@ function runSmartReminders() {
 
 
 /* ============================================================
-   24. NOTIFICATION PERMISSION
+   29. NOTIFICATION PERMISSION
    ============================================================ */
 
 function updateNotificationInterface() {
@@ -4606,6 +5894,9 @@ function updateNotificationInterface() {
     Notification.permission ===
     'granted'
   ) {
+    elements.notificationBtn.disabled =
+      false;
+
     elements.notificationBtn.textContent =
       '✓ Уведомления включены';
 
@@ -4616,11 +5907,17 @@ function updateNotificationInterface() {
     Notification.permission ===
     'denied'
   ) {
+    elements.notificationBtn.disabled =
+      false;
+
     elements.notificationBtn.textContent =
       '× Уведомления запрещены';
 
     return;
   }
+
+  elements.notificationBtn.disabled =
+    false;
 
   elements.notificationBtn.textContent =
     '🔔 Включить уведомления';
@@ -4648,28 +5945,35 @@ async function requestNotifications() {
     return;
   }
 
-  const permission =
-    await Notification
-      .requestPermission();
+  try {
+    const permission =
+      await Notification
+        .requestPermission();
 
-  updateNotificationInterface();
+    updateNotificationInterface();
 
-  if (
-    permission ===
-    'granted'
-  ) {
-    showToast(
-      'Умные уведомления включены.',
-      'success'
+    if (
+      permission ===
+      'granted'
+    ) {
+      showToast(
+        'Умные уведомления включены.',
+        'success'
+      );
+
+      runSmartReminders();
+    }
+  } catch (error) {
+    console.error(
+      'Notifications:',
+      error
     );
-
-    runSmartReminders();
   }
 }
 
 
 /* ============================================================
-   25. FILTER RESET / EXPORT
+   30. RESET / EXPORT
    ============================================================ */
 
 function resetFilters() {
@@ -4685,25 +5989,51 @@ function resetFilters() {
     }
   );
 
-  elements.searchInput.value =
-    '';
+  if (
+    elements.searchInput
+  ) {
+    elements.searchInput.value =
+      '';
+  }
 
-  elements.statusFilter.value =
-    'all';
+  if (
+    elements.statusFilter
+  ) {
+    elements.statusFilter.value =
+      'all';
+  }
 
-  elements.priorityFilter.value =
-    'all';
+  if (
+    elements.priorityFilter
+  ) {
+    elements.priorityFilter.value =
+      'all';
+  }
 
-  elements.responsibleFilter.value =
-    'all';
+  if (
+    elements.responsibleFilter
+  ) {
+    elements.responsibleFilter.value =
+      'all';
+  }
 
-  elements.dateFilter.value =
-    'all';
+  if (
+    elements.dateFilter
+  ) {
+    elements.dateFilter.value =
+      'all';
+  }
 
-  elements.sortSelect.value =
-    'nearest';
+  if (
+    elements.sortSelect
+  ) {
+    elements.sortSelect.value =
+      'nearest';
+  }
 
   renderTable();
+
+  updateSmartSummarySelection();
 }
 
 function exportBackup() {
@@ -4712,8 +6042,11 @@ function exportBackup() {
       [
         JSON.stringify(
           {
+            application:
+              'ДжемБаланс — Planner',
+
             version:
-              '2.4',
+              '2.5',
 
             exported_at:
               new Date()
@@ -4730,7 +6063,7 @@ function exportBackup() {
       ],
       {
         type:
-          'application/json'
+          'application/json;charset=utf-8'
       }
     );
 
@@ -4752,16 +6085,28 @@ function exportBackup() {
     getTodayKey() +
     '.json';
 
+  document.body
+    .appendChild(
+      link
+    );
+
   link.click();
 
-  URL.revokeObjectURL(
-    url
+  link.remove();
+
+  window.setTimeout(
+    () => {
+      URL.revokeObjectURL(
+        url
+      );
+    },
+    1000
   );
 }
 
 
 /* ============================================================
-   26. LEGACY MIGRATION
+   31. LEGACY MIGRATION
    ============================================================ */
 
 function getLegacyLeads() {
@@ -4799,6 +6144,11 @@ function checkLegacyMigration() {
       MIGRATION_DISMISSED_KEY
     ) === '1'
   ) {
+    elements.migrationPanel
+      .classList.remove(
+        'show'
+      );
+
     return;
   }
 
@@ -4813,10 +6163,14 @@ function checkLegacyMigration() {
         'show'
       );
 
-    elements.migrateBtn.textContent =
-      `Перенести ${legacy.length} ${pluralizeRecords(
-        legacy.length
-      )}`;
+    if (
+      elements.migrateBtn
+    ) {
+      elements.migrateBtn.textContent =
+        `Перенести ${legacy.length} ${pluralizeRecords(
+          legacy.length
+        )}`;
+    }
   }
 }
 
@@ -4946,38 +6300,47 @@ async function migrateLegacyData() {
         })
       );
 
-  const {
-    error
-  } =
-    await supabaseClient
-      .from('planner_leads')
-      .insert(rows);
+  try {
+    const {
+      error
+    } =
+      await supabaseClient
+        .from('planner_leads')
+        .insert(
+          rows
+        );
 
-  if (error) {
+    if (error) {
+      throw error;
+    }
+
+    localStorage.setItem(
+      MIGRATION_DONE_KEY,
+      '1'
+    );
+
+    elements.migrationPanel
+      ?.classList.remove(
+        'show'
+      );
+
+    await loadLeads();
+
+    showToast(
+      'Старые записи перенесены.',
+      'success'
+    );
+  } catch (error) {
+    console.error(
+      'Migration:',
+      error
+    );
+
     showToast(
       'Не удалось перенести старые записи.',
       'error'
     );
-
-    return;
   }
-
-  localStorage.setItem(
-    MIGRATION_DONE_KEY,
-    '1'
-  );
-
-  elements.migrationPanel
-    .classList.remove(
-      'show'
-    );
-
-  await loadLeads();
-
-  showToast(
-    'Старые записи перенесены.',
-    'success'
-  );
 }
 
 function skipLegacyMigration() {
@@ -4994,14 +6357,41 @@ function skipLegacyMigration() {
 
 
 /* ============================================================
-   27. REALTIME
+   32. REALTIME
    ============================================================ */
 
 function subscribeToRealtime() {
+  if (
+    realtimeChannel
+  ) {
+    supabaseClient
+      .removeChannel(
+        realtimeChannel
+      );
+  }
+
+  if (
+    profilesRealtimeChannel
+  ) {
+    supabaseClient
+      .removeChannel(
+        profilesRealtimeChannel
+      );
+  }
+
+  if (
+    filesRealtimeChannel
+  ) {
+    supabaseClient
+      .removeChannel(
+        filesRealtimeChannel
+      );
+  }
+
   realtimeChannel =
     supabaseClient
       .channel(
-        'planner-v24'
+        'planner-v25'
       )
       .on(
         'postgres_changes',
@@ -5022,7 +6412,7 @@ function subscribeToRealtime() {
   profilesRealtimeChannel =
     supabaseClient
       .channel(
-        'profiles-v24'
+        'profiles-v25'
       )
       .on(
         'postgres_changes',
@@ -5033,9 +6423,16 @@ function subscribeToRealtime() {
             'profiles'
         },
         async () => {
-          await loadProfiles();
+          try {
+            await loadProfiles();
 
-          render();
+            render();
+          } catch (error) {
+            console.warn(
+              'Profiles realtime:',
+              error
+            );
+          }
         }
       )
       .subscribe();
@@ -5043,7 +6440,7 @@ function subscribeToRealtime() {
   filesRealtimeChannel =
     supabaseClient
       .channel(
-        'files-v24'
+        'files-v25'
       )
       .on(
         'postgres_changes',
@@ -5064,15 +6461,16 @@ function subscribeToRealtime() {
 
 
 /* ============================================================
-   28. EVENTS
+   33. EVENTS
    ============================================================ */
 
 function bindEvents() {
   elements.addLeadBtn
     ?.addEventListener(
       'click',
-      () =>
-        openLeadModal()
+      () => {
+        openLeadModal();
+      }
     );
 
   elements.closeModalBtn
@@ -5087,11 +6485,27 @@ function bindEvents() {
       closeLeadModal
     );
 
+  elements.modalBackdrop
+    ?.addEventListener(
+      'click',
+      (event) => {
+        if (
+          event.target ===
+          elements.modalBackdrop
+        ) {
+          closeLeadModal();
+        }
+      }
+    );
+
   elements.leadForm
     ?.addEventListener(
       'submit',
       handleLeadSubmit
     );
+
+
+  /* Фильтры */
 
   elements.searchInput
     ?.addEventListener(
@@ -5146,57 +6560,9 @@ function bindEvents() {
 
         renderTable();
 
-updateSmartSummarySelection();
+        updateSmartSummarySelection();
       }
     );
-/* ============================================================
-   PLANNER v2.4 — КЛИКАБЕЛЬНАЯ СВОДКА
-   ============================================================ */
-
-elements.smartSummary
-  ?.addEventListener(
-    'click',
-    (event) => {
-      const item =
-        event.target.closest(
-          '[data-summary-filter]'
-        );
-
-      if (!item) {
-        return;
-      }
-
-      const selectedFilter =
-        item.dataset.summaryFilter;
-
-      /*
-       * Повторное нажатие на уже активную карточку
-       * возвращает фильтр "Все даты".
-       */
-
-      const newFilter =
-        state.date === selectedFilter
-          ? 'all'
-          : selectedFilter;
-
-      state.date =
-        newFilter;
-
-      /*
-       * Синхронизируем обычный выпадающий
-       * фильтр даты.
-       */
-
-      if (elements.dateFilter) {
-        elements.dateFilter.value =
-          newFilter;
-      }
-
-      renderTable();
-
-      updateSmartSummarySelection();
-    }
-  );
 
   elements.sortSelect
     ?.addEventListener(
@@ -5215,11 +6581,53 @@ elements.smartSummary
       resetFilters
     );
 
+
+  /* Кликабельная сводка */
+
+  elements.smartSummary
+    ?.addEventListener(
+      'click',
+      (event) => {
+        const item =
+          event.target.closest(
+            '[data-summary-filter]'
+          );
+
+        if (!item) {
+          return;
+        }
+
+        const selected =
+          item.dataset.summaryFilter;
+
+        state.date =
+          state.date ===
+            selected
+            ? 'all'
+            : selected;
+
+        if (
+          elements.dateFilter
+        ) {
+          elements.dateFilter.value =
+            state.date;
+        }
+
+        renderTable();
+
+        updateSmartSummarySelection();
+      }
+    );
+
+
+  /* Верхние кнопки */
+
   elements.refreshBtn
     ?.addEventListener(
       'click',
-      () =>
-        loadLeads()
+      () => {
+        loadLeads();
+      }
     );
 
   elements.exportBtn
@@ -5246,6 +6654,9 @@ elements.smartSummary
       skipLegacyMigration
     );
 
+
+  /* Кнопки в строке таблицы */
+
   elements.leadTableBody
     ?.addEventListener(
       'click',
@@ -5271,6 +6682,12 @@ elements.smartSummary
             );
             break;
 
+          case 'quick-actions':
+            openQuickActionsModal(
+              id
+            );
+            break;
+
           case 'files':
             openFilesModal(
               id
@@ -5282,15 +6699,12 @@ elements.smartSummary
               id
             );
             break;
-
-          case 'delete':
-            deleteLead(
-              id
-            );
-            break;
         }
       }
     );
+
+
+  /* "Связался" */
 
   elements.quickContactCloseBtn
     ?.addEventListener(
@@ -5302,6 +6716,19 @@ elements.smartSummary
     ?.addEventListener(
       'click',
       closeQuickContactModal
+    );
+
+  elements.quickContactBackdrop
+    ?.addEventListener(
+      'click',
+      (event) => {
+        if (
+          event.target ===
+          elements.quickContactBackdrop
+        ) {
+          closeQuickContactModal();
+        }
+      }
     );
 
   elements.quickContactForm
@@ -5316,6 +6743,133 @@ elements.smartSummary
       applyQuickContactPreset
     );
 
+  elements.quickContactDate
+    ?.addEventListener(
+      'input',
+      () => {
+        if (
+          elements.quickContactPreset
+        ) {
+          elements.quickContactPreset.value =
+            'custom';
+        }
+      }
+    );
+
+
+  /* v2.5 — меню быстрых действий */
+
+  elements.quickActionsCloseBtn
+    ?.addEventListener(
+      'click',
+      closeQuickActionsModal
+    );
+
+  elements.quickActionsCancelBtn
+    ?.addEventListener(
+      'click',
+      closeQuickActionsModal
+    );
+
+  elements.quickActionsBackdrop
+    ?.addEventListener(
+      'click',
+      (event) => {
+        if (
+          event.target ===
+          elements.quickActionsBackdrop
+        ) {
+          closeQuickActionsModal();
+        }
+      }
+    );
+
+  elements.quickActionRescheduleBtn
+    ?.addEventListener(
+      'click',
+      openRescheduleFromQuickActions
+    );
+
+  elements.quickActionPauseBtn
+    ?.addEventListener(
+      'click',
+      openPauseFromQuickActions
+    );
+
+  elements.quickActionClientBtn
+    ?.addEventListener(
+      'click',
+      markLeadAsClient
+    );
+
+  elements.quickActionLostBtn
+    ?.addEventListener(
+      'click',
+      markLeadAsLost
+    );
+
+  elements.quickActionDeleteBtn
+    ?.addEventListener(
+      'click',
+      deleteLeadFromQuickActions
+    );
+
+
+  /* Перенести / Отложить */
+
+  elements.actionScheduleCloseBtn
+    ?.addEventListener(
+      'click',
+      closeActionScheduleModal
+    );
+
+  elements.actionScheduleCancelBtn
+    ?.addEventListener(
+      'click',
+      closeActionScheduleModal
+    );
+
+  elements.actionScheduleBackdrop
+    ?.addEventListener(
+      'click',
+      (event) => {
+        if (
+          event.target ===
+          elements.actionScheduleBackdrop
+        ) {
+          closeActionScheduleModal();
+        }
+      }
+    );
+
+  elements.actionScheduleForm
+    ?.addEventListener(
+      'submit',
+      handleActionScheduleSubmit
+    );
+
+  elements.actionSchedulePreset
+    ?.addEventListener(
+      'change',
+      applyActionSchedulePreset
+    );
+
+  elements.actionScheduleDate
+    ?.addEventListener(
+      'input',
+      () => {
+        if (
+          elements.actionSchedulePreset
+        ) {
+          elements.actionSchedulePreset.value =
+            'custom';
+        }
+      }
+    );
+
+
+  /* Files */
+
   elements.filesCloseBtn
     ?.addEventListener(
       'click',
@@ -5328,6 +6882,19 @@ elements.smartSummary
       closeFilesModal
     );
 
+  elements.filesBackdrop
+    ?.addEventListener(
+      'click',
+      (event) => {
+        if (
+          event.target ===
+          elements.filesBackdrop
+        ) {
+          closeFilesModal();
+        }
+      }
+    );
+
   elements.uploadFileBtn
     ?.addEventListener(
       'click',
@@ -5337,22 +6904,7 @@ elements.smartSummary
   elements.fileInput
     ?.addEventListener(
       'change',
-      () => {
-        const file =
-          elements.fileInput
-            .files?.[0];
-
-        if (
-          elements.selectedFileName
-        ) {
-          elements.selectedFileName.textContent =
-            file
-              ? `${file.name} · ${formatFileSize(
-                  file.size
-                )}`
-              : 'Файл не выбран';
-        }
-      }
+      updateSelectedFileDisplay
     );
 
   elements.filesList
@@ -5368,12 +6920,15 @@ elements.smartSummary
           return;
         }
 
+        const id =
+          button.dataset.fileId;
+
         if (
           button.dataset.fileAction ===
           'open'
         ) {
           openFile(
-            button.dataset.fileId
+            id
           );
         }
 
@@ -5382,11 +6937,179 @@ elements.smartSummary
           'delete'
         ) {
           deleteFile(
-            button.dataset.fileId
+            id
           );
         }
       }
     );
+
+
+  /* Drag & Drop */
+
+  elements.fileDropZone
+    ?.addEventListener(
+      'click',
+      () => {
+        elements.fileInput
+          ?.click();
+      }
+    );
+
+  elements.fileDropZone
+    ?.addEventListener(
+      'keydown',
+      (event) => {
+        if (
+          event.key ===
+            'Enter' ||
+          event.key ===
+            ' '
+        ) {
+          event.preventDefault();
+
+          elements.fileInput
+            ?.click();
+        }
+      }
+    );
+
+  elements.fileDropZone
+    ?.addEventListener(
+      'dragover',
+      (event) => {
+        event.preventDefault();
+
+        elements.fileDropZone
+          .classList.add(
+            'dragging'
+          );
+      }
+    );
+
+  elements.fileDropZone
+    ?.addEventListener(
+      'dragleave',
+      () => {
+        elements.fileDropZone
+          .classList.remove(
+            'dragging'
+          );
+      }
+    );
+
+  elements.fileDropZone
+    ?.addEventListener(
+      'drop',
+      (event) => {
+        event.preventDefault();
+
+        elements.fileDropZone
+          .classList.remove(
+            'dragging'
+          );
+
+        const file =
+          event.dataTransfer
+            ?.files?.[0];
+
+        if (
+          !file ||
+          !elements.fileInput
+        ) {
+          return;
+        }
+
+        try {
+          const transfer =
+            new DataTransfer();
+
+          transfer.items.add(
+            file
+          );
+
+          elements.fileInput.files =
+            transfer.files;
+
+          updateSelectedFileDisplay();
+        } catch {
+          showToast(
+            'Не удалось принять перетащенный файл. Выберите его обычным способом.',
+            'warning'
+          );
+        }
+      }
+    );
+
+
+  /* ESC */
+
+  document.addEventListener(
+    'keydown',
+    (event) => {
+      if (
+        event.key !==
+        'Escape'
+      ) {
+        return;
+      }
+
+      if (
+        elements.actionScheduleBackdrop
+          ?.classList.contains(
+            'show'
+          )
+      ) {
+        closeActionScheduleModal();
+
+        return;
+      }
+
+      if (
+        elements.quickActionsBackdrop
+          ?.classList.contains(
+            'show'
+          )
+      ) {
+        closeQuickActionsModal();
+
+        return;
+      }
+
+      if (
+        elements.filesBackdrop
+          ?.classList.contains(
+            'show'
+          )
+      ) {
+        closeFilesModal();
+
+        return;
+      }
+
+      if (
+        elements.quickContactBackdrop
+          ?.classList.contains(
+            'show'
+          )
+      ) {
+        closeQuickContactModal();
+
+        return;
+      }
+
+      if (
+        elements.modalBackdrop
+          ?.classList.contains(
+            'show'
+          )
+      ) {
+        closeLeadModal();
+      }
+    }
+  );
+
+
+  /* Возврат на вкладку */
 
   document.addEventListener(
     'visibilitychange',
@@ -5409,21 +7132,39 @@ elements.smartSummary
       runSmartReminders();
     }
   );
+
+  window.addEventListener(
+    'online',
+    () => {
+      showToast(
+        'Соединение восстановлено.',
+        'success'
+      );
+
+      loadLeads({
+        silent: true
+      });
+    }
+  );
+
+  window.addEventListener(
+    'offline',
+    () => {
+      showToast(
+        'Нет подключения к интернету.',
+        'warning',
+        6000
+      );
+    }
+  );
 }
 
 
 /* ============================================================
-   29. PERIODIC TASKS
+   34. PERIODIC TASKS
    ============================================================ */
 
 function startPeriodicTasks() {
-  /*
-   * Каждую минуту:
-   * - меняем "сегодня/завтра/просрочено";
-   * - проверяем часовой reminder;
-   * - проверяем просрочку.
-   */
-
   window.setInterval(
     () => {
       render();
@@ -5432,10 +7173,6 @@ function startPeriodicTasks() {
     },
     60 * 1000
   );
-
-  /*
-   * Страховочная синхронизация.
-   */
 
   window.setInterval(
     () => {
@@ -5454,14 +7191,49 @@ function startPeriodicTasks() {
 
 
 /* ============================================================
-   30. INIT
+   35. AUTH WATCHER
+   ============================================================ */
+
+function bindAuthWatcher() {
+  supabaseClient
+    .auth
+    .onAuthStateChange(
+      (
+        event,
+        session
+      ) => {
+        if (
+          event ===
+            'SIGNED_OUT' ||
+          !session?.user
+        ) {
+          redirectToLogin();
+
+          return;
+        }
+
+        currentUser =
+          session.user;
+      }
+    );
+}
+
+
+/* ============================================================
+   36. INITIALIZE
    ============================================================ */
 
 async function initialize() {
   try {
+    setLoadingText(
+      'Подключаем Supabase…'
+    );
+
     createSupabaseClient();
 
     bindEvents();
+
+    bindAuthWatcher();
 
     const authenticated =
       await ensureAuthenticated();
@@ -5479,9 +7251,17 @@ async function initialize() {
 
     await loadProfiles();
 
+    setLoadingText(
+      'Загружаем Planner…'
+    );
+
     await loadLeads({
       silent: true
     });
+
+    setLoadingText(
+      'Подключаем синхронизацию…'
+    );
 
     subscribeToRealtime();
 
@@ -5494,25 +7274,6 @@ async function initialize() {
     startPeriodicTasks();
 
     runSmartReminders();
-
-    supabaseClient.auth
-      .onAuthStateChange(
-        (
-          event,
-          session
-        ) => {
-          if (
-            event ===
-              'SIGNED_OUT' ||
-            !session?.user
-          ) {
-            redirectToLogin();
-          } else {
-            currentUser =
-              session.user;
-          }
-        }
-      );
   } catch (error) {
     console.error(
       'Planner init:',
@@ -5525,4 +7286,9 @@ async function initialize() {
   }
 }
 
-initialize();bindEvents()
+
+/* ============================================================
+   37. START
+   ============================================================ */
+
+initialize();

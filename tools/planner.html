@@ -1,91 +1,107 @@
-<!doctype html>
+<!DOCTYPE html>
 <html lang="ru">
 <head>
-  <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta charset="UTF-8">
 
-  <title>Планировщик потенциальных клиентов — ДжемБаланс</title>
+  <meta
+    name="viewport"
+    content="width=device-width, initial-scale=1.0"
+  >
 
-  <link rel="icon" type="image/png" href="/favicon.png">
-  <link rel="shortcut icon" href="/favicon.png">
-  <link rel="apple-touch-icon" href="/favicon.png">
+  <title>
+    Планировщик — Рабочая станция
+  </title>
 
-  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <link
+    rel="icon"
+    href="../favicon.png"
+    type="image/png"
+  >
 
   <style>
+    /* ============================================================
+       ДЖЕМБАЛАНС — PLANNER v2.5
+       ============================================================ */
+
     :root {
-      --bg: #f6f7fa;
-      --panel: #ffffff;
-      --line: #e5e7eb;
-      --line-accent: #f3c47f;
-
-      --text: #1f2937;
-      --strong: #111827;
-      --muted: #6b7280;
-
       --accent: #f99303;
-      --accent-hover: #e48600;
-      --accent-secondary: #df8f4a;
-      --accent-dark: #ad601b;
-      --accent-soft: #fff3e3;
-      --accent-softer: #fffaf3;
+      --accent-dark: #b86500;
+      --accent-deep: #8f4e00;
+      --accent-soft: #fff1dd;
+      --accent-softer: #fff9f0;
 
-      --blue: #3377c8;
-      --blue-soft: #eaf3ff;
+      --secondary: #df8f4a;
 
-      --green: #23875a;
-      --green-soft: #eaf8f1;
+      --strong: #172033;
+      --text: #334155;
+      --muted: #748094;
 
-      --yellow: #c98014;
-      --yellow-soft: #fff6dc;
+      --line: #e2e7ee;
+      --line-dark: #d1d8e1;
+
+      --page: #f3f5f7;
+      --card: #ffffff;
 
       --red: #c4473d;
-      --red-soft: #fff0ef;
+      --red-soft: #ffe8e5;
 
-      --gray-soft: #f3f4f6;
+      --green: #26855a;
+      --green-soft: #e5f6ec;
 
-      --shadow: 0 18px 45px rgba(31, 41, 55, .09);
-      --shadow-small: 0 8px 24px rgba(31, 41, 55, .07);
+      --blue: #3478b9;
+      --blue-soft: #e8f2ff;
 
-      --radius: 22px;
+      --yellow: #a96c00;
+      --yellow-soft: #fff1cf;
+
+      --shadow:
+        0 12px 34px rgba(30, 41, 59, .08);
+
+      --shadow-modal:
+        0 30px 90px rgba(17, 24, 39, .25);
     }
+
 
     * {
       box-sizing: border-box;
     }
 
+
     html {
       min-height: 100%;
-      scroll-behavior: smooth;
+      background: var(--page);
     }
 
+
     body {
-      min-height: 100%;
+      min-width: 320px;
+      min-height: 100vh;
       margin: 0;
+
       color: var(--text);
-      font-family: Arial, Helvetica, sans-serif;
       background:
-        radial-gradient(
-          circle at 8% 5%,
-          rgba(249, 147, 3, .10),
-          transparent 24%
-        ),
-        radial-gradient(
-          circle at 93% 4%,
-          rgba(223, 143, 74, .11),
-          transparent 22%
-        ),
         linear-gradient(
           180deg,
-          #fffdfa,
-          #f6f7fa 42%,
-          #f2f4f7
+          #f5f6f8 0,
+          #eef1f4 100%
         );
+
+      font-family:
+        Inter,
+        -apple-system,
+        BlinkMacSystemFont,
+        "Segoe UI",
+        Arial,
+        sans-serif;
+
+      font-size: 14px;
     }
+
 
     body.modal-open {
       overflow: hidden;
     }
+
 
     button,
     input,
@@ -94,2148 +110,2777 @@
       font: inherit;
     }
 
+
     button {
-      cursor: pointer;
+      -webkit-tap-highlight-color: transparent;
     }
 
-    button:disabled {
-      cursor: not-allowed;
-      opacity: .6;
-    }
 
     a {
       color: inherit;
     }
 
-    .hidden {
+
+    [hidden] {
       display: none !important;
     }
 
-    /* Загрузка */
+
+    /* ============================================================
+       LOADING
+       ============================================================ */
 
     .loadingScreen {
       position: fixed;
+      z-index: 9999;
       inset: 0;
-      z-index: 1000;
+
       display: flex;
       align-items: center;
       justify-content: center;
+
       padding: 24px;
+
       background:
-        radial-gradient(
-          circle at 20% 20%,
-          rgba(249, 147, 3, .15),
-          transparent 32%
-        ),
-        linear-gradient(
-          180deg,
-          #fffdf9,
-          #f5ecdf
-        );
+        rgba(245, 247, 249, .97);
+
+      transition:
+        opacity .22s ease,
+        visibility .22s ease;
     }
 
+
+    .loadingScreen.hidden {
+      visibility: hidden;
+      opacity: 0;
+      pointer-events: none;
+    }
+
+
     .loadingCard {
-      width: min(410px, 100%);
+      width: min(390px, 100%);
       padding: 30px;
-      border: 1px solid #ead8c8;
+
+      border: 1px solid #f1d3aa;
       border-top: 5px solid var(--accent);
-      border-radius: 24px;
+      border-radius: 22px;
+
       background: #fff;
-      box-shadow: var(--shadow);
+
+      box-shadow:
+        0 24px 70px rgba(31, 41, 55, .14);
+
       text-align: center;
     }
 
+
     .loadingLogo {
-      display: block;
-      width: 86px;
-      margin: 0 auto 18px;
+      width: 54px;
+      height: 54px;
+      margin-bottom: 15px;
+
+      border-radius: 14px;
+      object-fit: contain;
     }
 
-    .spinner {
-      width: 38px;
-      height: 38px;
-      margin: 0 auto 17px;
-      border: 4px solid #f5dec4;
-      border-top-color: var(--accent);
-      border-radius: 50%;
-      animation: spin .8s linear infinite;
-    }
-
-    @keyframes spin {
-      to {
-        transform: rotate(360deg);
-      }
-    }
 
     .loadingTitle {
       margin-bottom: 7px;
+
       color: var(--strong);
       font-size: 18px;
       font-weight: 900;
     }
 
+
     .loadingText {
       color: var(--muted);
-      font-size: 13px;
+      font-size: 12px;
       line-height: 1.5;
     }
 
-    /* Основная страница */
 
-    .app {
-      display: none;
-      width: 100%;
-      max-width: 1700px;
-      margin: 0 auto;
-      padding: 24px;
-    }
+    .loadingSpinner {
+      width: 28px;
+      height: 28px;
+      margin: 18px auto 0;
 
-    body.ready .app {
-      display: block;
-    }
-
-    .hero {
-      position: relative;
-      overflow: hidden;
-      padding: 28px;
-      border: 1px solid #f6c77f;
-      border-radius: 30px;
-      color: #fff;
-      background:
-        radial-gradient(
-          circle at 90% 15%,
-          rgba(255, 255, 255, .24),
-          transparent 27%
-        ),
-        linear-gradient(
-          135deg,
-          #df8f4a 0%,
-          #f99303 55%,
-          #ffb33d 100%
-        );
-      box-shadow:
-        0 20px 55px rgba(249, 147, 3, .19);
-    }
-
-    .hero::before {
-      content: "";
-      position: absolute;
-      top: -150px;
-      right: -80px;
-      width: 360px;
-      height: 360px;
-      border: 52px solid rgba(255,255,255,.07);
+      border: 3px solid #ffe0b7;
+      border-top-color: var(--accent);
       border-radius: 50%;
-      pointer-events: none;
+
+      animation:
+        spinner .8s linear infinite;
     }
 
-    .heroTop {
-      position: relative;
-      z-index: 1;
+
+    @keyframes spinner {
+      to {
+        transform: rotate(360deg);
+      }
+    }
+
+
+    /* ============================================================
+       PAGE
+       ============================================================ */
+
+    .appShell {
+      width: 100%;
+      padding: 18px;
+    }
+
+
+    .page {
+      width: min(1900px, 100%);
+      margin: 0 auto;
+    }
+
+
+    /* ============================================================
+       HEADER
+       ============================================================ */
+
+    .topbar {
       display: flex;
-      align-items: flex-start;
-      justify-content: space-between;
-      gap: 24px;
-    }
-
-    .heroMain {
-      max-width: 900px;
-    }
-
-    .backLink {
-      display: inline-flex;
       align-items: center;
-      gap: 7px;
-      margin-bottom: 18px;
-      padding: 9px 13px;
-      border: 1px solid rgba(255,255,255,.36);
-      border-radius: 999px;
-      color: #fff;
-      background: rgba(255,255,255,.14);
-      text-decoration: none;
-      font-size: 13px;
-      font-weight: 800;
+      justify-content: space-between;
+      gap: 18px;
+
+      margin-bottom: 14px;
+      padding: 15px 18px;
+
+      border: 1px solid var(--line);
+      border-top: 4px solid var(--accent);
+      border-radius: 19px;
+
+      background: #fff;
+
+      box-shadow: var(--shadow);
     }
 
-    .backLink:hover {
-      background: rgba(255,255,255,.23);
-    }
 
-    .eyebrow {
-      display: inline-flex;
-      margin-bottom: 12px;
-      padding: 8px 12px;
-      border: 1px solid rgba(255,255,255,.30);
-      border-radius: 999px;
-      background: rgba(255,255,255,.14);
-      font-size: 11px;
-      font-weight: 900;
-      letter-spacing: .08em;
-      text-transform: uppercase;
-    }
-
-    h1 {
-      margin: 0;
-      max-width: 900px;
-      font-size: 38px;
-      line-height: 1.08;
-      letter-spacing: -.025em;
-    }
-
-    .heroSubtitle {
-      max-width: 900px;
-      margin: 13px 0 0;
-      color: rgba(255,255,255,.9);
-      font-size: 15px;
-      line-height: 1.6;
-    }
-
-    .heroActions {
+    .brandArea {
       display: flex;
-      flex-wrap: wrap;
-      justify-content: flex-end;
-      gap: 10px;
-      min-width: 290px;
+      align-items: center;
+      min-width: 0;
+      gap: 13px;
     }
 
-    .userBadge {
+
+    .brandLogo {
+      width: 44px;
+      height: 44px;
+      flex: 0 0 auto;
+
+      border-radius: 13px;
+      object-fit: contain;
+    }
+
+
+    .brandText {
+      min-width: 0;
+    }
+
+
+    .brandTitle {
+      margin: 0;
+
+      color: var(--strong);
+      font-size: 18px;
+      font-weight: 950;
+      line-height: 1.2;
+    }
+
+
+    .brandSubtitle {
+      margin-top: 3px;
+
+      color: var(--muted);
+      font-size: 11px;
+      font-weight: 600;
+    }
+
+
+    .topbarRight {
+      display: flex;
+      align-items: center;
+      justify-content: flex-end;
+      flex-wrap: wrap;
+      gap: 9px;
+    }
+
+
+    .userBox {
       display: flex;
       align-items: center;
       gap: 9px;
-      width: 100%;
-      padding: 9px 12px;
-      border: 1px solid rgba(255,255,255,.34);
-      border-radius: 15px;
-      background: rgba(255,255,255,.14);
+
+      min-width: 0;
+      padding: 5px 10px 5px 5px;
+
+      border: 1px solid var(--line);
+      border-radius: 14px;
+
+      background: #fafbfc;
     }
+
 
     .userAvatar {
-      display: flex;
-      flex: 0 0 auto;
-      align-items: center;
-      justify-content: center;
-      width: 35px;
-      height: 35px;
-      border-radius: 50%;
-      color: var(--accent-dark);
-      background: #fff;
-      font-size: 13px;
-      font-weight: 900;
-    }
-
-    .userName {
-      font-size: 13px;
-      font-weight: 900;
-    }
-
-    .userEmail {
-      margin-top: 2px;
-      color: rgba(255,255,255,.82);
-      font-size: 11px;
-    }
-
-    /* Кнопки */
-
-    .button {
-      appearance: none;
       display: inline-flex;
       align-items: center;
       justify-content: center;
-      gap: 7px;
-      min-height: 43px;
-      padding: 10px 14px;
+      flex: 0 0 auto;
+
+      width: 34px;
+      height: 34px;
+
+      border-radius: 50%;
+
+      color: #a75b00;
+      background: var(--accent-soft);
+
+      font-size: 11px;
+      font-weight: 950;
+    }
+
+
+    .userInfo {
+      min-width: 0;
+    }
+
+
+    .userName {
+      overflow: hidden;
+
+      max-width: 180px;
+
+      color: var(--strong);
+      font-size: 11px;
+      font-weight: 900;
+
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+
+    .userEmail {
+      overflow: hidden;
+
+      max-width: 180px;
+
+      margin-top: 2px;
+
+      color: var(--muted);
+      font-size: 9px;
+
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+
+    /* ============================================================
+       BUTTONS
+       ============================================================ */
+
+    .button {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+
+      min-height: 40px;
+      padding: 8px 13px;
+
       border: 1px solid transparent;
       border-radius: 12px;
-      font-size: 13px;
-      font-weight: 800;
+
+      cursor: pointer;
+
+      font-size: 11px;
+      font-weight: 900;
+      line-height: 1;
+
       transition:
-        transform .15s ease,
-        background .15s ease,
-        border-color .15s ease;
+        transform .12s ease,
+        box-shadow .12s ease,
+        border-color .12s ease,
+        background .12s ease;
     }
+
 
     .button:hover:not(:disabled) {
       transform: translateY(-1px);
     }
 
-    .button-primary {
-      color: var(--accent-dark);
-      background: #fff;
-      box-shadow: 0 10px 24px rgba(113,58,0,.16);
+
+    .button:disabled {
+      cursor: default;
+      opacity: .55;
     }
 
-    .button-hero {
-      color: #fff;
-      border-color: rgba(255,255,255,.36);
-      background: rgba(255,255,255,.15);
-    }
-
-    .button-light {
-      color: var(--accent-dark);
-      border-color: var(--line-accent);
-      background: #fff;
-    }
-
-    .button-light:hover:not(:disabled) {
-      border-color: var(--accent);
-      background: var(--accent-soft);
-    }
 
     .button-accent {
       color: #fff;
-      background:
-        linear-gradient(
-          180deg,
-          #ffad27,
-          var(--accent)
-        );
+      border-color: var(--accent);
+      background: var(--accent);
+
       box-shadow:
-        0 10px 22px rgba(249,147,3,.25);
+        0 6px 14px rgba(249, 147, 3, .18);
     }
+
+
+    .button-accent:hover:not(:disabled) {
+      background: #ec8900;
+    }
+
+
+    .button-light {
+      color: #a65a00;
+      border-color: #efb967;
+      background: #fff;
+    }
+
+
+    .button-light:hover:not(:disabled) {
+      background: #fff8ef;
+    }
+
 
     .button-danger {
-      color: var(--red);
-      border-color: #efc5c1;
-      background: var(--red-soft);
+      color: #b43730;
+      border-color: #edbbb6;
+      background: #fff8f7;
     }
 
-    .button-small {
-      min-height: 34px;
-      padding: 7px 10px;
-      border-radius: 9px;
-      font-size: 12px;
+
+    .button-danger:hover:not(:disabled) {
+      background: #fff0ee;
     }
 
-    /* Информация */
 
-    .infoNote {
-      display: flex;
-      align-items: flex-start;
-      gap: 11px;
-      margin-top: 16px;
-      padding: 13px 15px;
-      border: 1px solid #f0d0a1;
-      border-radius: 16px;
+    .backLink {
+      text-decoration: none;
+    }
+
+
+    /* ============================================================
+       HERO / STATS
+       ============================================================ */
+
+    .hero {
+      display: grid;
+      grid-template-columns:
+        minmax(260px, 1fr)
+        auto;
+      align-items: end;
+      gap: 16px;
+
+      margin-bottom: 14px;
+      padding: 18px;
+
+      border: 1px solid var(--line);
+      border-radius: 19px;
+
+      background:
+        linear-gradient(
+          135deg,
+          #fff 0%,
+          #fffaf3 100%
+        );
+
+      box-shadow: var(--shadow);
+    }
+
+
+    .heroTitle {
+      margin: 0 0 5px;
+
+      color: var(--strong);
+      font-size: 22px;
+      font-weight: 950;
+    }
+
+
+    .heroText {
+      max-width: 760px;
+      margin: 0;
+
       color: var(--muted);
-      background: rgba(255,252,247,.95);
-      font-size: 13px;
-      line-height: 1.45;
-      box-shadow: var(--shadow-small);
+      font-size: 12px;
+      line-height: 1.55;
     }
 
-    .infoIcon {
+
+    .heroActions {
       display: flex;
-      flex: 0 0 auto;
       align-items: center;
-      justify-content: center;
-      width: 32px;
-      height: 32px;
-      border-radius: 11px;
-      color: var(--accent-dark);
-      background: var(--accent-soft);
+      justify-content: flex-end;
+      flex-wrap: wrap;
+      gap: 8px;
     }
+
+
+    .stats {
+      display: grid;
+      grid-template-columns:
+        repeat(5, minmax(120px, 1fr));
+      gap: 9px;
+
+      margin-bottom: 14px;
+    }
+
+
+    .statCard {
+      min-width: 0;
+      padding: 13px 14px;
+
+      border: 1px solid var(--line);
+      border-radius: 15px;
+
+      background: #fff;
+
+      box-shadow:
+        0 5px 16px rgba(31, 41, 55, .045);
+    }
+
+
+    .statLabel {
+      color: var(--muted);
+      font-size: 9px;
+      font-weight: 900;
+      letter-spacing: .045em;
+      text-transform: uppercase;
+    }
+
+
+    .statValue {
+      margin-top: 5px;
+
+      color: var(--strong);
+      font-size: 22px;
+      font-weight: 950;
+      line-height: 1;
+    }
+
+
+    .statCard.today {
+      border-color: #c6ddf5;
+      background: #f8fbff;
+    }
+
+
+    .statCard.overdue {
+      border-color: #f0c2bd;
+      background: #fff8f7;
+    }
+
+
+    .statCard.week {
+      border-color: #c7e3d0;
+      background: #f8fcf9;
+    }
+
+
+    /* ============================================================
+       MIGRATION
+       ============================================================ */
 
     .migrationPanel {
       display: none;
       align-items: center;
       justify-content: space-between;
-      gap: 15px;
-      margin-top: 16px;
-      padding: 15px;
-      border: 1px solid #b8d6f5;
-      border-radius: 16px;
-      background: #f1f7ff;
-      box-shadow: var(--shadow-small);
-      font-size: 13px;
-      line-height: 1.45;
+      gap: 16px;
+
+      margin-bottom: 14px;
+      padding: 13px 15px;
+
+      border: 1px solid #f2c984;
+      border-radius: 15px;
+
+      background: #fff8e9;
     }
+
 
     .migrationPanel.show {
       display: flex;
     }
 
+
+    .migrationText {
+      color: #79500f;
+      font-size: 11px;
+      line-height: 1.5;
+    }
+
+
     .migrationActions {
       display: flex;
       flex: 0 0 auto;
-      gap: 8px;
+      gap: 7px;
     }
 
-    /* Статистика */
 
-    .stats {
+    /* ============================================================
+       SMART SUMMARY v2.4
+       ============================================================ */
+
+    .smartSummary {
       display: grid;
-      grid-template-columns: repeat(5, minmax(150px,1fr));
-      gap: 13px;
-      margin: 18px 0;
+      grid-template-columns:
+        auto
+        repeat(3, minmax(125px, 160px));
+      align-items: stretch;
+      gap: 10px;
+
+      margin-bottom: 14px;
+      padding: 12px;
+
+      border: 1px solid #f1d3aa;
+      border-radius: 18px;
+
+      background:
+        linear-gradient(
+          135deg,
+          #fffaf3 0%,
+          #fff 55%,
+          #fff8ed 100%
+        );
+
+      box-shadow:
+        0 7px 22px rgba(84, 55, 22, .06);
     }
 
-    .stat {
-      padding: 16px;
-      border: 1px solid var(--line);
-      border-radius: 19px;
-      background: rgba(255,255,255,.95);
-      box-shadow: var(--shadow-small);
+
+    .smartSummaryIntro {
+      display: flex;
+      align-items: center;
+      gap: 11px;
+
+      min-width: 250px;
+      padding: 5px 8px;
     }
 
-    .statLabel {
-      margin-bottom: 8px;
+
+    .smartSummaryIcon {
+      display: flex;
+      flex: 0 0 auto;
+      align-items: center;
+      justify-content: center;
+
+      width: 42px;
+      height: 42px;
+
+      border-radius: 13px;
+
+      color: #c66b00;
+      background: #fff0dc;
+
+      font-size: 20px;
+    }
+
+
+    .smartSummaryHeading {
+      margin-bottom: 3px;
+
+      color: var(--strong);
+      font-size: 13px;
+      font-weight: 950;
+    }
+
+
+    .smartSummaryText {
       color: var(--muted);
       font-size: 11px;
-      font-weight: 800;
-      letter-spacing: .06em;
-      text-transform: uppercase;
+      line-height: 1.4;
     }
 
-    .statValue {
-      color: var(--accent);
-      font-size: 28px;
-      font-weight: 900;
+
+    .smartSummaryItem {
+      position: relative;
+
+      display: flex;
+      align-items: center;
+      gap: 9px;
+
+      min-width: 0;
+      padding: 10px 12px;
+
+      border: 1px solid var(--line);
+      border-radius: 14px;
+
+      background: #fff;
+
+      cursor: pointer;
+
+      transition:
+        transform .15s ease,
+        box-shadow .15s ease,
+        border-color .15s ease;
+    }
+
+
+    .smartSummaryItem:hover {
+      transform: translateY(-1px);
+
+      box-shadow:
+        0 6px 16px rgba(31, 41, 55, .08);
+    }
+
+
+    .smartSummaryItem.today {
+      border-color: #bcd9f7;
+      background: #f5faff;
+    }
+
+
+    .smartSummaryItem.overdue {
+      border-color: #f1c1bc;
+      background: #fff6f5;
+    }
+
+
+    .smartSummaryItem.week {
+      border-color: #bfe2cb;
+      background: #f5fbf7;
+    }
+
+
+    .smartSummaryItemIcon {
+      display: flex;
+      flex: 0 0 auto;
+      align-items: center;
+      justify-content: center;
+
+      width: 32px;
+      height: 32px;
+
+      border-radius: 10px;
+
+      font-size: 15px;
+      font-weight: 950;
+    }
+
+
+    .smartSummaryItem.today
+    .smartSummaryItemIcon {
+      color: #3478b9;
+      background: #e4f1ff;
+    }
+
+
+    .smartSummaryItem.overdue
+    .smartSummaryItemIcon {
+      color: #c4473d;
+      background: #ffe8e5;
+    }
+
+
+    .smartSummaryItem.week
+    .smartSummaryItemIcon {
+      color: #37865a;
+      background: #e5f6eb;
+    }
+
+
+    .smartSummaryNumber {
+      color: var(--strong);
+      font-size: 20px;
+      font-weight: 950;
       line-height: 1;
     }
 
-    .statHint {
-      margin-top: 7px;
+
+    .smartSummaryLabel {
+      margin-top: 3px;
+
       color: var(--muted);
-      font-size: 11px;
-      line-height: 1.35;
+      font-size: 9px;
+      font-weight: 900;
+      line-height: 1.2;
+      text-transform: uppercase;
     }
 
-    .stat.today .statValue {
-      color: var(--blue);
+
+    .smartSummaryItem.active {
+      border-color: var(--accent);
+
+      box-shadow:
+        0 0 0 2px rgba(249, 147, 3, .13),
+        0 7px 18px rgba(249, 147, 3, .12);
+
+      transform: translateY(-1px);
     }
 
-    .stat.soon .statValue {
-      color: var(--green);
+
+    .smartSummaryItem.active::after {
+      content: "Показано";
+
+      margin-left: auto;
+      padding: 4px 7px;
+
+      border-radius: 999px;
+
+      color: #a85b00;
+      background: #fff0dc;
+
+      font-size: 8px;
+      font-weight: 950;
+      letter-spacing: .03em;
+      text-transform: uppercase;
     }
 
-    .stat.overdue .statValue {
-      color: var(--red);
-    }
 
-    .stat.noDate .statValue {
-      color: var(--yellow);
-    }
+    /* ============================================================
+       FILTER PANEL
+       ============================================================ */
 
-    /* Таблица */
-
-    .panel {
+    .plannerPanel {
       overflow: hidden;
+
       border: 1px solid var(--line);
       border-top: 4px solid var(--accent);
-      border-radius: var(--radius);
+      border-radius: 19px;
+
       background: #fff;
+
       box-shadow: var(--shadow);
     }
 
+
     .toolbar {
-  display: grid;
-  grid-template-columns:
-    minmax(230px,1.5fr)
-    repeat(5,minmax(145px,.7fr))
-    auto;
-      gap: 10px;
+      display: grid;
+      grid-template-columns:
+        minmax(210px, 1.35fr)
+        repeat(5, minmax(125px, .75fr))
+        auto;
       align-items: end;
-      padding: 16px;
+      gap: 8px;
+
+      padding: 14px;
+
       border-bottom: 1px solid var(--line);
+
       background:
         linear-gradient(
           180deg,
-          #fff,
-          var(--accent-softer)
+          #fff 0%,
+          #fffaf4 100%
         );
     }
+
 
     .field {
       min-width: 0;
     }
 
+
     .field label {
       display: block;
-      margin: 0 0 6px 2px;
-      color: var(--muted);
-      font-size: 11px;
-      font-weight: 800;
-      letter-spacing: .05em;
+      margin-bottom: 5px;
+
+      color: #5f6675;
+      font-size: 9px;
+      font-weight: 950;
+      letter-spacing: .045em;
       text-transform: uppercase;
     }
 
-    .field input,
-    .field select,
-    .field textarea {
-      width: 100%;
-      border: 1px solid #d9dde5;
-      border-radius: 11px;
-      color: var(--text);
-      background: #fff;
-      outline: none;
-      font-size: 14px;
-    }
 
-    .field input,
-    .field select {
-      min-height: 42px;
-      padding: 9px 10px;
-    }
+    .fieldHint {
+      margin-top: 5px;
 
-    .field textarea {
-      min-height: 96px;
-      padding: 11px;
-      resize: vertical;
+      color: var(--muted);
+      font-size: 10px;
       line-height: 1.45;
     }
 
-    .field input:focus,
-    .field select:focus,
-    .field textarea:focus {
-      border-color: var(--accent);
-      box-shadow:
-        0 0 0 3px rgba(249,147,3,.13);
+
+    input,
+    select,
+    textarea {
+      width: 100%;
+
+      border: 1px solid #d7dde6;
+      border-radius: 11px;
+
+      color: var(--strong);
+      background: #fff;
+
+      outline: none;
+
+      transition:
+        border-color .14s ease,
+        box-shadow .14s ease;
     }
+
+
+    input,
+    select {
+      min-height: 40px;
+      padding: 8px 10px;
+    }
+
+
+    textarea {
+      min-height: 96px;
+      padding: 10px;
+
+      line-height: 1.5;
+
+      resize: vertical;
+    }
+
+
+    input:focus,
+    select:focus,
+    textarea:focus {
+      border-color: var(--accent);
+
+      box-shadow:
+        0 0 0 3px rgba(249, 147, 3, .12);
+    }
+
 
     .toolbarActions {
       display: flex;
+      align-items: center;
       justify-content: flex-end;
     }
+
 
     .secondaryToolbar {
       display: flex;
       align-items: center;
       justify-content: space-between;
-      gap: 14px;
-      padding: 11px 16px;
+      gap: 12px;
+
+      min-height: 56px;
+      padding: 10px 14px;
+
       border-bottom: 1px solid var(--line);
+
       background: #fff;
     }
 
+
     .visibleCount {
-      color: var(--muted);
-      font-size: 13px;
+      color: #617087;
+      font-size: 10px;
       font-weight: 700;
     }
 
+
     .secondaryActions {
       display: flex;
+      align-items: center;
+      justify-content: flex-end;
       flex-wrap: wrap;
       gap: 7px;
     }
 
+
+    /* ============================================================
+       TABLE
+       ============================================================ */
+
     .tableWrap {
       width: 100%;
-      overflow: auto;
+
+      overflow-x: auto;
+      overflow-y: visible;
+
+      scrollbar-width: thin;
+      scrollbar-color:
+        #a8a8a8 transparent;
     }
+
+
+    .tableWrap::-webkit-scrollbar {
+      height: 10px;
+    }
+
+
+    .tableWrap::-webkit-scrollbar-track {
+      background: transparent;
+    }
+
+
+    .tableWrap::-webkit-scrollbar-thumb {
+      border: 2px solid transparent;
+      border-radius: 999px;
+      background:
+        #a9adb2
+        content-box;
+    }
+
 
     table {
       width: 100%;
-      min-width: 1770px;
-      border-collapse: separate;
-      border-spacing: 0;
+      min-width: 1280px;
+
+      border-collapse: collapse;
       table-layout: fixed;
     }
 
-    th {
-      position: sticky;
-      top: 0;
-      z-index: 2;
-      padding: 11px 9px;
-      border-bottom: 1px solid #f2bd70;
-      color: #8d570d;
-      background: #fff2df;
+
+    thead {
+      background: #fff0db;
+    }
+
+
+    thead th {
+      padding: 10px 8px;
+
+      border-bottom: 1px solid #efbd75;
+
+      color: #8d4f00;
+
+      font-size: 9px;
+      font-weight: 950;
+      line-height: 1.25;
+      letter-spacing: .035em;
       text-align: left;
-      font-size: 10px;
-      font-weight: 900;
-      letter-spacing: .05em;
       text-transform: uppercase;
     }
 
-    td {
-      padding: 11px 9px;
-      border-bottom: 1px solid #edf0f4;
-      background: #fff;
+
+    tbody td {
+      padding: 11px 8px;
+
+      border-bottom: 1px solid #e8ecf1;
+
       vertical-align: top;
-      font-size: 13px;
+
+      color: #26364b;
+      background: #fff;
+
+      font-size: 11px;
       line-height: 1.4;
-      overflow-wrap: anywhere;
     }
+
+
+    tbody tr:last-child td {
+      border-bottom: 0;
+    }
+
+
+    tbody tr {
+      transition:
+        background .15s ease;
+    }
+
 
     tbody tr:hover td {
-      background: #fffbf5;
+      background: #fffdf9;
     }
 
-    .row-today td {
-      background: #edf6ff;
+
+    tbody tr.row-today td {
+      background: #f3f9ff;
     }
 
-    .row-soon td {
-      background: #f1faf5;
+
+    tbody tr.row-soon td {
+      background: #f3fbf6;
     }
 
-    .row-overdue td {
-      background: #fff2f0;
+
+    tbody tr.row-overdue td {
+      background: #fff5f4;
     }
 
-    .row-closed td {
-      color: #747b86;
-      background: #f6f7f9;
+
+    tbody tr.row-closed {
+      opacity: .7;
     }
 
-    .col-client { width: 185px; }
-    .col-business { width: 195px; }
-    .col-contacts { width: 155px; }
-    .col-method { width: 130px; }
-    .col-amount { width: 145px; }
-    .col-priority { width: 125px; }
-.col-responsible { width: 145px; }
-.col-date { width: 170px; }
-    .col-status { width: 150px; }
-    .col-dialogue { width: 250px; }
-    .col-notes { width: 180px; }
-    .col-actions { width: 175px; }
+
+    tbody tr.row-closed td {
+      background: #f8f9fa;
+    }
+
+
+    .col-client {
+      width: 11%;
+    }
+
+
+    .col-business {
+      width: 12%;
+    }
+
+
+    .col-contacts {
+      width: 9%;
+    }
+
+
+    .col-method {
+      width: 8%;
+    }
+
+
+    .col-amount {
+      width: 8%;
+    }
+
+
+    .col-priority {
+      width: 8%;
+    }
+
+
+    .col-responsible {
+      width: 9%;
+    }
+
+
+    .col-date {
+      width: 10%;
+    }
+
+
+    .col-status {
+      width: 8%;
+    }
+
+
+    .col-dialogue {
+      width: 15%;
+    }
+
+
+    .col-notes {
+      width: 11%;
+    }
+
+
+    .col-actions {
+      width: 150px;
+    }
+
 
     .clientName {
-      margin-bottom: 5px;
-      color: var(--strong);
-      font-size: 14px;
-      font-weight: 900;
+      color: #07162b;
+      font-size: 12px;
+      font-weight: 950;
+      line-height: 1.3;
     }
 
-    .clientMeta,
-    .muted {
+
+    .clientMeta {
+      margin-top: 4px;
+
       color: var(--muted);
-      font-size: 12px;
+      font-size: 10px;
+      line-height: 1.35;
     }
+
 
     .activity {
       margin-top: 5px;
-      color: #374151;
+
+      color: #1c2c42;
+      font-size: 11px;
       font-weight: 700;
+      line-height: 1.35;
     }
+
 
     .contactLink {
       display: block;
-      width: fit-content;
+
       margin-bottom: 4px;
-      color: var(--accent-dark);
-      font-weight: 700;
+
+      color: #c46800;
+
+      font-size: 10.5px;
+      font-weight: 800;
+
       text-decoration: none;
+      word-break: break-word;
     }
+
 
     .contactLink:hover {
       text-decoration: underline;
     }
 
+
+    .muted {
+      color: #808b9b;
+      font-size: 10px;
+    }
+
+
+    .amount {
+      color: #07162b;
+      font-size: 12px;
+      font-weight: 950;
+      word-break: break-word;
+    }
+
+
     .pill {
       display: inline-flex;
       align-items: center;
-      gap: 6px;
-      padding: 6px 8px;
-      border-radius: 999px;
-      font-size: 11px;
-      font-weight: 900;
-    }
-
-    .methodPill {
-      color: #924d0d;
-      background: var(--accent-soft);
-    }
-
-    .priority-high {
-      color: #9f2722;
-      background: #ffe6e3;
-    }
-
-    .priority-medium {
-      color: #9a5a06;
-      background: #fff1d4;
-    }
-
-    .priority-low {
-      color: #176943;
-      background: #e6f7ed;
-    }
-
-    .priority-none {
-      color: #626975;
-      background: #f1f3f5;
-    }
-
-    .priorityDot {
-      width: 8px;
-      height: 8px;
-      border-radius: 50%;
-      background: currentColor;
-    }
-
-    .status-new {
-      color: #945d08;
-      background: var(--yellow-soft);
-    }
-
-    .status-contacted {
-      color: #2865a9;
-      background: var(--blue-soft);
-    }
-
-    .status-callback {
-      color: #a75f13;
-      background: var(--accent-soft);
-    }
-
-    .status-transition,
-    .status-client {
-      color: #176943;
-      background: var(--green-soft);
-    }
-
-    .status-contract {
-      color: #9a500c;
-      background: #ffe9ce;
-    }
-
-    .status-paused {
-      color: #626975;
-      background: #eff1f4;
-    }
-
-    .status-lost {
-      color: #a1332d;
-      background: var(--red-soft);
-    }
-
-    .dateMain {
-      color: var(--strong);
-      font-weight: 900;
-    }
-
-    .dateBadge {
-      display: inline-flex;
-      margin-top: 6px;
-      padding: 5px 7px;
-      border-radius: 999px;
-      font-size: 11px;
-      font-weight: 900;
-    }
-
-    .dateBadge.today {
-      color: #1e5da6;
-      background: var(--blue-soft);
-    }
-
-    .dateBadge.soon {
-      color: #176943;
-      background: var(--green-soft);
-    }
-
-    .dateBadge.overdue {
-      color: #a62e27;
-      background: var(--red-soft);
-    }
-
-    .dateBadge.future {
-      color: #925b08;
-      background: var(--yellow-soft);
-    }
-
-    .dateBadge.no-date {
-      color: #626975;
-      background: var(--gray-soft);
-    }
-
-    .amount {
-      color: var(--strong);
-      font-weight: 900;
-    }
-
-    .dialogueBlock + .dialogueBlock {
-      margin-top: 8px;
-      padding-top: 8px;
-      border-top: 1px dashed #efc78e;
-    }
-
-    .dialogueLabel {
-      display: block;
-      margin-bottom: 3px;
-      color: var(--accent-dark);
-      font-size: 10px;
-      font-weight: 900;
-      text-transform: uppercase;
-    }
-
-    .dialogueText,
-    .notesText {
-      color: #374151;
-      white-space: pre-line;
-    }
-
-    .rowActions {
-      display: flex;
-      flex-wrap: wrap;
-      justify-content: flex-end;
+      justify-content: center;
       gap: 5px;
-    }
 
-    .tableButton {
-      padding: 6px 8px;
-      border: 1px solid #efc383;
-      border-radius: 8px;
-      color: var(--accent-dark);
-      background: #fff;
-      font-size: 11px;
+      max-width: 100%;
+      padding: 5px 8px;
+
+      border-radius: 999px;
+
+      font-size: 9px;
       font-weight: 900;
-    }
+      line-height: 1.2;
 
-    .tableButton:hover {
-      border-color: var(--accent);
-      background: var(--accent-soft);
-    }
-
-    .tableButton.delete {
-      color: var(--red);
-      border-color: #efcbc7;
-      background: #fff8f7;
-    }
-
-    .emptyCell {
-      padding: 50px 20px;
+      white-space: normal;
       text-align: center;
     }
 
-    .emptyTitle {
-      margin-bottom: 6px;
-      font-size: 17px;
-      font-weight: 900;
+
+    .methodPill {
+      color: #a85a00;
+      background: #fff0dd;
     }
+
+
+    .priorityDot {
+      width: 6px;
+      height: 6px;
+      flex: 0 0 auto;
+
+      border-radius: 50%;
+
+      background: currentColor;
+    }
+
+
+    .priority-high {
+      color: #b52d27;
+      background: #ffe3e0;
+    }
+
+
+    .priority-medium {
+      color: #ae6500;
+      background: #fff0cf;
+    }
+
+
+    .priority-low {
+      color: #16764c;
+      background: #def5e8;
+    }
+
+
+    .priority-none {
+      color: #657180;
+      background: #edf0f3;
+    }
+
+
+    .status-new {
+      color: #4c6079;
+      background: #edf2f7;
+    }
+
+
+    .status-contacted {
+      color: #2d6da7;
+      background: #e9f3ff;
+    }
+
+
+    .status-callback {
+      color: #3478b9;
+      background: #e6f1ff;
+    }
+
+
+    .status-transition {
+      color: #7a5b00;
+      background: #fff3cc;
+    }
+
+
+    .status-contract {
+      color: #b15c00;
+      background: #ffe7c9;
+    }
+
+
+    .status-client {
+      color: #19744b;
+      background: #def4e7;
+    }
+
+
+    .status-paused {
+      color: #715f43;
+      background: #eee8dd;
+    }
+
+
+    .status-lost {
+      color: #7d5560;
+      background: #f1e7ea;
+    }
+
+
+    .dateMain {
+      color: #07162b;
+      font-size: 11px;
+      font-weight: 950;
+      line-height: 1.35;
+    }
+
+
+    .dateBadge {
+      display: inline-flex;
+      align-items: center;
+
+      max-width: 100%;
+      margin-top: 5px;
+      padding: 5px 8px;
+
+      border-radius: 999px;
+
+      font-size: 9px;
+      font-weight: 900;
+      line-height: 1.2;
+
+      white-space: normal;
+      text-align: center;
+    }
+
+
+    .dateBadge.today {
+      color: #2569a8;
+      background: #e6f2ff;
+    }
+
+
+    .dateBadge.soon {
+      color: #236d46;
+      background: #e2f6e9;
+    }
+
+
+    .dateBadge.overdue {
+      color: #b33d35;
+      background: #ffe6e3;
+    }
+
+
+    .dateBadge.future {
+      color: #9f6400;
+      background: #fff1d2;
+    }
+
+
+    .dateBadge.no-date {
+      color: #737d8b;
+      background: #edf0f3;
+    }
+
+
+    .dialogueBlock + .dialogueBlock {
+      margin-top: 10px;
+      padding-top: 8px;
+
+      border-top: 1px dashed #e5e8ed;
+    }
+
+
+    .dialogueLabel {
+      display: block;
+      margin-bottom: 4px;
+
+      color: #bd6400;
+      font-size: 8px;
+      font-weight: 950;
+      letter-spacing: .04em;
+      text-transform: uppercase;
+    }
+
+
+    .dialogueText,
+    .notesText {
+      color: #334155;
+      font-size: 10.5px;
+      line-height: 1.45;
+
+      white-space: pre-line;
+      word-break: break-word;
+    }
+
+
+    /* ============================================================
+       ACTION BUTTONS — v2.5
+       ============================================================ */
+
+    .rowActions {
+      display: grid;
+      grid-template-columns:
+        repeat(2, minmax(0, 1fr));
+      gap: 6px;
+
+      width: 100%;
+    }
+
+
+    .tableButton {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+
+      width: 100%;
+      min-width: 0;
+      min-height: 34px;
+      margin: 0;
+      padding: 6px 6px;
+
+      border: 1px solid #efb566;
+      border-radius: 10px;
+
+      color: #a55700;
+      background: #fff;
+
+      cursor: pointer;
+
+      font-size: 9.5px;
+      font-weight: 900;
+      line-height: 1.15;
+      text-align: center;
+      white-space: nowrap;
+
+      transition:
+        background .13s ease,
+        border-color .13s ease,
+        transform .13s ease;
+    }
+
+
+    .tableButton:hover {
+      border-color: var(--accent);
+      background: #fff8ee;
+
+      transform: translateY(-1px);
+    }
+
+
+    .tableButton.delete {
+      color: #bd3e36;
+      border-color: #e9aaa5;
+      background: #fffafa;
+    }
+
+
+    .tableButton.delete:hover {
+      background: #fff0ee;
+    }
+
+
+    .emptyCell {
+      padding: 45px 20px !important;
+
+      text-align: center;
+    }
+
+
+    .emptyTitle {
+      color: var(--strong);
+      font-size: 15px;
+      font-weight: 950;
+    }
+
 
     .emptyText {
+      margin-top: 5px;
+
       color: var(--muted);
-      line-height: 1.5;
+      font-size: 11px;
     }
 
-    /* Модальное окно */
+
+    /* ============================================================
+       MODALS
+       ============================================================ */
 
     .modalBackdrop {
       position: fixed;
+      z-index: 1000;
       inset: 0;
-      z-index: 100;
+
       display: none;
       align-items: center;
       justify-content: center;
+
       padding: 20px;
-      background: rgba(17,24,39,.48);
-      backdrop-filter: blur(4px);
+
+      background:
+        rgba(15, 23, 42, .48);
+
+      backdrop-filter:
+        blur(3px);
     }
+
 
     .modalBackdrop.show {
       display: flex;
     }
 
-    .modal {
-      width: min(980px,100%);
+
+    .modalCard {
+      width: min(900px, 100%);
       max-height: calc(100vh - 40px);
+
       overflow: auto;
+
       border: 1px solid var(--line);
       border-top: 5px solid var(--accent);
-      border-radius: 24px;
+      border-radius: 22px;
+
       background: #fff;
-      box-shadow: 0 30px 90px rgba(17,24,39,.25);
+
+      box-shadow:
+        var(--shadow-modal);
     }
+
+
+    .modalCard.small {
+      width: min(560px, 100%);
+    }
+
 
     .modalHeader {
       position: sticky;
+      z-index: 4;
       top: 0;
-      z-index: 3;
+
       display: flex;
       align-items: flex-start;
       justify-content: space-between;
-      gap: 20px;
-      padding: 19px 22px;
+      gap: 16px;
+
+      padding: 17px 20px;
+
       border-bottom: 1px solid var(--line);
-      background: rgba(255,250,243,.97);
+
+      background: rgba(255, 255, 255, .97);
+
+      backdrop-filter:
+        blur(8px);
     }
+
 
     .modalHeader h2 {
       margin: 0;
+
       color: var(--strong);
-      font-size: 23px;
+      font-size: 17px;
+      font-weight: 950;
     }
+
 
     .modalSubtitle {
-      margin-top: 5px;
+      margin-top: 4px;
+
       color: var(--muted);
-      font-size: 13px;
-    }
-
-    .closeButton {
-      width: 38px;
-      height: 38px;
-      border: 1px solid #e5bd81;
-      border-radius: 11px;
-      color: var(--accent-dark);
-      background: #fff;
-      font-size: 22px;
-    }
-
-    .modalBody {
-      padding: 22px;
-    }
-
-    .formSection {
-      margin-bottom: 22px;
-      padding-bottom: 22px;
-      border-bottom: 1px solid var(--line);
-    }
-
-    .formSection:last-child {
-      border-bottom: 0;
-    }
-
-    .formSectionTitle {
-      margin: 0 0 13px;
-      color: var(--accent-dark);
-      font-size: 15px;
-      font-weight: 900;
-    }
-
-    .formGrid {
-      display: grid;
-      grid-template-columns: repeat(2,minmax(0,1fr));
-      gap: 13px;
-    }
-
-    .full {
-      grid-column: 1 / -1;
-    }
-
-    .required {
-      color: var(--red);
-    }
-
-    .fieldHint {
-      margin-top: 5px;
-      color: var(--muted);
-      font-size: 11px;
-      line-height: 1.4;
-    }
-
-    .modalFooter {
-      position: sticky;
-      bottom: 0;
-      display: flex;
-      justify-content: flex-end;
-      gap: 9px;
-      padding: 14px 22px;
-      border-top: 1px solid var(--line);
-      background: rgba(255,250,243,.97);
-    }
-.quickContactCard {
-  width: min(560px, 100%);
-  border: 1px solid var(--line);
-  border-top: 5px solid var(--accent);
-  border-radius: 22px;
-  background: #ffffff;
-  box-shadow: 0 30px 90px rgba(17, 24, 39, .24);
-  overflow: hidden;
-}
-
-.quickContactBody {
-  padding: 20px 22px;
-}
-
-.quickContactClientName {
-  margin-bottom: 16px;
-  padding: 12px 14px;
-  border: 1px solid #f0d0a1;
-  border-radius: 14px;
-  color: var(--accent-dark);
-  background: var(--accent-soft);
-  font-size: 14px;
-  font-weight: 900;
-}
-
-.quickContactGrid {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 13px;
-}
-
-.quickContactGrid .full {
-  grid-column: 1 / -1;
-}
-
-.quickContactHint {
-  margin-top: 6px;
-  color: var(--muted);
-  font-size: 11px;
-  line-height: 1.45;
-}
-
-/* ======================================================
-   Файлы
-   ====================================================== */
-
-.filesCard {
-  width: min(760px, 100%);
-  max-height: calc(100vh - 40px);
-  overflow: auto;
-  border: 1px solid var(--line);
-  border-top: 5px solid var(--accent);
-  border-radius: 22px;
-  background: #ffffff;
-  box-shadow: 0 30px 90px rgba(17, 24, 39, .24);
-}
-
-.filesBody {
-  padding: 20px 22px;
-}
-
-.filesClientName {
-  margin-bottom: 16px;
-  padding: 12px 14px;
-  border: 1px solid #f0d0a1;
-  border-radius: 14px;
-  color: var(--accent-dark);
-  background: var(--accent-soft);
-  font-size: 14px;
-  font-weight: 900;
-}
-
-.fileUploadBox {
-  margin-bottom: 20px;
-  padding: 16px;
-  border: 1px solid #ead3b5;
-  border-radius: 16px;
-  background: var(--accent-softer);
-}
-
-.fileDropZone {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  min-height: 130px;
-  padding: 20px;
-  border: 2px dashed #efbf79;
-  border-radius: 14px;
-  color: var(--muted);
-  background: #ffffff;
-  text-align: center;
-  cursor: pointer;
-  transition:
-    border-color .16s ease,
-    background .16s ease,
-    transform .16s ease;
-}
-
-.fileDropZone:hover,
-.fileDropZone.dragging {
-  border-color: var(--accent);
-  background: var(--accent-soft);
-}
-
-.fileDropZone.dragging {
-  transform: scale(1.01);
-}
-
-.fileDropIcon {
-  margin-bottom: 8px;
-  font-size: 28px;
-}
-
-.fileDropTitle {
-  margin-bottom: 5px;
-  color: var(--strong);
-  font-size: 14px;
-  font-weight: 900;
-}
-
-.fileDropText {
-  max-width: 500px;
-  font-size: 12px;
-  line-height: 1.45;
-}
-
-.selectedFileName {
-  margin-top: 9px;
-  color: var(--accent-dark);
-  font-size: 12px;
-  font-weight: 800;
-}
-
-.fileUploadFields {
-  display: grid;
-  grid-template-columns: 1fr auto;
-  align-items: end;
-  gap: 10px;
-  margin-top: 12px;
-}
-
-.fileUploadFields .field {
-  margin: 0;
-}
-
-.filesSectionTitle {
-  margin: 0 0 11px;
-  color: var(--accent-dark);
-  font-size: 14px;
-  font-weight: 900;
-}
-
-.filesList {
-  display: grid;
-  gap: 9px;
-}
-
-.fileItem {
-  display: grid;
-  grid-template-columns: auto minmax(0, 1fr) auto;
-  align-items: center;
-  gap: 12px;
-  padding: 12px;
-  border: 1px solid var(--line);
-  border-radius: 14px;
-  background: #ffffff;
-  transition:
-    border-color .15s ease,
-    background .15s ease;
-}
-
-.fileItem:hover {
-  border-color: #efc98f;
-  background: #fffbf5;
-}
-
-.fileIcon {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: 42px;
-  height: 42px;
-  border-radius: 12px;
-  background: var(--accent-soft);
-  font-size: 21px;
-}
-
-.fileInfo {
-  min-width: 0;
-}
-
-.fileName {
-  overflow: hidden;
-  color: var(--strong);
-  font-size: 13px;
-  font-weight: 900;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.fileMeta {
-  margin-top: 4px;
-  color: var(--muted);
-  font-size: 11px;
-  line-height: 1.4;
-}
-
-.fileDescription {
-  margin-top: 5px;
-  color: #4b5563;
-  font-size: 12px;
-  line-height: 1.45;
-  white-space: pre-line;
-}
-
-.fileActions {
-  display: flex;
-  flex-wrap: wrap;
-  justify-content: flex-end;
-  gap: 6px;
-}
-
-.filesEmpty {
-  padding: 28px 18px;
-  border: 1px dashed #e1e5eb;
-  border-radius: 14px;
-  background: #fafbfc;
-  text-align: center;
-}
-
-.filesEmptyIcon {
-  margin-bottom: 8px;
-  font-size: 28px;
-}
-
-.filesEmptyTitle {
-  margin-bottom: 5px;
-  color: var(--strong);
-  font-size: 15px;
-  font-weight: 900;
-}
-
-.filesEmptyText {
-  max-width: 480px;
-  margin: 0 auto;
-  color: var(--muted);
-  font-size: 12px;
-  line-height: 1.5;
-}
-
-.fileLimitHint {
-  margin-top: 7px;
-  color: var(--muted);
-  font-size: 11px;
-  line-height: 1.4;
-}
-
-@media (max-width: 620px) {
-  .filesCard {
-    width: 100%;
-    height: 100%;
-    max-height: none;
-    border-radius: 0;
-  }
-
-  .fileUploadFields {
-    grid-template-columns: 1fr;
-  }
-
-  .fileUploadFields .button {
-    width: 100%;
-  }
-
-  .fileItem {
-    grid-template-columns: auto 1fr;
-  }
-
-  .fileActions {
-    grid-column: 1 / -1;
-    justify-content: flex-start;
-  }
-}
-
-@media (max-width: 560px) {
-  .quickContactGrid {
-    grid-template-columns: 1fr;
-  }
-
-  .quickContactGrid .full {
-    grid-column: auto;
-  }
-}
-    /* Toast */
-
-    .toastStack {
-      position: fixed;
-      right: 20px;
-      bottom: 20px;
-      z-index: 200;
-      display: grid;
-      width: min(390px,calc(100vw - 40px));
-      gap: 8px;
-      pointer-events: none;
-    }
-
-    .toast {
-      padding: 13px 15px;
-      border: 1px solid var(--line);
-      border-left: 5px solid var(--accent);
-      border-radius: 13px;
-      background: #fff;
-      box-shadow: 0 16px 40px rgba(31,41,55,.18);
-      font-size: 13px;
+      font-size: 10.5px;
       line-height: 1.45;
     }
 
-    .toast.success {
-      border-left-color: var(--green);
+
+    .closeButton {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      flex: 0 0 auto;
+
+      width: 34px;
+      height: 34px;
+      padding: 0;
+
+      border: 1px solid var(--line);
+      border-radius: 10px;
+
+      color: #687386;
+      background: #fff;
+
+      cursor: pointer;
+
+      font-size: 22px;
+      line-height: 1;
     }
+
+
+    .closeButton:hover {
+      color: #b85800;
+      border-color: #efbf79;
+      background: #fff8ef;
+    }
+
+
+    .modalBody {
+      padding: 20px;
+    }
+
+
+    .modalFooter {
+      position: sticky;
+      z-index: 4;
+      bottom: 0;
+
+      display: flex;
+      align-items: center;
+      justify-content: flex-end;
+      gap: 8px;
+
+      padding: 13px 20px;
+
+      border-top: 1px solid var(--line);
+
+      background: rgba(255, 255, 255, .97);
+
+      backdrop-filter:
+        blur(8px);
+    }
+
+
+    .formGrid {
+      display: grid;
+      grid-template-columns:
+        repeat(2, minmax(0, 1fr));
+      gap: 13px;
+    }
+
+
+    .formGrid .full {
+      grid-column: 1 / -1;
+    }
+
+
+    .sectionTitle {
+      grid-column: 1 / -1;
+
+      margin-top: 5px;
+      padding-top: 4px;
+
+      color: #a75c00;
+      font-size: 10px;
+      font-weight: 950;
+      letter-spacing: .045em;
+      text-transform: uppercase;
+    }
+
+
+    /* ============================================================
+       QUICK CONTACT
+       ============================================================ */
+
+    .quickContactClientName,
+    .actionClientName,
+    .quickActionsClientName,
+    .filesClientName {
+      margin-bottom: 16px;
+      padding: 12px 14px;
+
+      border: 1px solid #f0d0a1;
+      border-radius: 14px;
+
+      color: var(--accent-dark);
+      background: var(--accent-soft);
+
+      font-size: 13px;
+      font-weight: 950;
+    }
+
+
+    .quickContactGrid {
+      display: grid;
+      grid-template-columns:
+        1fr 1fr;
+      gap: 13px;
+    }
+
+
+    .quickContactGrid .full {
+      grid-column: 1 / -1;
+    }
+
+
+    .quickContactHint {
+      margin-top: 6px;
+
+      color: var(--muted);
+      font-size: 10px;
+      line-height: 1.45;
+    }
+
+
+    /* ============================================================
+       v2.5 — QUICK ACTIONS
+       ============================================================ */
+
+    .quickActionsBody {
+      padding: 20px;
+    }
+
+
+    .quickActionsGrid {
+      display: grid;
+      gap: 9px;
+    }
+
+
+    .quickActionButton {
+      display: grid;
+      grid-template-columns:
+        38px minmax(0, 1fr) auto;
+      align-items: center;
+      gap: 11px;
+
+      width: 100%;
+      min-height: 61px;
+      padding: 10px 12px;
+
+      border: 1px solid var(--line);
+      border-radius: 14px;
+
+      color: var(--strong);
+      background: #fff;
+
+      cursor: pointer;
+
+      text-align: left;
+
+      transition:
+        transform .13s ease,
+        border-color .13s ease,
+        background .13s ease,
+        box-shadow .13s ease;
+    }
+
+
+    .quickActionButton:hover {
+      transform: translateY(-1px);
+
+      border-color: #efbc73;
+      background: #fffaf4;
+
+      box-shadow:
+        0 6px 18px rgba(31, 41, 55, .06);
+    }
+
+
+    .quickActionIcon {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+
+      width: 38px;
+      height: 38px;
+
+      border-radius: 11px;
+
+      color: #aa5e00;
+      background: var(--accent-soft);
+
+      font-size: 17px;
+      font-weight: 950;
+    }
+
+
+    .quickActionText {
+      min-width: 0;
+    }
+
+
+    .quickActionTitle {
+      color: var(--strong);
+      font-size: 12px;
+      font-weight: 950;
+    }
+
+
+    .quickActionDescription {
+      margin-top: 3px;
+
+      color: var(--muted);
+      font-size: 10px;
+      line-height: 1.4;
+    }
+
+
+    .quickActionArrow {
+      color: #a9b1bd;
+      font-size: 17px;
+      font-weight: 800;
+    }
+
+
+    .quickActionButton.success {
+      border-color: #cce5d5;
+    }
+
+
+    .quickActionButton.success
+    .quickActionIcon {
+      color: #21754b;
+      background: #e2f6e9;
+    }
+
+
+    .quickActionButton.neutral
+    .quickActionIcon {
+      color: #6b6457;
+      background: #efebe4;
+    }
+
+
+    .quickActionButton.lost {
+      border-color: #e5d4d8;
+    }
+
+
+    .quickActionButton.lost
+    .quickActionIcon {
+      color: #8b5361;
+      background: #f2e8eb;
+    }
+
+
+    .quickActionsDangerZone {
+      margin-top: 16px;
+      padding-top: 13px;
+
+      border-top: 1px solid var(--line);
+    }
+
+
+    .quickActionButton.danger {
+      color: #af3730;
+      border-color: #eebbb6;
+      background: #fffafa;
+    }
+
+
+    .quickActionButton.danger:hover {
+      border-color: #dc847c;
+      background: #fff2f0;
+    }
+
+
+    .quickActionButton.danger
+    .quickActionIcon {
+      color: #b43b33;
+      background: #ffe9e6;
+    }
+
+
+    /* ============================================================
+       v2.5 — ACTION SCHEDULE
+       ============================================================ */
+
+    .actionScheduleGrid {
+      display: grid;
+      grid-template-columns:
+        1fr 1fr;
+      gap: 13px;
+    }
+
+
+    .actionScheduleGrid .full {
+      grid-column: 1 / -1;
+    }
+
+
+    /* ============================================================
+       FILES
+       ============================================================ */
+
+    .filesCard {
+      width: min(760px, 100%);
+      max-height: calc(100vh - 40px);
+
+      overflow: auto;
+
+      border: 1px solid var(--line);
+      border-top: 5px solid var(--accent);
+      border-radius: 22px;
+
+      background: #fff;
+
+      box-shadow:
+        var(--shadow-modal);
+    }
+
+
+    .filesBody {
+      padding: 20px;
+    }
+
+
+    .fileUploadBox {
+      margin-bottom: 20px;
+      padding: 16px;
+
+      border: 1px solid #ead3b5;
+      border-radius: 16px;
+
+      background: var(--accent-softer);
+    }
+
+
+    .fileDropZone {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+
+      min-height: 130px;
+      padding: 20px;
+
+      border: 2px dashed #efbf79;
+      border-radius: 14px;
+
+      color: var(--muted);
+      background: #fff;
+
+      text-align: center;
+
+      cursor: pointer;
+
+      transition:
+        border-color .16s ease,
+        background .16s ease,
+        transform .16s ease;
+    }
+
+
+    .fileDropZone:hover,
+    .fileDropZone.dragging {
+      border-color: var(--accent);
+      background: var(--accent-soft);
+    }
+
+
+    .fileDropZone.dragging {
+      transform: scale(1.01);
+    }
+
+
+    .fileDropIcon {
+      margin-bottom: 8px;
+      font-size: 27px;
+    }
+
+
+    .fileDropTitle {
+      margin-bottom: 5px;
+
+      color: var(--strong);
+      font-size: 13px;
+      font-weight: 950;
+    }
+
+
+    .fileDropText {
+      max-width: 500px;
+
+      font-size: 10.5px;
+      line-height: 1.45;
+    }
+
+
+    .selectedFileName {
+      margin-top: 9px;
+
+      color: var(--accent-dark);
+      font-size: 10.5px;
+      font-weight: 900;
+    }
+
+
+    .fileUploadFields {
+      display: grid;
+      grid-template-columns:
+        1fr auto;
+      align-items: end;
+      gap: 10px;
+
+      margin-top: 12px;
+    }
+
+
+    .fileUploadFields .field {
+      margin: 0;
+    }
+
+
+    .fileLimitHint {
+      margin-top: 7px;
+
+      color: var(--muted);
+      font-size: 9.5px;
+      line-height: 1.4;
+    }
+
+
+    .filesSectionTitle {
+      margin: 0 0 11px;
+
+      color: var(--accent-dark);
+      font-size: 13px;
+      font-weight: 950;
+    }
+
+
+    .filesList {
+      display: grid;
+      gap: 9px;
+    }
+
+
+    .fileItem {
+      display: grid;
+      grid-template-columns:
+        auto minmax(0, 1fr) auto;
+      align-items: center;
+      gap: 12px;
+
+      padding: 12px;
+
+      border: 1px solid var(--line);
+      border-radius: 14px;
+
+      background: #fff;
+
+      transition:
+        border-color .15s ease,
+        background .15s ease;
+    }
+
+
+    .fileItem:hover {
+      border-color: #efc98f;
+      background: #fffbf5;
+    }
+
+
+    .fileIcon {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+
+      width: 42px;
+      height: 42px;
+
+      border-radius: 12px;
+
+      background: var(--accent-soft);
+
+      font-size: 20px;
+    }
+
+
+    .fileInfo {
+      min-width: 0;
+    }
+
+
+    .fileName {
+      overflow: hidden;
+
+      color: var(--strong);
+      font-size: 12px;
+      font-weight: 950;
+
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+
+    .fileMeta {
+      margin-top: 4px;
+
+      color: var(--muted);
+      font-size: 9.5px;
+      line-height: 1.4;
+    }
+
+
+    .fileDescription {
+      margin-top: 5px;
+
+      color: #4b5563;
+      font-size: 10.5px;
+      line-height: 1.45;
+
+      white-space: pre-line;
+    }
+
+
+    .fileActions {
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: flex-end;
+      gap: 6px;
+    }
+
+
+    .filesEmpty {
+      padding: 28px 18px;
+
+      border: 1px dashed #e1e5eb;
+      border-radius: 14px;
+
+      background: #fafbfc;
+
+      text-align: center;
+    }
+
+
+    .filesEmptyIcon {
+      margin-bottom: 8px;
+      font-size: 26px;
+    }
+
+
+    .filesEmptyTitle {
+      margin-bottom: 5px;
+
+      color: var(--strong);
+      font-size: 14px;
+      font-weight: 950;
+    }
+
+
+    .filesEmptyText {
+      max-width: 480px;
+      margin: 0 auto;
+
+      color: var(--muted);
+      font-size: 10.5px;
+      line-height: 1.5;
+    }
+
+
+    /* ============================================================
+       TOASTS
+       ============================================================ */
+
+    .toastStack {
+      position: fixed;
+      z-index: 5000;
+      right: 18px;
+      bottom: 18px;
+
+      display: grid;
+      gap: 8px;
+
+      width: min(360px, calc(100vw - 36px));
+
+      pointer-events: none;
+    }
+
+
+    .toast {
+      padding: 11px 13px;
+
+      border: 1px solid #d6e2d9;
+      border-left: 4px solid #2c8a59;
+      border-radius: 12px;
+
+      color: #264236;
+      background: #f3fbf6;
+
+      box-shadow:
+        0 12px 30px rgba(31, 41, 55, .14);
+
+      font-size: 11px;
+      font-weight: 700;
+      line-height: 1.45;
+
+      animation:
+        toastIn .18s ease-out;
+    }
+
 
     .toast.error {
-      border-left-color: var(--red);
+      color: #833a35;
+      border-color: #efcbc8;
+      border-left-color: #c4473d;
+      background: #fff5f4;
     }
+
 
     .toast.warning {
-      border-left-color: var(--yellow);
+      color: #7d5718;
+      border-color: #efd49a;
+      border-left-color: #d38a00;
+      background: #fff9ea;
     }
 
-    @media (max-width: 1300px) {
-      .toolbar {
-        grid-template-columns: repeat(3,minmax(0,1fr));
+
+    @keyframes toastIn {
+      from {
+        opacity: 0;
+        transform:
+          translateY(7px);
       }
 
-      .toolbarActions {
-        grid-column: 1 / -1;
+      to {
+        opacity: 1;
+        transform:
+          translateY(0);
       }
     }
 
-    @media (max-width: 900px) {
-      .app {
+
+    /* ============================================================
+       ADAPTIVE — LARGE LAPTOP
+       ============================================================ */
+
+    @media (max-width: 1500px) {
+      .appShell {
         padding: 14px;
       }
 
-      .heroTop {
-        flex-direction: column;
+
+      table {
+        min-width: 1200px;
       }
 
-      .heroActions {
-        width: 100%;
-        min-width: 0;
-        justify-content: flex-start;
+
+      thead th {
+        padding-left: 6px;
+        padding-right: 6px;
+        font-size: 8.5px;
       }
 
-      h1 {
-        font-size: 30px;
+
+      tbody td {
+        padding-left: 6px;
+        padding-right: 6px;
+        font-size: 10.5px;
       }
 
-      .stats {
-        grid-template-columns: repeat(2,minmax(0,1fr));
+
+      .tableButton {
+        min-height: 32px;
+        padding: 5px 4px;
+        font-size: 9px;
+      }
+    }
+
+
+    /* ============================================================
+       ADAPTIVE — CARD MODE
+       ============================================================ */
+
+    @media (max-width: 1180px) {
+      .topbar {
+        align-items: flex-start;
       }
 
-      .toolbar {
-        grid-template-columns: repeat(2,minmax(0,1fr));
-      }
 
-      .formGrid {
+      .hero {
         grid-template-columns: 1fr;
       }
 
-      .full {
-        grid-column: auto;
+
+      .heroActions {
+        justify-content: flex-start;
       }
 
-      .migrationPanel,
+
+      .stats {
+        grid-template-columns:
+          repeat(3, 1fr);
+      }
+
+
+      .smartSummary {
+        grid-template-columns:
+          repeat(3, minmax(0, 1fr));
+      }
+
+
+      .smartSummaryIntro {
+        grid-column: 1 / -1;
+        min-width: 0;
+      }
+
+
+      .toolbar {
+        grid-template-columns:
+          repeat(3, minmax(0, 1fr));
+      }
+
+
+      .tableWrap {
+        overflow: visible;
+      }
+
+
+      table,
+      tbody {
+        display: block;
+        width: 100%;
+        min-width: 0;
+      }
+
+
+      thead {
+        display: none;
+      }
+
+
+      tbody tr {
+        display: grid;
+
+        width: calc(100% - 20px);
+        margin: 10px;
+
+        overflow: hidden;
+
+        border: 1px solid var(--line);
+        border-left: 5px solid var(--accent);
+        border-radius: 18px;
+
+        background: #fff;
+
+        box-shadow:
+          0 8px 24px rgba(31, 41, 55, .07);
+      }
+
+
+      tbody tr.row-today {
+        border-left-color: var(--blue);
+      }
+
+
+      tbody tr.row-soon {
+        border-left-color: var(--green);
+      }
+
+
+      tbody tr.row-overdue {
+        border-left-color: var(--red);
+      }
+
+
+      tbody tr.row-closed {
+        border-left-color: #9ca3af;
+      }
+
+
+      tbody td {
+        display: grid;
+        grid-template-columns:
+          155px minmax(0, 1fr);
+        gap: 14px;
+
+        width: 100% !important;
+        padding: 11px 14px;
+
+        border: 0;
+        border-bottom: 1px solid #edf0f4;
+
+        background: transparent !important;
+
+        font-size: 12px;
+      }
+
+
+      tbody td:last-child {
+        border-bottom: 0;
+      }
+
+
+      tbody td::before {
+        color: #995a0d;
+
+        font-size: 9px;
+        font-weight: 950;
+        line-height: 1.4;
+        letter-spacing: .045em;
+        text-transform: uppercase;
+      }
+
+
+      tbody td:nth-child(1)::before {
+        content: "Клиент";
+      }
+
+
+      tbody td:nth-child(2)::before {
+        content: "Канал и деятельность";
+      }
+
+
+      tbody td:nth-child(3)::before {
+        content: "Контакты";
+      }
+
+
+      tbody td:nth-child(4)::before {
+        content: "Способ связи";
+      }
+
+
+      tbody td:nth-child(5)::before {
+        content: "Оговорённая сумма";
+      }
+
+
+      tbody td:nth-child(6)::before {
+        content: "Приоритет";
+      }
+
+
+      tbody td:nth-child(7)::before {
+        content: "Ответственный";
+      }
+
+
+      tbody td:nth-child(8)::before {
+        content: "Следующий контакт";
+      }
+
+
+      tbody td:nth-child(9)::before {
+        content: "Статус";
+      }
+
+
+      tbody td:nth-child(10)::before {
+        content: "Диалог и следующий шаг";
+      }
+
+
+      tbody td:nth-child(11)::before {
+        content: "Примечания";
+      }
+
+
+      tbody td:nth-child(12)::before {
+        content: "Действия";
+      }
+
+
+      tbody td:nth-child(1) {
+        padding-top: 15px;
+      }
+
+
+      tbody td:nth-child(12) {
+        align-items: center;
+        padding-top: 13px;
+        padding-bottom: 13px;
+      }
+
+
+      .clientName {
+        font-size: 14px;
+      }
+
+
+      .rowActions {
+        max-width: 430px;
+        gap: 7px;
+      }
+
+
+      .tableButton {
+        min-height: 37px;
+        padding: 7px 9px;
+        font-size: 10.5px;
+      }
+    }
+
+
+    /* ============================================================
+       TABLET
+       ============================================================ */
+
+    @media (max-width: 800px) {
+      .appShell {
+        padding: 9px;
+      }
+
+
+      .topbar {
+        flex-direction: column;
+      }
+
+
+      .topbarRight {
+        width: 100%;
+        justify-content: flex-start;
+      }
+
+
+      .userBox {
+        order: -1;
+      }
+
+
+      .stats {
+        grid-template-columns:
+          repeat(2, 1fr);
+      }
+
+
+      .toolbar {
+        grid-template-columns:
+          repeat(2, minmax(0, 1fr));
+      }
+
+
       .secondaryToolbar {
         align-items: flex-start;
         flex-direction: column;
       }
-    }
 
-    @media (max-width: 560px) {
-      .app {
+
+      .secondaryActions {
+        justify-content: flex-start;
+      }
+
+
+      tbody td {
+        grid-template-columns:
+          130px minmax(0, 1fr);
+        gap: 10px;
+      }
+
+
+      .formGrid,
+      .quickContactGrid,
+      .actionScheduleGrid {
+        grid-template-columns: 1fr;
+      }
+
+
+      .formGrid .full,
+      .quickContactGrid .full,
+      .actionScheduleGrid .full {
+        grid-column: auto;
+      }
+
+
+      .modalBackdrop {
         padding: 10px;
       }
 
-      h1 {
-        font-size: 27px;
+
+      .modalCard,
+      .filesCard {
+        max-height:
+          calc(100vh - 20px);
       }
 
-      .heroActions,
-      .heroActions .button {
+
+      .fileUploadFields {
+        grid-template-columns: 1fr;
+      }
+
+
+      .fileUploadFields .button {
         width: 100%;
       }
 
-      .stats,
+
+      .fileItem {
+        grid-template-columns:
+          auto 1fr;
+      }
+
+
+      .fileActions {
+        grid-column: 1 / -1;
+        justify-content: flex-start;
+      }
+    }
+
+
+    /* ============================================================
+       PHONE
+       ============================================================ */
+
+    @media (max-width: 560px) {
+      .brandTitle {
+        font-size: 16px;
+      }
+
+
+      .hero {
+        padding: 14px;
+      }
+
+
+      .heroTitle {
+        font-size: 19px;
+      }
+
+
+      .heroActions,
+      .topbarRight {
+        display: grid;
+        grid-template-columns: 1fr;
+
+        width: 100%;
+      }
+
+
+      .heroActions .button,
+      .topbarRight .button,
+      .topbarRight .backLink {
+        width: 100%;
+      }
+
+
+      .userBox {
+        width: 100%;
+      }
+
+
+      .userName,
+      .userEmail {
+        max-width: none;
+      }
+
+
+      .stats {
+        grid-template-columns: 1fr 1fr;
+      }
+
+
+      .smartSummary {
+        grid-template-columns: 1fr;
+      }
+
+
+      .smartSummaryIntro {
+        grid-column: auto;
+      }
+
+
       .toolbar {
         grid-template-columns: 1fr;
       }
 
+
       .toolbarActions {
-        grid-column: auto;
+        width: 100%;
       }
+
+
+      .toolbarActions .button {
+        width: 100%;
+      }
+
 
       .secondaryActions {
         display: grid;
-        width: 100%;
         grid-template-columns: 1fr 1fr;
+
+        width: 100%;
       }
+
+
+      .secondaryActions .button {
+        width: 100%;
+      }
+
+
+      tbody tr {
+        margin: 8px;
+        width: calc(100% - 16px);
+
+        border-radius: 15px;
+      }
+
+
+      tbody td {
+        display: block;
+        padding: 10px 12px;
+      }
+
+
+      tbody td::before {
+        display: block;
+        margin-bottom: 6px;
+      }
+
+
+      .rowActions {
+        max-width: none;
+        grid-template-columns:
+          repeat(2, minmax(0, 1fr));
+      }
+
+
+      .tableButton {
+        min-height: 39px;
+        font-size: 10.5px;
+      }
+
 
       .modalBackdrop {
         padding: 0;
       }
 
-      .modal {
+
+      .modalCard,
+      .modalCard.small,
+      .filesCard {
         width: 100%;
         height: 100%;
         max-height: none;
+
         border-radius: 0;
       }
+
+
+      .modalHeader {
+        padding:
+          14px 15px;
+      }
+
+
+      .modalBody,
+      .quickActionsBody,
+      .filesBody {
+        padding: 15px;
+      }
+
+
+      .modalFooter {
+        padding:
+          11px 15px;
+      }
+
+
+      .quickActionButton {
+        grid-template-columns:
+          36px minmax(0, 1fr);
+      }
+
+
+      .quickActionArrow {
+        display: none;
+      }
+
+
+      .toastStack {
+        right: 10px;
+        bottom: 10px;
+
+        width:
+          calc(100vw - 20px);
+      }
     }
-/* ============================================================
-   PLANNER v2.3.1
-   АДАПТИВНАЯ ТАБЛИЦА + АККУРАТНЫЕ ДЕЙСТВИЯ
-   ============================================================ */
 
-
-/* ------------------------------------------------------------
-   1. Более компактная таблица на больших экранах
-   ------------------------------------------------------------ */
-
-.tableWrap {
-  width: 100%;
-  overflow-x: auto;
-  overflow-y: visible;
-  scrollbar-width: thin;
-  scrollbar-color: #a8a8a8 transparent;
-}
-
-table {
-  width: 100%;
-  min-width: 1280px;
-  table-layout: fixed;
-}
-
-thead th {
-  padding: 10px 8px;
-  font-size: 10px;
-  line-height: 1.25;
-}
-
-tbody td {
-  padding: 11px 8px;
-  font-size: 12px;
-  line-height: 1.4;
-}
-
-
-/* ------------------------------------------------------------
-   2. Нормально перераспределяем ширину колонок
-   ------------------------------------------------------------ */
-
-.col-client {
-  width: 11%;
-}
-
-.col-business {
-  width: 12%;
-}
-
-.col-contacts {
-  width: 9%;
-}
-
-.col-method {
-  width: 8%;
-}
-
-.col-amount {
-  width: 8%;
-}
-
-.col-priority {
-  width: 8%;
-}
-
-.col-responsible {
-  width: 9%;
-}
-
-.col-date {
-  width: 10%;
-}
-
-.col-status {
-  width: 8%;
-}
-
-.col-dialogue {
-  width: 15%;
-}
-
-.col-notes {
-  width: 11%;
-}
-
-.col-actions {
-  width: 150px;
-}
-
-
-/* ------------------------------------------------------------
-   3. Текст внутри ячеек
-   ------------------------------------------------------------ */
-
-.clientName {
-  font-size: 13px;
-  line-height: 1.3;
-}
-
-.clientMeta,
-.muted,
-.fileMeta {
-  font-size: 11px;
-}
-
-.dialogueText,
-.notesText {
-  font-size: 12px;
-  line-height: 1.45;
-}
-
-.amount {
-  font-size: 13px;
-}
-
-.pill,
-.dateBadge {
-  max-width: 100%;
-  white-space: normal;
-  text-align: center;
-  justify-content: center;
-}
-
-
-/* ------------------------------------------------------------
-   4. Действия — строгая сетка 2 × 2
-   ------------------------------------------------------------ */
-
-.rowActions {
-  display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 6px;
-  width: 100%;
-}
-
-.tableButton {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-
-  width: 100%;
-  min-width: 0;
-  min-height: 34px;
-
-  margin: 0;
-  padding: 6px 7px;
-
-  white-space: nowrap;
-
-  font-size: 10.5px;
-  line-height: 1.15;
-  text-align: center;
-}
-
-.tableButton.delete {
-  width: 100%;
-}
-
-
-/* ------------------------------------------------------------
-   5. Немного компактнее фильтры
-   ------------------------------------------------------------ */
-
-.toolbar {
-  grid-template-columns:
-    minmax(210px, 1.35fr)
-    repeat(5, minmax(125px, .75fr))
-    auto;
-
-  gap: 8px;
-}
-
-.toolbar .field input,
-.toolbar .field select {
-  min-height: 40px;
-  padding: 8px 9px;
-  font-size: 12px;
-}
-
-.toolbar .field label {
-  font-size: 10px;
-}
-
-
-/* ============================================================
-   НОУТБУКИ И НЕБОЛЬШИЕ МОНИТОРЫ
-   ============================================================ */
-
-@media (max-width: 1500px) {
-
-  .app {
-    padding-left: 14px;
-    padding-right: 14px;
-  }
-
-  table {
-    min-width: 1200px;
-  }
-
-  thead th {
-    padding-left: 6px;
-    padding-right: 6px;
-    font-size: 9px;
-  }
-
-  tbody td {
-    padding-left: 6px;
-    padding-right: 6px;
-    font-size: 11px;
-  }
-
-  .clientName {
-    font-size: 12px;
-  }
-
-  .rowActions {
-    gap: 4px;
-  }
-
-  .tableButton {
-    min-height: 32px;
-    padding: 5px 4px;
-    font-size: 9.5px;
-  }
-}
-
-
-/* ============================================================
-   ДО 1180 PX
-   Вместо широкой таблицы показываем лиды карточками.
-   Горизонтальная прокрутка больше не нужна.
-   ============================================================ */
-
-@media (max-width: 1180px) {
-
-  .tableWrap {
-    overflow: visible;
-  }
-
-  table,
-  tbody {
-    display: block;
-    width: 100%;
-    min-width: 0;
-  }
-
-  thead {
-    display: none;
-  }
-
-  tbody tr {
-    display: grid;
-    width: 100%;
-    margin: 0 0 14px;
-
-    overflow: hidden;
-
-    border: 1px solid var(--line);
-    border-left: 5px solid var(--accent);
-    border-radius: 18px;
-
-    background: #ffffff;
-
-    box-shadow:
-      0 8px 24px rgba(31, 41, 55, .07);
-  }
-
-  tbody tr:hover td {
-    background: transparent;
-  }
-
-  tbody tr.row-today {
-    border-left-color: var(--blue);
-    background: #f5faff;
-  }
-
-  tbody tr.row-soon {
-    border-left-color: var(--green);
-    background: #f4fbf7;
-  }
-
-  tbody tr.row-overdue {
-    border-left-color: var(--red);
-    background: #fff5f4;
-  }
-
-  tbody tr.row-closed {
-    border-left-color: #9ca3af;
-    background: #f7f8fa;
-  }
-
-  tbody td {
-    display: grid;
-    grid-template-columns: 155px minmax(0, 1fr);
-    gap: 14px;
-
-    width: 100% !important;
-
-    padding: 11px 14px;
-
-    border: 0;
-    border-bottom: 1px solid #edf0f4;
-
-    background: transparent !important;
-
-    font-size: 13px;
-  }
-
-  tbody td:last-child {
-    border-bottom: 0;
-  }
-
-  tbody td::before {
-    color: #995a0d;
-    font-size: 10px;
-    font-weight: 900;
-    line-height: 1.4;
-    letter-spacing: .045em;
-    text-transform: uppercase;
-  }
-
-
-  /* Названия полей */
-
-  tbody td:nth-child(1)::before {
-    content: "Клиент";
-  }
-
-  tbody td:nth-child(2)::before {
-    content: "Канал и деятельность";
-  }
-
-  tbody td:nth-child(3)::before {
-    content: "Контакты";
-  }
-
-  tbody td:nth-child(4)::before {
-    content: "Способ связи";
-  }
-
-  tbody td:nth-child(5)::before {
-    content: "Оговорённая сумма";
-  }
-
-  tbody td:nth-child(6)::before {
-    content: "Приоритет";
-  }
-
-  tbody td:nth-child(7)::before {
-    content: "Ответственный";
-  }
-
-  tbody td:nth-child(8)::before {
-    content: "Следующий контакт";
-  }
-
-  tbody td:nth-child(9)::before {
-    content: "Статус";
-  }
-
-  tbody td:nth-child(10)::before {
-    content: "Диалог и следующий шаг";
-  }
-
-  tbody td:nth-child(11)::before {
-    content: "Примечания";
-  }
-
-  tbody td:nth-child(12)::before {
-    content: "Действия";
-  }
-
-
-  /* Первая строка карточки */
-
-  tbody td:nth-child(1) {
-    padding-top: 15px;
-  }
-
-  .clientName {
-    font-size: 15px;
-  }
-
-
-  /* Действия */
-
-  tbody td:nth-child(12) {
-    align-items: center;
-    padding-top: 13px;
-    padding-bottom: 13px;
-  }
-
-  .rowActions {
-    max-width: 430px;
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-    gap: 7px;
-  }
-
-  .tableButton {
-    min-height: 37px;
-    padding: 7px 9px;
-    font-size: 11px;
-  }
-
-
-  /* Панель фильтров */
-
-  .toolbar {
-    grid-template-columns:
-      repeat(3, minmax(0, 1fr));
-  }
-
-  .toolbarActions {
-    grid-column: auto;
-  }
-}
-
-
-/* ============================================================
-   ПЛАНШЕТЫ
-   ============================================================ */
-
-@media (max-width: 800px) {
-
-  .toolbar {
-    grid-template-columns:
-      repeat(2, minmax(0, 1fr));
-  }
-
-  .secondaryToolbar {
-    align-items: stretch;
-  }
-
-  .secondaryActions {
-    justify-content: flex-start;
-  }
-
-  tbody td {
-    grid-template-columns: 130px minmax(0, 1fr);
-    gap: 10px;
-  }
-}
-
-
-/* ============================================================
-   ТЕЛЕФОНЫ
-   ============================================================ */
-
-@media (max-width: 560px) {
-
-  .toolbar {
-    grid-template-columns: 1fr;
-  }
-
-  .toolbarActions {
-    grid-column: auto;
-  }
-
-  .toolbarActions .button {
-    width: 100%;
-  }
-
-  tbody tr {
-    border-radius: 15px;
-  }
-
-  tbody td {
-    display: block;
-    padding: 10px 12px;
-  }
-
-  tbody td::before {
-    display: block;
-    margin-bottom: 6px;
-  }
-
-  .clientName {
-    font-size: 15px;
-  }
-
-  .rowActions {
-    max-width: none;
-    grid-template-columns:
-      repeat(2, minmax(0, 1fr));
-  }
-
-  .tableButton {
-    min-height: 39px;
-    font-size: 11px;
-  }
-
-  .secondaryActions {
-    grid-template-columns: 1fr;
-  }
-}
-/* ============================================================
-   PLANNER v2.4 — УМНАЯ ДНЕВНАЯ СВОДКА
-   ============================================================ */
-
-.smartSummary {
-  display: grid;
-  grid-template-columns: auto repeat(3, minmax(125px, 160px));
-  align-items: stretch;
-  gap: 10px;
-
-  margin: 0 0 14px;
-  padding: 12px;
-
-  border: 1px solid #f1d3aa;
-  border-radius: 18px;
-
-  background:
-    linear-gradient(
-      135deg,
-      #fffaf3 0%,
-      #fff 55%,
-      #fff8ed 100%
-    );
-
-  box-shadow:
-    0 7px 22px rgba(84, 55, 22, .06);
-}
-
-.smartSummaryIntro {
-  display: flex;
-  align-items: center;
-  gap: 11px;
-
-  min-width: 240px;
-  padding: 5px 8px;
-}
-
-.smartSummaryIcon {
-  display: flex;
-  flex: 0 0 auto;
-  align-items: center;
-  justify-content: center;
-
-  width: 42px;
-  height: 42px;
-
-  border-radius: 13px;
-
-  background: #fff0dc;
-  color: #c66b00;
-
-  font-size: 21px;
-}
-
-.smartSummaryHeading {
-  margin: 0 0 3px;
-
-  color: var(--strong);
-  font-size: 13px;
-  font-weight: 900;
-}
-
-.smartSummaryText {
-  color: var(--muted);
-  font-size: 11px;
-  line-height: 1.4;
-}
-
-.smartSummaryItem {
-  display: flex;
-  align-items: center;
-  gap: 9px;
-
-  min-width: 0;
-  padding: 10px 12px;
-
-  border: 1px solid var(--line);
-  border-radius: 14px;
-
-  background: #fff;
-}
-
-.smartSummaryItem.today {
-  border-color: #bcd9f7;
-  background: #f5faff;
-}
-
-.smartSummaryItem.overdue {
-  border-color: #f1c1bc;
-  background: #fff6f5;
-}
-
-.smartSummaryItem.week {
-  border-color: #bfe2cb;
-  background: #f5fbf7;
-}
-
-.smartSummaryItemIcon {
-  display: flex;
-  flex: 0 0 auto;
-  align-items: center;
-  justify-content: center;
-
-  width: 32px;
-  height: 32px;
-
-  border-radius: 10px;
-
-  font-size: 15px;
-}
-
-.smartSummaryItem.today .smartSummaryItemIcon {
-  color: #3478b9;
-  background: #e4f1ff;
-}
-
-.smartSummaryItem.overdue .smartSummaryItemIcon {
-  color: #c4473d;
-  background: #ffe8e5;
-}
-
-.smartSummaryItem.week .smartSummaryItemIcon {
-  color: #37865a;
-  background: #e5f6eb;
-}
-
-.smartSummaryNumber {
-  color: var(--strong);
-  font-size: 20px;
-  font-weight: 950;
-  line-height: 1;
-}
-
-.smartSummaryLabel {
-  margin-top: 3px;
-
-  color: var(--muted);
-  font-size: 10px;
-  font-weight: 800;
-  line-height: 1.2;
-  text-transform: uppercase;
-}
-
-
-/* Кликабельные показатели */
-
-.smartSummaryItem {
-  cursor: pointer;
-
-  transition:
-    transform .15s ease,
-    box-shadow .15s ease,
-    border-color .15s ease;
-}
-
-.smartSummaryItem:hover {
-  transform: translateY(-1px);
-
-  box-shadow:
-    0 6px 16px rgba(31, 41, 55, .08);
-}
-
-
-/* Планшеты */
-
-@media (max-width: 1050px) {
-  .smartSummary {
-    grid-template-columns:
-      repeat(3, minmax(0, 1fr));
-  }
-
-  .smartSummaryIntro {
-    grid-column: 1 / -1;
-    min-width: 0;
-  }
-}
-
-
-/* Телефоны */
-
-@media (max-width: 620px) {
-  .smartSummary {
-    grid-template-columns: 1fr;
-  }
-
-  .smartSummaryIntro {
-    grid-column: auto;
-  }
-
-  .smartSummaryItem {
-    min-height: 58px;
-  }
-}
-/* Planner v2.4 — активный фильтр умной сводки */
-
-.smartSummaryItem.active {
-  border-color: #f99303;
-
-  box-shadow:
-    0 0 0 2px rgba(249, 147, 3, .13),
-    0 7px 18px rgba(249, 147, 3, .12);
-
-  transform: translateY(-1px);
-}
-
-.smartSummaryItem.active::after {
-  content: "Показано";
-
-  margin-left: auto;
-
-  padding: 4px 7px;
-
-  border-radius: 999px;
-
-  color: #a85b00;
-  background: #fff0dc;
-
-  font-size: 9px;
-  font-weight: 900;
-  letter-spacing: .03em;
-  text-transform: uppercase;
-}
   </style>
 </head>
 
+
 <body>
 
-  <section
+  <!-- =========================================================
+       LOADING
+       ========================================================= -->
+
+  <div
     class="loadingScreen"
     id="loadingScreen"
   >
+
     <div class="loadingCard">
+
       <img
         class="loadingLogo"
-        src="/favicon.png"
+        src="../favicon.png"
         alt=""
       >
 
-      <div class="spinner"></div>
-
       <div class="loadingTitle">
-        Загружаем планировщик
+        Планировщик
       </div>
 
       <div
         class="loadingText"
         id="loadingText"
       >
-        Проверяем авторизацию и подключаемся к общей базе…
+        Подключаемся к Рабочей станции…
       </div>
+
+      <div class="loadingSpinner"></div>
+
     </div>
-  </section>
 
-  <main class="app">
+  </div>
 
-    <section class="hero">
-      <div class="heroTop">
 
-        <div class="heroMain">
+  <!-- =========================================================
+       APPLICATION
+       ========================================================= -->
 
-          <a
-            class="backLink"
-            href="../index.html"
+  <div class="appShell">
+
+    <main class="page">
+
+
+      <!-- =====================================================
+           HEADER
+           ===================================================== -->
+
+      <header class="topbar">
+
+        <div class="brandArea">
+
+          <img
+            class="brandLogo"
+            src="../favicon.png"
+            alt=""
           >
-            ← На главную
-          </a>
 
-          <div class="eyebrow">
-            ДжемБаланс · Работа с лидами
+          <div class="brandText">
+
+            <h1 class="brandTitle">
+              Рабочая станция
+            </h1>
+
+            <div class="brandSubtitle">
+              Планировщик потенциальных клиентов
+            </div>
+
           </div>
-
-          <h1>
-            Планировщик потенциальных клиентов
-          </h1>
-
-          <p class="heroSubtitle">
-            Общая рабочая таблица команды. Фиксируйте контакты,
-            предыдущие разговоры, приоритет и дату следующего
-            общения с потенциальным клиентом.
-          </p>
 
         </div>
 
-        <div class="heroActions">
 
-          <div class="userBadge">
+        <div class="topbarRight">
+
+          <div class="userBox">
+
             <div
               class="userAvatar"
               id="userAvatar"
             >
-              Д
+              ДБ
             </div>
 
-            <div>
+            <div class="userInfo">
+
               <div
                 class="userName"
                 id="userName"
@@ -2246,1030 +2891,1914 @@ tbody td {
               <div
                 class="userEmail"
                 id="userEmail"
-              ></div>
+              >
+              </div>
+
             </div>
+
           </div>
 
-          <button
-            class="button button-primary"
-            id="addLeadBtn"
-            type="button"
-          >
-            ＋ Добавить клиента
-          </button>
 
           <button
-            class="button button-hero"
+            class="button button-light"
             id="notificationBtn"
             type="button"
           >
             🔔 Включить уведомления
           </button>
 
-        </div>
 
-      </div>
-    </section>
-
-    <div
-      class="infoNote"
-      id="notificationNote"
-    >
-      <div class="infoIcon">🔔</div>
-
-      <div>
-        Ближайшие контакты автоматически поднимаются вверх.
-        В день контакта браузер сможет показать напоминание,
-        если вы разрешите уведомления.
-      </div>
-    </div>
-
-    <div
-      class="migrationPanel"
-      id="migrationPanel"
-    >
-      <div>
-        <strong>
-          Найдены старые записи на этом компьютере.
-        </strong>
-
-        <br>
-
-        Их можно один раз перенести из старого локального
-        планировщика в общую базу.
-      </div>
-
-      <div class="migrationActions">
-        <button
-          class="button button-light button-small"
-          id="skipMigrationBtn"
-          type="button"
-        >
-          Не переносить
-        </button>
-
-        <button
-          class="button button-accent button-small"
-          id="migrateBtn"
-          type="button"
-        >
-          Перенести записи
-        </button>
-      </div>
-    </div>
-
-    <section class="stats">
-
-      <article class="stat">
-        <div class="statLabel">
-          Активные лиды
-        </div>
-
-        <div
-          class="statValue"
-          id="statActive"
-        >
-          0
-        </div>
-
-        <div class="statHint">
-          Без завершённых и неактуальных
-        </div>
-      </article>
-
-      <article class="stat today">
-        <div class="statLabel">
-          На сегодня
-        </div>
-
-        <div
-          class="statValue"
-          id="statToday"
-        >
-          0
-        </div>
-
-        <div class="statHint">
-          Контакты на текущую дату
-        </div>
-      </article>
-
-      <article class="stat soon">
-        <div class="statLabel">
-          Ближайшие 7 дней
-        </div>
-
-        <div
-          class="statValue"
-          id="statWeek"
-        >
-          0
-        </div>
-
-        <div class="statHint">
-          Включая сегодняшние
-        </div>
-      </article>
-
-      <article class="stat overdue">
-        <div class="statLabel">
-          Просрочено
-        </div>
-
-        <div
-          class="statValue"
-          id="statOverdue"
-        >
-          0
-        </div>
-
-        <div class="statHint">
-          Требуется связаться
-        </div>
-      </article>
-
-      <article class="stat noDate">
-        <div class="statLabel">
-          Без даты
-        </div>
-
-        <div
-          class="statValue"
-          id="statNoDate"
-        >
-          0
-        </div>
-
-        <div class="statHint">
-          Следующий контакт не назначен
-        </div>
-      </article>
-
-    </section>
-
-    <section class="panel">
-
-      <div class="toolbar">
-
-        <div class="field">
-          <label for="searchInput">
-            Поиск
-          </label>
-
-          <input
-            id="searchInput"
-            type="search"
-            placeholder="Клиент, телефон, ИНН, сумма..."
-            autocomplete="off"
+          <a
+            class="button button-light backLink"
+            href="../index.html"
           >
-        </div>
-
-        <div class="field">
-          <label for="statusFilter">
-            Статус
-          </label>
-
-          <select id="statusFilter">
-            <option value="all">Все статусы</option>
-            <option value="new">Новый лид</option>
-            <option value="contacted">Связались</option>
-            <option value="callback">Назначен контакт</option>
-            <option value="transition">Готовим переход</option>
-            <option value="contract">Заключаем договор</option>
-            <option value="client">Стал клиентом</option>
-            <option value="paused">Отложен</option>
-            <option value="lost">Неактуально</option>
-          </select>
-        </div>
-
-        <div class="field">
-  <label for="priorityFilter">
-    Приоритет
-  </label>
-
-  <select id="priorityFilter">
-    <option value="all">Все</option>
-    <option value="high">Высокий</option>
-    <option value="medium">Средний</option>
-    <option value="low">Низкий</option>
-    <option value="none">Не указан</option>
-  </select>
-</div>
-
-<div class="field">
-  <label for="responsibleFilter">
-    Ответственный
-  </label>
-
-  <select id="responsibleFilter">
-    <option value="all">
-      Все сотрудники
-    </option>
-
-    <option value="mine">
-      Только мои
-    </option>
-
-    <option value="none">
-      Не назначен
-    </option>
-  </select>
-</div>
-
-<div class="field">
-  <label for="dateFilter">
-            Дата контакта
-          </label>
-
-          <select id="dateFilter">
-            <option value="all">Все записи</option>
-            <option value="today">Сегодня</option>
-            <option value="week">Ближайшие 7 дней</option>
-            <option value="overdue">Просроченные</option>
-            <option value="future">Будущие</option>
-            <option value="nodate">Без даты</option>
-            <option value="closed">Завершённые</option>
-          </select>
-        </div>
-
-        <div class="field">
-          <label for="sortSelect">
-            Сортировка
-          </label>
-
-          <select id="sortSelect">
-            <option value="nearest">
-              По ближайшей дате
-            </option>
-
-            <option value="priority">
-              По приоритету
-            </option>
-
-            <option value="updated">
-              Недавно изменённые
-            </option>
-
-            <option value="newest">
-              Сначала новые
-            </option>
-
-            <option value="name">
-              По названию
-            </option>
-          </select>
-        </div>
-
-        <div class="toolbarActions">
-          <button
-            class="button button-light"
-            id="resetFiltersBtn"
-            type="button"
-          >
-            Сбросить
-          </button>
-        </div>
-
-      </div>
-
-      <div class="secondaryToolbar">
-
-        <div
-          class="visibleCount"
-          id="visibleCount"
-        >
-          Загружаем данные…
-        </div>
-
-        <div class="secondaryActions">
-
-          <button
-            class="button button-light button-small"
-            id="refreshBtn"
-            type="button"
-          >
-            ↻ Обновить
-          </button>
-
-          <button
-            class="button button-light button-small"
-            id="exportBtn"
-            type="button"
-          >
-            Скачать копию
-          </button>
+            ← На главную
+          </a>
 
         </div>
 
-      </div>
+      </header>
 
-      <div class="tableWrap">
 
-        <table>
+      <!-- =====================================================
+           HERO
+           ===================================================== -->
 
-          <thead>
-            <tr>
-              <th class="col-client">Клиент</th>
-              <th class="col-business">Канал и деятельность</th>
-              <th class="col-contacts">Контакты</th>
-              <th class="col-method">Способ связи</th>
-              <th class="col-amount">Оговорённая сумма</th>
-              <th class="col-priority">Приоритет</th>
-<th class="col-responsible">Ответственный</th>
-              <th class="col-date">Следующий контакт</th>
-              <th class="col-status">Статус</th>
-              <th class="col-dialogue">Диалог и следующий шаг</th>
-              <th class="col-notes">Примечания</th>
-              <th class="col-actions">Действия</th>
-            </tr>
-          </thead>
-
-          <tbody id="leadTableBody">
-            <tr>
-              <td
-                class="emptyCell"
-                colspan="12"
-              >
-                Загружаем записи…
-              </td>
-            </tr>
-          </tbody>
-
-        </table>
-
-      </div>
-
-    </section>
-
-  </main>
-
-  <!-- Добавление / редактирование -->
-
-  <div
-    class="modalBackdrop"
-    id="modalBackdrop"
-  >
-
-    <section
-      class="modal"
-      role="dialog"
-      aria-modal="true"
-      aria-labelledby="modalTitle"
-    >
-
-      <div class="modalHeader">
+      <section class="hero">
 
         <div>
-          <h2 id="modalTitle">
-            Новый потенциальный клиент
+
+          <h2 class="heroTitle">
+            Планировщик
           </h2>
 
-          <div class="modalSubtitle">
-            Заполните всё, что уже известно.
-            Обязательно только имя или название клиента.
-          </div>
-        </div>
-
-        <button
-          class="closeButton"
-          id="closeModalBtn"
-          type="button"
-          aria-label="Закрыть"
-        >
-          ×
-        </button>
-
-      </div>
-
-      <form id="leadForm">
-
-        <div class="modalBody">
-
-          <input
-            id="leadId"
-            type="hidden"
-          >
-
-          <section class="formSection">
-
-            <h3 class="formSectionTitle">
-              Основная информация
-            </h3>
-
-            <div class="formGrid">
-
-              <div class="field">
-                <label for="clientName">
-                  Имя или название
-                  <span class="required">*</span>
-                </label>
-
-                <input
-                  id="clientName"
-                  maxlength="180"
-                  required
-                  placeholder="Например: Вдовин Ф. А."
-                >
-              </div>
-
-              <div class="field">
-                <label for="orgForm">
-                  Форма организации
-                </label>
-
-                <input
-                  id="orgForm"
-                  list="orgFormOptions"
-                  maxlength="80"
-                  placeholder="ИП, ООО..."
-                >
-
-                <datalist id="orgFormOptions">
-                  <option value="ИП"></option>
-                  <option value="ООО"></option>
-                  <option value="АО"></option>
-                  <option value="Самозанятый"></option>
-                  <option value="Физическое лицо"></option>
-                  <option value="НКО"></option>
-                </datalist>
-              </div>
-
-              <div class="field">
-                <label for="inn">
-                  ИНН
-                </label>
-
-                <input
-                  id="inn"
-                  maxlength="20"
-                  inputmode="numeric"
-                  placeholder="Если известен"
-                >
-              </div>
-
-              <div class="field">
-                <label for="activity">
-                  Сфера деятельности
-                </label>
-
-                <input
-                  id="activity"
-                  maxlength="180"
-                  placeholder="Культурные мероприятия"
-                >
-              </div>
-
-              <div class="field full">
-                <label for="source">
-                  Откуда пришёл лид
-                </label>
-
-                <input
-                  id="source"
-                  list="sourceOptions"
-                  maxlength="140"
-                  placeholder="Рекомендация, сайт, Telegram..."
-                >
-
-                <datalist id="sourceOptions">
-                  <option value="Рекомендация клиента"></option>
-                  <option value="Личная рекомендация"></option>
-                  <option value="Сайт"></option>
-                  <option value="Telegram"></option>
-                  <option value="WhatsApp"></option>
-                  <option value="MAX"></option>
-                  <option value="ВКонтакте"></option>
-                  <option value="2ГИС"></option>
-                  <option value="Яндекс"></option>
-                  <option value="Холодное обращение"></option>
-                  <option value="Повторное обращение"></option>
-                </datalist>
-              </div>
-
-            </div>
-
-          </section>
-
-          <section class="formSection">
-
-            <h3 class="formSectionTitle">
-              Контакты и условия
-            </h3>
-
-            <div class="formGrid">
-
-              <div class="field">
-                <label for="phone">
-                  Телефон
-                </label>
-
-                <input
-                  id="phone"
-                  type="tel"
-                  maxlength="80"
-                  placeholder="+7..."
-                >
-              </div>
-
-              <div class="field">
-                <label for="email">
-                  E-mail
-                </label>
-
-                <input
-                  id="email"
-                  type="email"
-                  maxlength="180"
-                  placeholder="client@example.ru"
-                >
-              </div>
-
-              <div class="field">
-                <label for="communicationMethod">
-                  Способ связи
-                </label>
-
-                <select id="communicationMethod">
-                  <option value="">Не указан</option>
-                  <option value="phone">Телефон</option>
-                  <option value="telegram">Telegram</option>
-                  <option value="whatsapp">WhatsApp</option>
-                  <option value="max">MAX</option>
-                  <option value="email">E-mail</option>
-                  <option value="meeting">Личная встреча</option>
-                  <option value="other">Другое</option>
-                </select>
-              </div>
-
-              <div class="field">
-                <label for="estimatedAmount">
-                  Предварительная сумма
-                </label>
-
-                <input
-                  id="estimatedAmount"
-                  maxlength="120"
-                  placeholder="15 000 ₽/мес."
-                >
-              </div>
-
-             <div class="field">
-  <label for="priority">
-    Приоритет
-  </label>
-
-  <select id="priority">
-    <option value="none">Не указан</option>
-    <option value="high">Высокий — красный</option>
-    <option value="medium">Средний — оранжевый</option>
-    <option value="low">Низкий — зелёный</option>
-  </select>
-</div>
-
-<div class="field">
-  <label for="responsibleUser">
-    Ответственный сотрудник
-  </label>
-
-  <select id="responsibleUser">
-    <option value="">
-      Не назначен
-    </option>
-  </select>
-
-  <div class="fieldHint">
-    Для нового лида автоматически выбирается
-    текущий сотрудник. При необходимости можно
-    назначить другого.
-  </div>
-</div>
-
-<div class="field">
-  <label for="status">
-                  Статус
-                </label>
-
-                <select id="status">
-                  <option value="new">Новый лид</option>
-                  <option value="contacted">Связались</option>
-                  <option value="callback">Назначен контакт</option>
-                  <option value="transition">Готовим переход</option>
-                  <option value="contract">Заключаем договор</option>
-                  <option value="client">Стал клиентом</option>
-                  <option value="paused">Отложен</option>
-                  <option value="lost">Неактуально</option>
-                </select>
-              </div>
-
-              <div class="field full">
-                <label for="nextContact">
-                  Когда связаться
-                </label>
-
-                <input
-                  id="nextContact"
-                  type="datetime-local"
-                >
-
-                <div class="fieldHint">
-                  Именно эта дата используется для сортировки
-                  и напоминаний.
-                </div>
-              </div>
-
-            </div>
-
-          </section>
-
-          <section class="formSection">
-
-            <h3 class="formSectionTitle">
-              История общения
-            </h3>
-
-            <div class="formGrid">
-
-              <div class="field full">
-                <label for="lastDialogue">
-                  О чём говорили в прошлый раз
-                </label>
-
-                <textarea
-                  id="lastDialogue"
-                  maxlength="3000"
-                  placeholder="Что обсуждали и о чём договорились..."
-                ></textarea>
-              </div>
-
-              <div class="field full">
-                <label for="nextStep">
-                  Что сделать дальше
-                </label>
-
-                <textarea
-                  id="nextStep"
-                  maxlength="2000"
-                  placeholder="Позвонить, прислать предложение, подготовить договор..."
-                ></textarea>
-              </div>
-
-              <div class="field full">
-                <label for="notes">
-                  Дополнительные примечания
-                </label>
-
-                <textarea
-                  id="notes"
-                  maxlength="3000"
-                  placeholder="Любая другая полезная информация..."
-                ></textarea>
-              </div>
-
-            </div>
-
-          </section>
+          <p class="heroText">
+            Лиды, договорённости, следующие контакты,
+            ответственные сотрудники и рабочие материалы
+            в одном месте.
+          </p>
 
         </div>
 
-        <div class="modalFooter">
 
-          <button
-            class="button button-light"
-            id="cancelBtn"
-            type="button"
-          >
-            Отмена
-          </button>
+        <div class="heroActions">
 
           <button
             class="button button-accent"
-            id="saveLeadBtn"
-            type="submit"
-          >
-            Сохранить запись
-          </button>
-
-        </div>
-
-      </form>
-
-    </section>
-
-  </div>
-<div
-  class="modalBackdrop"
-  id="quickContactBackdrop"
->
-  <section
-    class="quickContactCard"
-    role="dialog"
-    aria-modal="true"
-    aria-labelledby="quickContactTitle"
-  >
-
-    <div class="modalHeader">
-
-      <div>
-        <h2 id="quickContactTitle">
-          Связались с клиентом
-        </h2>
-
-        <div class="modalSubtitle">
-          Зафиксируйте результат разговора
-          и назначьте следующий контакт.
-        </div>
-      </div>
-
-      <button
-        class="closeButton"
-        id="quickContactCloseBtn"
-        type="button"
-        aria-label="Закрыть"
-      >
-        ×
-      </button>
-
-    </div>
-
-    <form id="quickContactForm">
-
-      <div class="quickContactBody">
-
-        <input
-          id="quickContactLeadId"
-          type="hidden"
-        >
-
-        <div
-          class="quickContactClientName"
-          id="quickContactClient"
-        >
-          Клиент
-        </div>
-
-        <div class="quickContactGrid">
-
-          <div class="field">
-            <label for="quickContactPreset">
-              Следующий контакт
-            </label>
-
-            <select id="quickContactPreset">
-              <option value="tomorrow">
-                Завтра
-              </option>
-
-              <option value="week" selected>
-                Через неделю
-              </option>
-
-              <option value="month">
-                Через месяц
-              </option>
-
-              <option value="custom">
-                Выбрать дату вручную
-              </option>
-            </select>
-          </div>
-
-          <div class="field">
-            <label for="quickContactDate">
-              Точная дата и время
-            </label>
-
-            <input
-              id="quickContactDate"
-              type="datetime-local"
-              required
-            >
-          </div>
-
-          <div class="field full">
-            <label for="quickContactResponsible">
-              Ответственный
-            </label>
-
-            <select id="quickContactResponsible">
-              <option value="">
-                Не назначен
-              </option>
-            </select>
-          </div>
-
-          <div class="field full">
-            <label for="quickContactComment">
-              Что обсудили
-            </label>
-
-            <textarea
-              id="quickContactComment"
-              maxlength="3000"
-              placeholder="Например: договорились вернуться к вопросу через неделю, ждёт окончание текущего договора..."
-            ></textarea>
-
-            <div class="quickContactHint">
-              Этот текст станет актуальным
-              содержимым поля «Предыдущий диалог».
-            </div>
-          </div>
-
-        </div>
-
-      </div>
-
-      <div class="modalFooter">
-
-        <button
-          class="button button-light"
-          id="quickContactCancelBtn"
-          type="button"
-        >
-          Отмена
-        </button>
-
-        <button
-          class="button button-accent"
-          id="quickContactSaveBtn"
-          type="submit"
-        >
-          Сохранить
-        </button>
-
-      </div>
-
-    </form>
-
-  </section>
-</div>
-
-<!-- ======================================================
-     Файлы клиента
-     ====================================================== -->
-
-<div
-  class="modalBackdrop"
-  id="filesBackdrop"
->
-  <section
-    class="filesCard"
-    role="dialog"
-    aria-modal="true"
-    aria-labelledby="filesTitle"
-  >
-
-    <div class="modalHeader">
-
-      <div>
-        <h2 id="filesTitle">
-          Файлы клиента
-        </h2>
-
-        <div class="modalSubtitle">
-          Прикрепляйте документы, изображения,
-          таблицы и другие рабочие материалы.
-        </div>
-      </div>
-
-      <button
-        class="closeButton"
-        id="filesCloseBtn"
-        type="button"
-        aria-label="Закрыть"
-      >
-        ×
-      </button>
-
-    </div>
-
-    <div class="filesBody">
-
-      <input
-        id="filesLeadId"
-        type="hidden"
-      >
-
-      <div
-        class="filesClientName"
-        id="filesClient"
-      >
-        Клиент
-      </div>
-
-      <section class="fileUploadBox">
-
-        <div
-          class="fileDropZone"
-          id="fileDropZone"
-          tabindex="0"
-          role="button"
-          aria-label="Выбрать файл"
-        >
-
-          <div class="fileDropIcon">
-            📎
-          </div>
-
-          <div class="fileDropTitle">
-            Выберите файл или перетащите его сюда
-          </div>
-
-          <div class="fileDropText">
-            Документы, таблицы, PDF, изображения
-            и другие рабочие файлы.
-          </div>
-
-          <div
-            class="selectedFileName"
-            id="selectedFileName"
-          >
-            Файл не выбран
-          </div>
-
-        </div>
-
-        <input
-          id="fileInput"
-          type="file"
-          hidden
-        >
-
-        <div class="fileUploadFields">
-
-          <div class="field">
-            <label for="fileDescription">
-              Комментарий к файлу
-            </label>
-
-            <input
-              id="fileDescription"
-              type="text"
-              maxlength="1000"
-              placeholder="Например: коммерческое предложение от 10.08"
-            >
-          </div>
-
-          <button
-            class="button button-accent"
-            id="uploadFileBtn"
+            id="addLeadBtn"
             type="button"
           >
-            ＋ Прикрепить файл
+            + Новый потенциальный клиент
           </button>
 
-        </div>
-
-        <div class="fileLimitHint">
-          Максимальный размер одного файла сейчас — 20 МБ.
         </div>
 
       </section>
 
-      <h3 class="filesSectionTitle">
-        Прикреплённые файлы
-      </h3>
+
+      <!-- =====================================================
+           STATISTICS
+           ===================================================== -->
+
+      <section
+        class="stats"
+        aria-label="Статистика"
+      >
+
+        <div class="statCard">
+
+          <div class="statLabel">
+            Активные
+          </div>
+
+          <div
+            class="statValue"
+            id="statActive"
+          >
+            0
+          </div>
+
+        </div>
+
+
+        <div class="statCard today">
+
+          <div class="statLabel">
+            Сегодня
+          </div>
+
+          <div
+            class="statValue"
+            id="statToday"
+          >
+            0
+          </div>
+
+        </div>
+
+
+        <div class="statCard week">
+
+          <div class="statLabel">
+            На 7 дней
+          </div>
+
+          <div
+            class="statValue"
+            id="statWeek"
+          >
+            0
+          </div>
+
+        </div>
+
+
+        <div class="statCard overdue">
+
+          <div class="statLabel">
+            Просрочено
+          </div>
+
+          <div
+            class="statValue"
+            id="statOverdue"
+          >
+            0
+          </div>
+
+        </div>
+
+
+        <div class="statCard">
+
+          <div class="statLabel">
+            Без даты
+          </div>
+
+          <div
+            class="statValue"
+            id="statNoDate"
+          >
+            0
+          </div>
+
+        </div>
+
+      </section>
+
+
+      <!-- =====================================================
+           LEGACY MIGRATION
+           ===================================================== -->
+
+      <section
+        class="migrationPanel"
+        id="migrationPanel"
+      >
+
+        <div class="migrationText">
+          На этом компьютере найдены старые локальные
+          записи Planner. Их можно перенести в общую базу.
+        </div>
+
+
+        <div class="migrationActions">
+
+          <button
+            class="button button-accent"
+            id="migrateBtn"
+            type="button"
+          >
+            Перенести
+          </button>
+
+          <button
+            class="button button-light"
+            id="skipMigrationBtn"
+            type="button"
+          >
+            Не переносить
+          </button>
+
+        </div>
+
+      </section>
+
+
+      <!-- =====================================================
+           SMART SUMMARY
+           ===================================================== -->
+
+      <section
+        class="smartSummary"
+        id="smartSummary"
+        aria-label="Сводка по ближайшим контактам"
+      >
+
+        <div class="smartSummaryIntro">
+
+          <div
+            class="smartSummaryIcon"
+            aria-hidden="true"
+          >
+            🔔
+          </div>
+
+          <div>
+
+            <div class="smartSummaryHeading">
+              Что требует внимания
+            </div>
+
+            <div
+              class="smartSummaryText"
+              id="smartSummaryText"
+            >
+              Проверяем запланированные контакты…
+            </div>
+
+          </div>
+
+        </div>
+
+
+        <div
+          class="smartSummaryItem today"
+          data-summary-filter="today"
+          role="button"
+          tabindex="0"
+          title="Показать контакты на сегодня"
+        >
+
+          <div class="smartSummaryItemIcon">
+            ●
+          </div>
+
+          <div>
+
+            <div
+              class="smartSummaryNumber"
+              id="smartSummaryToday"
+            >
+              0
+            </div>
+
+            <div class="smartSummaryLabel">
+              Сегодня
+            </div>
+
+          </div>
+
+        </div>
+
+
+        <div
+          class="smartSummaryItem overdue"
+          data-summary-filter="overdue"
+          role="button"
+          tabindex="0"
+          title="Показать просроченные контакты"
+        >
+
+          <div class="smartSummaryItemIcon">
+            !
+          </div>
+
+          <div>
+
+            <div
+              class="smartSummaryNumber"
+              id="smartSummaryOverdue"
+            >
+              0
+            </div>
+
+            <div class="smartSummaryLabel">
+              Просрочено
+            </div>
+
+          </div>
+
+        </div>
+
+
+        <div
+          class="smartSummaryItem week"
+          data-summary-filter="week"
+          role="button"
+          tabindex="0"
+          title="Показать ближайшие контакты"
+        >
+
+          <div class="smartSummaryItemIcon">
+            ✓
+          </div>
+
+          <div>
+
+            <div
+              class="smartSummaryNumber"
+              id="smartSummaryWeek"
+            >
+              0
+            </div>
+
+            <div class="smartSummaryLabel">
+              Ближайшие 7 дней
+            </div>
+
+          </div>
+
+        </div>
+
+      </section>
+
+
+      <!-- =====================================================
+           PLANNER
+           ===================================================== -->
+
+      <section class="plannerPanel">
+
+
+        <!-- FILTERS -->
+
+        <div class="toolbar">
+
+          <div class="field">
+
+            <label for="searchInput">
+              Поиск
+            </label>
+
+            <input
+              id="searchInput"
+              type="search"
+              placeholder="Клиент, телефон, ИНН, сумма…"
+              autocomplete="off"
+            >
+
+          </div>
+
+
+          <div class="field">
+
+            <label for="statusFilter">
+              Статус
+            </label>
+
+            <select id="statusFilter">
+
+              <option value="all">
+                Все статусы
+              </option>
+
+              <option value="new">
+                Новый лид
+              </option>
+
+              <option value="contacted">
+                Связались
+              </option>
+
+              <option value="callback">
+                Назначен контакт
+              </option>
+
+              <option value="transition">
+                Готовим переход
+              </option>
+
+              <option value="contract">
+                Заключаем договор
+              </option>
+
+              <option value="client">
+                Стал клиентом
+              </option>
+
+              <option value="paused">
+                Отложен
+              </option>
+
+              <option value="lost">
+                Неактуально
+              </option>
+
+            </select>
+
+          </div>
+
+
+          <div class="field">
+
+            <label for="priorityFilter">
+              Приоритет
+            </label>
+
+            <select id="priorityFilter">
+
+              <option value="all">
+                Все
+              </option>
+
+              <option value="high">
+                Высокий
+              </option>
+
+              <option value="medium">
+                Средний
+              </option>
+
+              <option value="low">
+                Низкий
+              </option>
+
+              <option value="none">
+                Не указан
+              </option>
+
+            </select>
+
+          </div>
+
+
+          <div class="field">
+
+            <label for="responsibleFilter">
+              Ответственный
+            </label>
+
+            <select id="responsibleFilter">
+
+              <option value="all">
+                Все сотрудники
+              </option>
+
+              <option value="mine">
+                Только мои
+              </option>
+
+              <option value="none">
+                Не назначен
+              </option>
+
+            </select>
+
+          </div>
+
+
+          <div class="field">
+
+            <label for="dateFilter">
+              Дата контакта
+            </label>
+
+            <select id="dateFilter">
+
+              <option value="all">
+                Все записи
+              </option>
+
+              <option value="today">
+                Сегодня
+              </option>
+
+              <option value="week">
+                Ближайшие 7 дней
+              </option>
+
+              <option value="overdue">
+                Просроченные
+              </option>
+
+              <option value="future">
+                Будущие
+              </option>
+
+              <option value="nodate">
+                Без даты
+              </option>
+
+              <option value="closed">
+                Закрытые
+              </option>
+
+            </select>
+
+          </div>
+
+
+          <div class="field">
+
+            <label for="sortSelect">
+              Сортировка
+            </label>
+
+            <select id="sortSelect">
+
+              <option value="nearest">
+                По ближайшей дате
+              </option>
+
+              <option value="priority">
+                По приоритету
+              </option>
+
+              <option value="name">
+                По клиенту
+              </option>
+
+              <option value="newest">
+                Сначала новые
+              </option>
+
+              <option value="updated">
+                Недавно изменённые
+              </option>
+
+            </select>
+
+          </div>
+
+
+          <div class="toolbarActions">
+
+            <button
+              class="button button-light"
+              id="resetFiltersBtn"
+              type="button"
+            >
+              Сбросить
+            </button>
+
+          </div>
+
+        </div>
+
+
+        <!-- SECONDARY TOOLBAR -->
+
+        <div class="secondaryToolbar">
+
+          <div
+            class="visibleCount"
+            id="visibleCount"
+          >
+            Показано: 0 из 0
+          </div>
+
+
+          <div class="secondaryActions">
+
+            <button
+              class="button button-light"
+              id="refreshBtn"
+              type="button"
+            >
+              ↻ Обновить
+            </button>
+
+            <button
+              class="button button-light"
+              id="exportBtn"
+              type="button"
+            >
+              Скачать копию
+            </button>
+
+          </div>
+
+        </div>
+
+
+        <!-- TABLE -->
+
+        <div class="tableWrap">
+
+          <table>
+
+            <thead>
+
+              <tr>
+
+                <th class="col-client">
+                  Клиент
+                </th>
+
+                <th class="col-business">
+                  Канал и деятельность
+                </th>
+
+                <th class="col-contacts">
+                  Контакты
+                </th>
+
+                <th class="col-method">
+                  Способ связи
+                </th>
+
+                <th class="col-amount">
+                  Оговорённая сумма
+                </th>
+
+                <th class="col-priority">
+                  Приоритет
+                </th>
+
+                <th class="col-responsible">
+                  Ответственный
+                </th>
+
+                <th class="col-date">
+                  Следующий контакт
+                </th>
+
+                <th class="col-status">
+                  Статус
+                </th>
+
+                <th class="col-dialogue">
+                  Диалог и следующий шаг
+                </th>
+
+                <th class="col-notes">
+                  Примечания
+                </th>
+
+                <th class="col-actions">
+                  Действия
+                </th>
+
+              </tr>
+
+            </thead>
+
+
+            <tbody id="leadTableBody">
+
+              <tr>
+
+                <td
+                  class="emptyCell"
+                  colspan="12"
+                >
+
+                  <div class="emptyTitle">
+                    Загружаем Planner…
+                  </div>
+
+                </td>
+
+              </tr>
+
+            </tbody>
+
+          </table>
+
+        </div>
+
+      </section>
+
+
+      <!-- =====================================================
+           MAIN LEAD MODAL
+           ===================================================== -->
 
       <div
-        class="filesList"
-        id="filesList"
+        class="modalBackdrop"
+        id="modalBackdrop"
       >
-        <div class="filesEmpty">
-          <div class="filesEmptyIcon">
-            📎
+
+        <section
+          class="modalCard"
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="modalTitle"
+        >
+
+          <div class="modalHeader">
+
+            <div>
+
+              <h2 id="modalTitle">
+                Новый потенциальный клиент
+              </h2>
+
+              <div class="modalSubtitle">
+                Заполните известную информацию.
+                Поля можно дополнять позднее.
+              </div>
+
+            </div>
+
+
+            <button
+              class="closeButton"
+              id="closeModalBtn"
+              type="button"
+              aria-label="Закрыть"
+            >
+              ×
+            </button>
+
           </div>
 
-          <div class="filesEmptyTitle">
-            Файлов пока нет
-          </div>
 
-          <div class="filesEmptyText">
-            Прикрепите первый файл к этому потенциальному клиенту.
-          </div>
-        </div>
+          <form id="leadForm">
+
+            <div class="modalBody">
+
+              <input
+                id="leadId"
+                type="hidden"
+              >
+
+
+              <div class="formGrid">
+
+                <div class="sectionTitle">
+                  Клиент
+                </div>
+
+
+                <div class="field full">
+
+                  <label for="clientName">
+                    Имя / название *
+                  </label>
+
+                  <input
+                    id="clientName"
+                    type="text"
+                    maxlength="180"
+                    required
+                    placeholder="Например: Вдовин Ф. А."
+                  >
+
+                </div>
+
+
+                <div class="field">
+
+                  <label for="orgForm">
+                    Форма организации
+                  </label>
+
+                  <input
+                    id="orgForm"
+                    type="text"
+                    maxlength="80"
+                    placeholder="ИП, ООО, физлицо…"
+                  >
+
+                </div>
+
+
+                <div class="field">
+
+                  <label for="inn">
+                    ИНН
+                  </label>
+
+                  <input
+                    id="inn"
+                    type="text"
+                    maxlength="20"
+                    inputmode="numeric"
+                    placeholder="Если известен"
+                  >
+
+                </div>
+
+
+                <div class="field">
+
+                  <label for="activity">
+                    Сфера деятельности
+                  </label>
+
+                  <input
+                    id="activity"
+                    type="text"
+                    maxlength="180"
+                    placeholder="Например: культурные мероприятия"
+                  >
+
+                </div>
+
+
+                <div class="field">
+
+                  <label for="source">
+                    Канал / источник
+                  </label>
+
+                  <input
+                    id="source"
+                    type="text"
+                    maxlength="140"
+                    placeholder="Рекомендация, Telegram, банк…"
+                  >
+
+                </div>
+
+
+                <div class="sectionTitle">
+                  Контакты и условия
+                </div>
+
+
+                <div class="field">
+
+                  <label for="phone">
+                    Телефон
+                  </label>
+
+                  <input
+                    id="phone"
+                    type="tel"
+                    maxlength="80"
+                    placeholder="+7..."
+                  >
+
+                </div>
+
+
+                <div class="field">
+
+                  <label for="email">
+                    E-mail
+                  </label>
+
+                  <input
+                    id="email"
+                    type="email"
+                    maxlength="180"
+                    placeholder="mail@example.ru"
+                  >
+
+                </div>
+
+
+                <div class="field">
+
+                  <label for="communicationMethod">
+                    Способ связи
+                  </label>
+
+                  <select id="communicationMethod">
+
+                    <option value="">
+                      Не указан
+                    </option>
+
+                    <option value="phone">
+                      Телефон
+                    </option>
+
+                    <option value="telegram">
+                      Telegram
+                    </option>
+
+                    <option value="whatsapp">
+                      WhatsApp
+                    </option>
+
+                    <option value="max">
+                      MAX
+                    </option>
+
+                    <option value="email">
+                      E-mail
+                    </option>
+
+                    <option value="meeting">
+                      Личная встреча
+                    </option>
+
+                    <option value="other">
+                      Другое
+                    </option>
+
+                  </select>
+
+                </div>
+
+
+                <div class="field">
+
+                  <label for="estimatedAmount">
+                    Предварительная сумма
+                  </label>
+
+                  <input
+                    id="estimatedAmount"
+                    type="text"
+                    maxlength="120"
+                    placeholder="Например: 20 000 ₽"
+                  >
+
+                </div>
+
+
+                <div class="sectionTitle">
+                  Работа с лидом
+                </div>
+
+
+                <div class="field">
+
+                  <label for="priority">
+                    Приоритет
+                  </label>
+
+                  <select id="priority">
+
+                    <option value="none">
+                      Не указан
+                    </option>
+
+                    <option value="high">
+                      Высокий — красный
+                    </option>
+
+                    <option value="medium">
+                      Средний — оранжевый
+                    </option>
+
+                    <option value="low">
+                      Низкий — зелёный
+                    </option>
+
+                  </select>
+
+                </div>
+
+
+                <div class="field">
+
+                  <label for="responsibleUser">
+                    Ответственный сотрудник
+                  </label>
+
+                  <select id="responsibleUser">
+
+                    <option value="">
+                      Не назначен
+                    </option>
+
+                  </select>
+
+                  <div class="fieldHint">
+                    Для нового лида по умолчанию
+                    назначается текущий сотрудник.
+                  </div>
+
+                </div>
+
+
+                <div class="field">
+
+                  <label for="status">
+                    Статус
+                  </label>
+
+                  <select id="status">
+
+                    <option value="new">
+                      Новый лид
+                    </option>
+
+                    <option value="contacted">
+                      Связались
+                    </option>
+
+                    <option value="callback">
+                      Назначен контакт
+                    </option>
+
+                    <option value="transition">
+                      Готовим переход
+                    </option>
+
+                    <option value="contract">
+                      Заключаем договор
+                    </option>
+
+                    <option value="client">
+                      Стал клиентом
+                    </option>
+
+                    <option value="paused">
+                      Отложен
+                    </option>
+
+                    <option value="lost">
+                      Неактуально
+                    </option>
+
+                  </select>
+
+                </div>
+
+
+                <div class="field">
+
+                  <label for="nextContact">
+                    Следующий контакт
+                  </label>
+
+                  <input
+                    id="nextContact"
+                    type="datetime-local"
+                  >
+
+                </div>
+
+
+                <div class="field full">
+
+                  <label for="lastDialogue">
+                    Предыдущий диалог
+                  </label>
+
+                  <textarea
+                    id="lastDialogue"
+                    maxlength="3000"
+                    placeholder="Что обсуждали с клиентом…"
+                  ></textarea>
+
+                </div>
+
+
+                <div class="field full">
+
+                  <label for="nextStep">
+                    Следующий шаг
+                  </label>
+
+                  <textarea
+                    id="nextStep"
+                    maxlength="2000"
+                    placeholder="Что нужно сделать дальше…"
+                  ></textarea>
+
+                </div>
+
+
+                <div class="field full">
+
+                  <label for="notes">
+                    Примечания
+                  </label>
+
+                  <textarea
+                    id="notes"
+                    maxlength="3000"
+                    placeholder="Дополнительная информация…"
+                  ></textarea>
+
+                </div>
+
+              </div>
+
+            </div>
+
+
+            <div class="modalFooter">
+
+              <button
+                class="button button-light"
+                id="cancelBtn"
+                type="button"
+              >
+                Отмена
+              </button>
+
+              <button
+                class="button button-accent"
+                id="saveLeadBtn"
+                type="submit"
+              >
+                Сохранить запись
+              </button>
+
+            </div>
+
+          </form>
+
+        </section>
+
       </div>
 
-    </div>
 
-    <div class="modalFooter">
+      <!-- =====================================================
+           QUICK CONTACT — СВЯЗАЛСЯ
+           ===================================================== -->
 
-      <button
-        class="button button-light"
-        id="filesDoneBtn"
-        type="button"
+      <div
+        class="modalBackdrop"
+        id="quickContactBackdrop"
       >
-        Готово
-      </button>
 
-    </div>
+        <section
+          class="modalCard small"
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="quickContactTitle"
+        >
 
-  </section>
-</div>
+          <div class="modalHeader">
 
-  <div
-    class="toastStack"
-    id="toastStack"
-    aria-live="polite"
-  ></div>
+            <div>
+
+              <h2 id="quickContactTitle">
+                Связались с клиентом
+              </h2>
+
+              <div class="modalSubtitle">
+                Зафиксируйте результат разговора
+                и назначьте следующий контакт.
+              </div>
+
+            </div>
+
+
+            <button
+              class="closeButton"
+              id="quickContactCloseBtn"
+              type="button"
+              aria-label="Закрыть"
+            >
+              ×
+            </button>
+
+          </div>
+
+
+          <form id="quickContactForm">
+
+            <div class="modalBody">
+
+              <input
+                id="quickContactLeadId"
+                type="hidden"
+              >
+
+
+              <div
+                class="quickContactClientName"
+                id="quickContactClient"
+              >
+                Клиент
+              </div>
+
+
+              <div class="quickContactGrid">
+
+                <div class="field">
+
+                  <label for="quickContactPreset">
+                    Следующий контакт
+                  </label>
+
+                  <select id="quickContactPreset">
+
+                    <option value="tomorrow">
+                      Завтра
+                    </option>
+
+                    <option
+                      value="week"
+                      selected
+                    >
+                      Через неделю
+                    </option>
+
+                    <option value="month">
+                      Через месяц
+                    </option>
+
+                    <option value="custom">
+                      Выбрать вручную
+                    </option>
+
+                  </select>
+
+                </div>
+
+
+                <div class="field">
+
+                  <label for="quickContactDate">
+                    Точная дата и время
+                  </label>
+
+                  <input
+                    id="quickContactDate"
+                    type="datetime-local"
+                    required
+                  >
+
+                </div>
+
+
+                <div class="field full">
+
+                  <label for="quickContactResponsible">
+                    Ответственный
+                  </label>
+
+                  <select id="quickContactResponsible">
+
+                    <option value="">
+                      Не назначен
+                    </option>
+
+                  </select>
+
+                </div>
+
+
+                <div class="field full">
+
+                  <label for="quickContactComment">
+                    Что обсудили
+                  </label>
+
+                  <textarea
+                    id="quickContactComment"
+                    maxlength="3000"
+                    placeholder="Например: договорились вернуться к вопросу через неделю…"
+                  ></textarea>
+
+                  <div class="quickContactHint">
+                    Этот текст станет актуальным
+                    содержимым поля «Предыдущий диалог».
+                  </div>
+
+                </div>
+
+              </div>
+
+            </div>
+
+
+            <div class="modalFooter">
+
+              <button
+                class="button button-light"
+                id="quickContactCancelBtn"
+                type="button"
+              >
+                Отмена
+              </button>
+
+              <button
+                class="button button-accent"
+                id="quickContactSaveBtn"
+                type="submit"
+              >
+                Сохранить
+              </button>
+
+            </div>
+
+          </form>
+
+        </section>
+
+      </div>
+
+
+      <!-- =====================================================
+           v2.5 — QUICK ACTIONS
+           ===================================================== -->
+
+      <div
+        class="modalBackdrop"
+        id="quickActionsBackdrop"
+      >
+
+        <section
+          class="modalCard small"
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="quickActionsTitle"
+        >
+
+          <div class="modalHeader">
+
+            <div>
+
+              <h2 id="quickActionsTitle">
+                Быстрые действия
+              </h2>
+
+              <div class="modalSubtitle">
+                Выберите, что нужно сделать с этим лидом.
+              </div>
+
+            </div>
+
+
+            <button
+              class="closeButton"
+              id="quickActionsCloseBtn"
+              type="button"
+              aria-label="Закрыть"
+            >
+              ×
+            </button>
+
+          </div>
+
+
+          <div class="quickActionsBody">
+
+            <input
+              id="quickActionsLeadId"
+              type="hidden"
+            >
+
+
+            <div
+              class="quickActionsClientName"
+              id="quickActionsClient"
+            >
+              Клиент
+            </div>
+
+
+            <div class="quickActionsGrid">
+
+
+              <!-- ПЕРЕНЕСТИ -->
+
+              <button
+                class="quickActionButton"
+                id="quickActionRescheduleBtn"
+                type="button"
+              >
+
+                <span class="quickActionIcon">
+                  ↗
+                </span>
+
+                <span class="quickActionText">
+
+                  <span class="quickActionTitle">
+                    Перенести контакт
+                  </span>
+
+                  <span class="quickActionDescription">
+                    Быстро назначить новую дату,
+                    не меняя статус лида.
+                  </span>
+
+                </span>
+
+                <span class="quickActionArrow">
+                  ›
+                </span>
+
+              </button>
+
+
+              <!-- ОТЛОЖИТЬ -->
+
+              <button
+                class="quickActionButton neutral"
+                id="quickActionPauseBtn"
+                type="button"
+              >
+
+                <span class="quickActionIcon">
+                  ‖
+                </span>
+
+                <span class="quickActionText">
+
+                  <span class="quickActionTitle">
+                    Отложить
+                  </span>
+
+                  <span class="quickActionDescription">
+                    Поставить статус «Отложен»
+                    и выбрать дату возврата к лиду.
+                  </span>
+
+                </span>
+
+                <span class="quickActionArrow">
+                  ›
+                </span>
+
+              </button>
+
+
+              <!-- СТАЛ КЛИЕНТОМ -->
+
+              <button
+                class="quickActionButton success"
+                id="quickActionClientBtn"
+                type="button"
+              >
+
+                <span class="quickActionIcon">
+                  ✓
+                </span>
+
+                <span class="quickActionText">
+
+                  <span class="quickActionTitle">
+                    Стал клиентом
+                  </span>
+
+                  <span class="quickActionDescription">
+                    Закрыть лид успешно.
+                    Напоминания по нему прекратятся.
+                  </span>
+
+                </span>
+
+                <span class="quickActionArrow">
+                  ›
+                </span>
+
+              </button>
+
+
+              <!-- НЕАКТУАЛЬНО -->
+
+              <button
+                class="quickActionButton lost"
+                id="quickActionLostBtn"
+                type="button"
+              >
+
+                <span class="quickActionIcon">
+                  ×
+                </span>
+
+                <span class="quickActionText">
+
+                  <span class="quickActionTitle">
+                    Неактуально
+                  </span>
+
+                  <span class="quickActionDescription">
+                    Закрыть лид без удаления записи
+                    и накопленной информации.
+                  </span>
+
+                </span>
+
+                <span class="quickActionArrow">
+                  ›
+                </span>
+
+              </button>
+
+            </div>
+
+
+            <div class="quickActionsDangerZone">
+
+              <button
+                class="quickActionButton danger"
+                id="quickActionDeleteBtn"
+                type="button"
+              >
+
+                <span class="quickActionIcon">
+                  ×
+                </span>
+
+                <span class="quickActionText">
+
+                  <span class="quickActionTitle">
+                    Удалить запись
+                  </span>
+
+                  <span class="quickActionDescription">
+                    Полностью удалить лид и прикреплённые
+                    к нему файлы.
+                  </span>
+
+                </span>
+
+                <span class="quickActionArrow">
+                  ›
+                </span>
+
+              </button>
+
+            </div>
+
+          </div>
+
+
+          <div class="modalFooter">
+
+            <button
+              class="button button-light"
+              id="quickActionsCancelBtn"
+              type="button"
+            >
+              Закрыть
+            </button>
+
+          </div>
+
+        </section>
+
+      </div>
+
+
+      <!-- =====================================================
+           v2.5 — RESCHEDULE / PAUSE
+           ===================================================== -->
+
+      <div
+        class="modalBackdrop"
+        id="actionScheduleBackdrop"
+      >
+
+        <section
+          class="modalCard small"
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="actionScheduleTitle"
+        >
+
+          <div class="modalHeader">
+
+            <div>
+
+              <h2 id="actionScheduleTitle">
+                Перенести контакт
+              </h2>
+
+              <div
+                class="modalSubtitle"
+                id="actionScheduleSubtitle"
+              >
+                Назначьте новую дату.
+              </div>
+
+            </div>
+
+
+            <button
+              class="closeButton"
+              id="actionScheduleCloseBtn"
+              type="button"
+              aria-label="Закрыть"
+            >
+              ×
+            </button>
+
+          </div>
+
+
+          <form id="actionScheduleForm">
+
+            <div class="modalBody">
+
+              <input
+                id="actionScheduleLeadId"
+                type="hidden"
+              >
+
+              <input
+                id="actionScheduleMode"
+                type="hidden"
+              >
+
+
+              <div
+                class="actionClientName"
+                id="actionScheduleClient"
+              >
+                Клиент
+              </div>
+
+
+              <div class="actionScheduleGrid">
+
+                <div class="field">
+
+                  <label for="actionSchedulePreset">
+                    Когда
+                  </label>
+
+                  <select id="actionSchedulePreset">
+
+                    <option value="tomorrow">
+                      Завтра
+                    </option>
+
+                    <option
+                      value="week"
+                      selected
+                    >
+                      Через неделю
+                    </option>
+
+                    <option value="month">
+                      Через месяц
+                    </option>
+
+                    <option value="custom">
+                      Выбрать вручную
+                    </option>
+
+                  </select>
+
+                </div>
+
+
+                <div class="field">
+
+                  <label for="actionScheduleDate">
+                    Точная дата и время
+                  </label>
+
+                  <input
+                    id="actionScheduleDate"
+                    type="datetime-local"
+                    required
+                  >
+
+                </div>
+
+
+                <div class="field full">
+
+                  <label for="actionScheduleComment">
+                    Комментарий / следующий шаг
+                  </label>
+
+                  <textarea
+                    id="actionScheduleComment"
+                    maxlength="2000"
+                    placeholder="Например: вернуться после окончания текущего договора…"
+                  ></textarea>
+
+                  <div class="fieldHint">
+                    Если заполнить это поле,
+                    текст сохранится как «Следующий шаг».
+                  </div>
+
+                </div>
+
+              </div>
+
+            </div>
+
+
+            <div class="modalFooter">
+
+              <button
+                class="button button-light"
+                id="actionScheduleCancelBtn"
+                type="button"
+              >
+                Отмена
+              </button>
+
+              <button
+                class="button button-accent"
+                id="actionScheduleSaveBtn"
+                type="submit"
+              >
+                Сохранить
+              </button>
+
+            </div>
+
+          </form>
+
+        </section>
+
+      </div>
+
+
+      <!-- =====================================================
+           FILES
+           ===================================================== -->
+
+      <div
+        class="modalBackdrop"
+        id="filesBackdrop"
+      >
+
+        <section
+          class="filesCard"
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="filesTitle"
+        >
+
+          <div class="modalHeader">
+
+            <div>
+
+              <h2 id="filesTitle">
+                Файлы клиента
+              </h2>
+
+              <div class="modalSubtitle">
+                Документы, изображения, таблицы
+                и другие рабочие материалы.
+              </div>
+
+            </div>
+
+
+            <button
+              class="closeButton"
+              id="filesCloseBtn"
+              type="button"
+              aria-label="Закрыть"
+            >
+              ×
+            </button>
+
+          </div>
+
+
+          <div class="filesBody">
+
+            <input
+              id="filesLeadId"
+              type="hidden"
+            >
+
+
+            <div
+              class="filesClientName"
+              id="filesClient"
+            >
+              Клиент
+            </div>
+
+
+            <section class="fileUploadBox">
+
+              <div
+                class="fileDropZone"
+                id="fileDropZone"
+                tabindex="0"
+                role="button"
+                aria-label="Выбрать файл"
+              >
+
+                <div class="fileDropIcon">
+                  📎
+                </div>
+
+                <div class="fileDropTitle">
+                  Выберите файл или перетащите его сюда
+                </div>
+
+                <div class="fileDropText">
+                  Документы, таблицы, PDF,
+                  изображения и другие рабочие файлы.
+                </div>
+
+                <div
+                  class="selectedFileName"
+                  id="selectedFileName"
+                >
+                  Файл не выбран
+                </div>
+
+              </div>
+
+
+              <input
+                id="fileInput"
+                type="file"
+                hidden
+              >
+
+
+              <div class="fileUploadFields">
+
+                <div class="field">
+
+                  <label for="fileDescription">
+                    Комментарий к файлу
+                  </label>
+
+                  <input
+                    id="fileDescription"
+                    type="text"
+                    maxlength="1000"
+                    placeholder="Например: коммерческое предложение"
+                  >
+
+                </div>
+
+
+                <button
+                  class="button button-accent"
+                  id="uploadFileBtn"
+                  type="button"
+                >
+                  ＋ Прикрепить файл
+                </button>
+
+              </div>
+
+
+              <div class="fileLimitHint">
+                Максимальный размер одного файла сейчас — 20 МБ.
+              </div>
+
+            </section>
+
+
+            <h3 class="filesSectionTitle">
+              Прикреплённые файлы
+            </h3>
+
+
+            <div
+              class="filesList"
+              id="filesList"
+            >
+
+              <div class="filesEmpty">
+
+                <div class="filesEmptyIcon">
+                  📎
+                </div>
+
+                <div class="filesEmptyTitle">
+                  Файлов пока нет
+                </div>
+
+                <div class="filesEmptyText">
+                  Прикрепите первый файл
+                  к этому потенциальному клиенту.
+                </div>
+
+              </div>
+
+            </div>
+
+          </div>
+
+
+          <div class="modalFooter">
+
+            <button
+              class="button button-light"
+              id="filesDoneBtn"
+              type="button"
+            >
+              Готово
+            </button>
+
+          </div>
+
+        </section>
+
+      </div>
+
+
+      <!-- =====================================================
+           TOASTS
+           ===================================================== -->
+
+      <div
+        class="toastStack"
+        id="toastStack"
+        aria-live="polite"
+      ></div>
+
+
+    </main>
+
+  </div>
+
+
+  <!-- =========================================================
+       SUPABASE
+       ========================================================= -->
+
+  <script
+    src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"
+  ></script>
+
+
+  <!-- =========================================================
+       PLANNER
+       ========================================================= -->
 
   <script src="./planner.js"></script>
 
