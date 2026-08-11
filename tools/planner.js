@@ -1,9 +1,10 @@
 'use strict';
 
 /* ============================================================
-   ДЖЕМБАЛАНС — PLANNER v2.2
+   ДЖЕМБАЛАНС — PLANNER v2.3
    Supabase + Auth + Realtime + Responsible users
    + Quick action "Связался"
+   + Private file attachments
    ============================================================ */
 
 
@@ -16,6 +17,15 @@ const SUPABASE_URL =
 
 const SUPABASE_PUBLISHABLE_KEY =
   'sb_publishable_PqjH12Cbf7Fw9CWxvTPHaQ_MYYq7HQT';
+
+const STORAGE_BUCKET =
+  'crm-files';
+
+const MAX_FILE_SIZE =
+  20 * 1024 * 1024;
+
+const SIGNED_URL_LIFETIME_SECONDS =
+  60 * 5;
 
 
 /* ============================================================
@@ -281,7 +291,7 @@ const elements = {
   toastStack:
     document.getElementById('toastStack'),
 
-  /* Быстрая кнопка "Связался" */
+  /* Быстрый контакт */
 
   quickContactBackdrop:
     document.getElementById('quickContactBackdrop'),
@@ -317,7 +327,45 @@ const elements = {
     document.getElementById('quickContactCancelBtn'),
 
   quickContactSaveBtn:
-    document.getElementById('quickContactSaveBtn')
+    document.getElementById('quickContactSaveBtn'),
+
+  /* Файлы */
+
+  filesBackdrop:
+    document.getElementById('filesBackdrop'),
+
+  filesTitle:
+    document.getElementById('filesTitle'),
+
+  filesClient:
+    document.getElementById('filesClient'),
+
+  filesLeadId:
+    document.getElementById('filesLeadId'),
+
+  filesList:
+    document.getElementById('filesList'),
+
+  fileInput:
+    document.getElementById('fileInput'),
+
+  fileDescription:
+    document.getElementById('fileDescription'),
+
+  uploadFileBtn:
+    document.getElementById('uploadFileBtn'),
+
+  filesCloseBtn:
+    document.getElementById('filesCloseBtn'),
+
+  filesDoneBtn:
+    document.getElementById('filesDoneBtn'),
+
+  fileDropZone:
+    document.getElementById('fileDropZone'),
+
+  selectedFileName:
+    document.getElementById('selectedFileName')
 };
 
 
@@ -344,15 +392,23 @@ let profiles = [];
 
 let leads = [];
 
+let crmFiles = [];
+
 let realtimeChannel = null;
 
 let profilesRealtimeChannel = null;
+
+let filesRealtimeChannel = null;
 
 let isLoadingLeads = false;
 
 let saveInProgress = false;
 
 let quickContactSaveInProgress = false;
+
+let fileUploadInProgress = false;
+
+let activeFilesLeadId = null;
 
 
 /* ============================================================
@@ -451,6 +507,34 @@ function pluralizeRecords(value) {
   return 'записей';
 }
 
+function pluralizeFiles(value) {
+  const number =
+    Math.abs(value) % 100;
+
+  const digit =
+    number % 10;
+
+  if (
+    number >= 11 &&
+    number <= 19
+  ) {
+    return 'файлов';
+  }
+
+  if (digit === 1) {
+    return 'файл';
+  }
+
+  if (
+    digit >= 2 &&
+    digit <= 4
+  ) {
+    return 'файла';
+  }
+
+  return 'файлов';
+}
+
 function getInitials(name, email) {
   const source =
     cleanText(name, 200) ||
@@ -529,6 +613,195 @@ function isClosed(lead) {
   );
 }
 
+function createRandomId() {
+  if (
+    window.crypto &&
+    typeof window.crypto.randomUUID ===
+      'function'
+  ) {
+    return window.crypto
+      .randomUUID();
+  }
+
+  return (
+    Date.now()
+      .toString(36) +
+    '-' +
+    Math.random()
+      .toString(36)
+      .slice(2, 12)
+  );
+}
+
+function sanitizeStorageFileName(fileName) {
+  const original =
+    cleanText(
+      fileName,
+      220
+    );
+
+  const dotIndex =
+    original.lastIndexOf('.');
+
+  const extension =
+    dotIndex > 0
+      ? original
+          .slice(dotIndex + 1)
+          .toLowerCase()
+          .replace(
+            /[^a-z0-9]/g,
+            ''
+          )
+          .slice(0, 12)
+      : '';
+
+  const base =
+    (
+      dotIndex > 0
+        ? original.slice(
+            0,
+            dotIndex
+          )
+        : original
+    )
+      .normalize('NFKD')
+      .replace(
+        /[\u0300-\u036f]/g,
+        ''
+      )
+      .replace(
+        /[^a-zA-Z0-9_-]+/g,
+        '-'
+      )
+      .replace(
+        /^-+|-+$/g,
+        ''
+      )
+      .slice(0, 70) ||
+    'file';
+
+  return extension
+    ? `${base}.${extension}`
+    : base;
+}
+
+function formatFileSize(bytes) {
+  const size =
+    Number(bytes);
+
+  if (
+    !Number.isFinite(size) ||
+    size < 0
+  ) {
+    return '';
+  }
+
+  if (size < 1024) {
+    return `${size} Б`;
+  }
+
+  if (
+    size <
+    1024 * 1024
+  ) {
+    return (
+      (
+        size / 1024
+      ).toFixed(1) +
+      ' КБ'
+    );
+  }
+
+  return (
+    (
+      size /
+      1024 /
+      1024
+    ).toFixed(1) +
+    ' МБ'
+  );
+}
+
+function formatFileDate(value) {
+  if (!value) {
+    return '';
+  }
+
+  const date =
+    new Date(value);
+
+  if (!isValidDate(date)) {
+    return '';
+  }
+
+  return new Intl.DateTimeFormat(
+    'ru-RU',
+    {
+      day: '2-digit',
+      month: '2-digit',
+      year: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit'
+    }
+  ).format(date);
+}
+
+function getFileIcon(file) {
+  const mime =
+    String(
+      file?.mime_type ||
+      ''
+    ).toLowerCase();
+
+  const name =
+    String(
+      file?.original_file_name ||
+      file?.file_name ||
+      ''
+    ).toLowerCase();
+
+  if (
+    mime.startsWith(
+      'image/'
+    )
+  ) {
+    return '🖼️';
+  }
+
+  if (
+    mime ===
+      'application/pdf' ||
+    name.endsWith('.pdf')
+  ) {
+    return '📕';
+  }
+
+  if (
+    name.endsWith('.doc') ||
+    name.endsWith('.docx')
+  ) {
+    return '📘';
+  }
+
+  if (
+    name.endsWith('.xls') ||
+    name.endsWith('.xlsx') ||
+    name.endsWith('.csv')
+  ) {
+    return '📗';
+  }
+
+  if (
+    name.endsWith('.zip') ||
+    name.endsWith('.rar') ||
+    name.endsWith('.7z')
+  ) {
+    return '🗜️';
+  }
+
+  return '📄';
+}
+
 
 /* ============================================================
    7. PROFILE HELPERS
@@ -584,6 +857,23 @@ function getResponsibleDisplayName(lead) {
   }
 
   return 'Сотрудник';
+}
+
+function getUploaderDisplayName(file) {
+  if (!file?.uploaded_by) {
+    return '';
+  }
+
+  const profile =
+    getProfileById(
+      file.uploaded_by
+    );
+
+  return profile
+    ? getProfileDisplayName(
+        profile
+      )
+    : 'Сотрудник';
 }
 
 
@@ -877,16 +1167,9 @@ function addMonths(
   return result;
 }
 
-function getDefaultContactTime(
-  date
-) {
+function getDefaultContactTime(date) {
   const result =
     new Date(date);
-
-  /*
-   * Если сейчас ещё до 18:00,
-   * для будущего контакта ставим 10:00.
-   */
 
   result.setHours(
     10,
@@ -898,9 +1181,7 @@ function getDefaultContactTime(
   return result;
 }
 
-function getPresetDate(
-  preset
-) {
+function getPresetDate(preset) {
   const now =
     new Date();
 
@@ -950,9 +1231,7 @@ function showToast(
   type = 'success',
   duration = 4200
 ) {
-  if (
-    !elements.toastStack
-  ) {
+  if (!elements.toastStack) {
     return;
   }
 
@@ -1017,9 +1296,7 @@ function showFatalError(message) {
   if (
     !elements.loadingScreen
   ) {
-    window.alert(
-      message
-    );
+    window.alert(message);
 
     return;
   }
@@ -1188,8 +1465,7 @@ async function loadCurrentProfile() {
 
   if (
     data &&
-    data.is_active ===
-      false
+    data.is_active === false
   ) {
     await supabaseClient
       .auth
@@ -1377,9 +1653,11 @@ function renderResponsibleOptions() {
 
         const label =
           position
-            ? name +
-              ' — ' +
-              position
+            ? (
+                name +
+                ' — ' +
+                position
+              )
             : name;
 
         options.push(`
@@ -1563,38 +1841,81 @@ async function loadLeads({
   }
 
   try {
-    const {
-      data,
-      error
-    } =
-      await supabaseClient
-        .from(
-          'planner_leads'
-        )
-        .select('*')
-        .order(
-          'created_at',
-          {
-            ascending:
-              false
-          }
-        );
+    const [
+      leadsResult,
+      filesResult
+    ] =
+      await Promise.all([
+        supabaseClient
+          .from(
+            'planner_leads'
+          )
+          .select('*')
+          .order(
+            'created_at',
+            {
+              ascending:
+                false
+            }
+          ),
 
-    if (error) {
-      throw error;
+        supabaseClient
+          .from(
+            'crm_files'
+          )
+          .select('*')
+          .not(
+            'lead_id',
+            'is',
+            null
+          )
+          .order(
+            'created_at',
+            {
+              ascending:
+                false
+            }
+          )
+      ]);
+
+    if (
+      leadsResult.error
+    ) {
+      throw leadsResult.error;
+    }
+
+    if (
+      filesResult.error
+    ) {
+      throw filesResult.error;
     }
 
     leads =
-      Array.isArray(data)
-        ? data
+      Array.isArray(
+        leadsResult.data
+      )
+        ? leadsResult.data
+        : [];
+
+    crmFiles =
+      Array.isArray(
+        filesResult.data
+      )
+        ? filesResult.data
         : [];
 
     render();
 
+    if (
+      activeFilesLeadId
+    ) {
+      renderFilesList();
+    }
+
     checkTodayNotifications();
   } catch (error) {
     console.error(
-      'Ошибка загрузки лидов:',
+      'Ошибка загрузки данных:',
       error
     );
 
@@ -1621,10 +1942,83 @@ async function loadLeads({
 
 
 /* ============================================================
-   16. SEARCH
+   16. FILE HELPERS
+   ============================================================ */
+
+function getLeadFiles(leadId) {
+  if (!leadId) {
+    return [];
+  }
+
+  return crmFiles
+    .filter(
+      (file) =>
+        file.lead_id ===
+        leadId
+    )
+    .sort(
+      (a, b) =>
+        new Date(
+          b.created_at || 0
+        ).getTime() -
+        new Date(
+          a.created_at || 0
+        ).getTime()
+    );
+}
+
+function getLeadFileCount(leadId) {
+  return getLeadFiles(
+    leadId
+  ).length;
+}
+
+function upsertFileLocally(file) {
+  if (!file?.id) {
+    return;
+  }
+
+  const index =
+    crmFiles.findIndex(
+      (item) =>
+        item.id === file.id
+    );
+
+  if (index >= 0) {
+    crmFiles[index] =
+      file;
+  } else {
+    crmFiles.push(
+      file
+    );
+  }
+}
+
+function removeFileLocally(id) {
+  crmFiles =
+    crmFiles.filter(
+      (file) =>
+        file.id !== id
+    );
+}
+
+
+/* ============================================================
+   17. SEARCH
    ============================================================ */
 
 function getSearchText(lead) {
+  const fileNames =
+    getLeadFiles(
+      lead.id
+    )
+      .map(
+        (file) =>
+          file.original_file_name ||
+          file.file_name
+      )
+      .join(' ');
+
   return normalizeSearch(
     [
       lead.client_name,
@@ -1655,14 +2049,15 @@ function getSearchText(lead) {
 
       lead.last_dialogue,
       lead.next_step,
-      lead.notes
+      lead.notes,
+      fileNames
     ].join(' ')
   );
 }
 
 
 /* ============================================================
-   17. FILTERS
+   18. FILTERS
    ============================================================ */
 
 function matchesDateFilter(lead) {
@@ -1847,7 +2242,7 @@ function getVisibleLeads() {
 
 
 /* ============================================================
-   18. SORT
+   19. SORT
    ============================================================ */
 
 function sortLeads(items) {
@@ -2052,7 +2447,7 @@ function sortLeads(items) {
 
 
 /* ============================================================
-   19. STATISTICS
+   20. STATISTICS
    ============================================================ */
 
 function renderStatistics() {
@@ -2107,56 +2502,47 @@ function renderStatistics() {
         !lead.next_contact
     ).length;
 
-  if (
-    elements.statActive
-  ) {
-    elements.statActive
-      .textContent =
+  elements.statActive
+    ?.replaceChildren(
+      document.createTextNode(
         String(
           active.length
-        );
-  }
+        )
+      )
+    );
 
-  if (
-    elements.statToday
-  ) {
-    elements.statToday
-      .textContent =
-        String(today);
-  }
+  elements.statToday
+    ?.replaceChildren(
+      document.createTextNode(
+        String(today)
+      )
+    );
 
-  if (
-    elements.statWeek
-  ) {
-    elements.statWeek
-      .textContent =
-        String(week);
-  }
+  elements.statWeek
+    ?.replaceChildren(
+      document.createTextNode(
+        String(week)
+      )
+    );
 
-  if (
-    elements.statOverdue
-  ) {
-    elements.statOverdue
-      .textContent =
-        String(
-          overdue
-        );
-  }
+  elements.statOverdue
+    ?.replaceChildren(
+      document.createTextNode(
+        String(overdue)
+      )
+    );
 
-  if (
-    elements.statNoDate
-  ) {
-    elements.statNoDate
-      .textContent =
-        String(
-          noDate
-        );
-  }
+  elements.statNoDate
+    ?.replaceChildren(
+      document.createTextNode(
+        String(noDate)
+      )
+    );
 }
 
 
 /* ============================================================
-   20. TABLE ROW
+   21. TABLE ROW
    ============================================================ */
 
 function createLeadRowHtml(lead) {
@@ -2345,7 +2731,6 @@ function createLeadRowHtml(lead) {
           gap:7px;
         "
       >
-
         <span
           style="
             display:inline-flex;
@@ -2378,7 +2763,6 @@ function createLeadRowHtml(lead) {
             responsibleName
           )}
         </span>
-
       </div>
     `;
   }
@@ -2400,6 +2784,31 @@ function createLeadRowHtml(lead) {
         </button>
       `;
 
+  const fileCount =
+    getLeadFileCount(
+      lead.id
+    );
+
+  const filesButton = `
+    <button
+      class="tableButton"
+      type="button"
+      data-action="files"
+      data-id="${escapeHtml(
+        lead.id
+      )}"
+      title="Файлы клиента"
+    >
+      📎 Файлы${
+        fileCount > 0
+          ? ' (' +
+            fileCount +
+            ')'
+          : ''
+      }
+    </button>
+  `;
+
   return `
     <tr
       class="${classes.join(
@@ -2408,7 +2817,6 @@ function createLeadRowHtml(lead) {
     >
 
       <td>
-
         <div class="clientName">
           ${escapeHtml(
             getDisplayName(
@@ -2427,7 +2835,6 @@ function createLeadRowHtml(lead) {
               : 'ИНН не указан'
           }
         </div>
-
       </td>
 
       <td>
@@ -2477,13 +2884,11 @@ function createLeadRowHtml(lead) {
       </td>
 
       <td>
-
         <span
           class="pill ${escapeHtml(
             priority.className
           )}"
         >
-
           <span
             class="priorityDot"
           ></span>
@@ -2491,9 +2896,7 @@ function createLeadRowHtml(lead) {
           ${escapeHtml(
             priority.label
           )}
-
         </span>
-
       </td>
 
       <td>
@@ -2501,7 +2904,6 @@ function createLeadRowHtml(lead) {
       </td>
 
       <td>
-
         <div
           class="dateMain"
         >
@@ -2519,11 +2921,9 @@ function createLeadRowHtml(lead) {
             due.label
           )}
         </span>
-
       </td>
 
       <td>
-
         <span
           class="pill ${escapeHtml(
             status.className
@@ -2533,7 +2933,6 @@ function createLeadRowHtml(lead) {
             status.label
           )}
         </span>
-
       </td>
 
       <td>
@@ -2561,12 +2960,13 @@ function createLeadRowHtml(lead) {
       </td>
 
       <td>
-
         <div
           class="rowActions"
         >
 
           ${quickContactButton}
+
+          ${filesButton}
 
           <button
             class="tableButton"
@@ -2591,7 +2991,6 @@ function createLeadRowHtml(lead) {
           </button>
 
         </div>
-
       </td>
 
     </tr>
@@ -2600,7 +2999,7 @@ function createLeadRowHtml(lead) {
 
 
 /* ============================================================
-   21. TABLE RENDER
+   22. TABLE RENDER
    ============================================================ */
 
 function renderTable() {
@@ -2631,12 +3030,10 @@ function renderTable() {
     elements.leadTableBody
       .innerHTML = `
         <tr>
-
           <td
             class="emptyCell"
             colspan="12"
           >
-
             <div
               class="emptyTitle"
             >
@@ -2649,9 +3046,7 @@ function renderTable() {
               Измените фильтры или добавьте нового
               потенциального клиента.
             </div>
-
           </td>
-
         </tr>
       `;
 
@@ -2674,7 +3069,7 @@ function render() {
 
 
 /* ============================================================
-   22. MAIN FORM
+   23. MAIN FORM
    ============================================================ */
 
 function resetLeadForm() {
@@ -2953,7 +3348,7 @@ function collectLeadFormData() {
 
 
 /* ============================================================
-   23. MAIN SAVE
+   24. MAIN SAVE
    ============================================================ */
 
 async function handleLeadSubmit(
@@ -3152,7 +3547,7 @@ function upsertLeadLocally(
 
 
 /* ============================================================
-   24. QUICK CONTACT
+   25. QUICK CONTACT
    ============================================================ */
 
 function resetQuickContactForm() {
@@ -3223,16 +3618,12 @@ function openQuickContactModal(id) {
     return;
   }
 
-  /*
-   * На случай, если HTML ещё не обновлён.
-   */
-
   if (
     !elements.quickContactBackdrop ||
     !elements.quickContactForm
   ) {
     showToast(
-      'Для кнопки «Связался» нужно добавить небольшое окно в planner.html.',
+      'Для кнопки «Связался» нужно добавить окно в planner.html.',
       'warning',
       6000
     );
@@ -3440,15 +3831,6 @@ async function handleQuickContactSubmit(
       currentUser.id
   };
 
-  /*
-   * Если сотрудник написал комментарий,
-   * он становится актуальным описанием
-   * последнего разговора.
-   *
-   * Старый текст намеренно не копим бесконечной лентой:
-   * пользователь просил не делать историю изменений.
-   */
-
   if (comment) {
     payload.last_dialogue =
       comment;
@@ -3536,7 +3918,995 @@ async function handleQuickContactSubmit(
 
 
 /* ============================================================
-   25. EDIT
+   26. FILES — MODAL
+   ============================================================ */
+
+function resetFileUploadForm() {
+  if (
+    elements.fileInput
+  ) {
+    elements.fileInput.value =
+      '';
+  }
+
+  if (
+    elements.fileDescription
+  ) {
+    elements.fileDescription.value =
+      '';
+  }
+
+  updateSelectedFileDisplay();
+}
+
+function updateSelectedFileDisplay() {
+  if (
+    !elements.selectedFileName
+  ) {
+    return;
+  }
+
+  const file =
+    elements.fileInput
+      ?.files?.[0];
+
+  if (!file) {
+    elements.selectedFileName
+      .textContent =
+        'Файл не выбран';
+
+    return;
+  }
+
+  elements.selectedFileName
+    .textContent =
+      file.name +
+      ' · ' +
+      formatFileSize(
+        file.size
+      );
+}
+
+function openFilesModal(id) {
+  const lead =
+    leads.find(
+      (item) =>
+        item.id === id
+    );
+
+  if (!lead) {
+    showToast(
+      'Запись не найдена.',
+      'warning'
+    );
+
+    return;
+  }
+
+  if (
+    !elements.filesBackdrop
+  ) {
+    showToast(
+      'Для файлов нужно добавить окно в planner.html.',
+      'warning',
+      6000
+    );
+
+    return;
+  }
+
+  activeFilesLeadId =
+    lead.id;
+
+  if (
+    elements.filesLeadId
+  ) {
+    elements.filesLeadId.value =
+      lead.id;
+  }
+
+  if (
+    elements.filesTitle
+  ) {
+    elements.filesTitle.textContent =
+      'Файлы клиента';
+  }
+
+  if (
+    elements.filesClient
+  ) {
+    elements.filesClient.textContent =
+      getDisplayName(
+        lead
+      );
+  }
+
+  resetFileUploadForm();
+
+  renderFilesList();
+
+  elements.filesBackdrop
+    .classList.add(
+      'show'
+    );
+
+  document.body
+    .classList.add(
+      'modal-open'
+    );
+}
+
+function closeFilesModal() {
+  elements.filesBackdrop
+    ?.classList.remove(
+      'show'
+    );
+
+  document.body
+    .classList.remove(
+      'modal-open'
+    );
+
+  activeFilesLeadId =
+    null;
+
+  if (
+    elements.filesLeadId
+  ) {
+    elements.filesLeadId.value =
+      '';
+  }
+
+  resetFileUploadForm();
+}
+
+function renderFilesList() {
+  if (
+    !elements.filesList
+  ) {
+    return;
+  }
+
+  if (
+    !activeFilesLeadId
+  ) {
+    elements.filesList.innerHTML =
+      '';
+
+    return;
+  }
+
+  const files =
+    getLeadFiles(
+      activeFilesLeadId
+    );
+
+  if (
+    files.length === 0
+  ) {
+    elements.filesList.innerHTML = `
+      <div class="filesEmpty">
+
+        <div
+          class="filesEmptyIcon"
+        >
+          📎
+        </div>
+
+        <div
+          class="filesEmptyTitle"
+        >
+          Файлов пока нет
+        </div>
+
+        <div
+          class="filesEmptyText"
+        >
+          Прикрепите коммерческое предложение,
+          договор, таблицу, изображение или другой документ.
+        </div>
+
+      </div>
+    `;
+
+    return;
+  }
+
+  elements.filesList.innerHTML =
+    files
+      .map(
+        createFileItemHtml
+      )
+      .join('');
+}
+
+function createFileItemHtml(file) {
+  const displayName =
+    file.original_file_name ||
+    file.file_name ||
+    'Файл';
+
+  const uploader =
+    getUploaderDisplayName(
+      file
+    );
+
+  const metaParts = [];
+
+  if (
+    file.file_size !== null &&
+    file.file_size !== undefined
+  ) {
+    metaParts.push(
+      formatFileSize(
+        file.file_size
+      )
+    );
+  }
+
+  if (uploader) {
+    metaParts.push(
+      uploader
+    );
+  }
+
+  const created =
+    formatFileDate(
+      file.created_at
+    );
+
+  if (created) {
+    metaParts.push(
+      created
+    );
+  }
+
+  return `
+    <div
+      class="fileItem"
+      data-file-id="${escapeHtml(
+        file.id
+      )}"
+    >
+
+      <div
+        class="fileIcon"
+        aria-hidden="true"
+      >
+        ${getFileIcon(
+          file
+        )}
+      </div>
+
+      <div
+        class="fileInfo"
+      >
+
+        <div
+          class="fileName"
+        >
+          ${escapeHtml(
+            displayName
+          )}
+        </div>
+
+        ${
+          metaParts.length
+            ? `
+              <div
+                class="fileMeta"
+              >
+                ${escapeHtml(
+                  metaParts.join(
+                    ' · '
+                  )
+                )}
+              </div>
+            `
+            : ''
+        }
+
+        ${
+          file.description
+            ? `
+              <div
+                class="fileDescription"
+              >
+                ${escapeHtml(
+                  file.description
+                )}
+              </div>
+            `
+            : ''
+        }
+
+      </div>
+
+      <div
+        class="fileActions"
+      >
+
+        <button
+          class="tableButton"
+          type="button"
+          data-file-action="open"
+          data-file-id="${escapeHtml(
+            file.id
+          )}"
+        >
+          Открыть
+        </button>
+
+        <button
+          class="tableButton delete"
+          type="button"
+          data-file-action="delete"
+          data-file-id="${escapeHtml(
+            file.id
+          )}"
+        >
+          Удалить
+        </button>
+
+      </div>
+
+    </div>
+  `;
+}
+
+
+/* ============================================================
+   27. FILES — UPLOAD
+   ============================================================ */
+
+async function uploadSelectedFile() {
+  if (
+    fileUploadInProgress
+  ) {
+    return;
+  }
+
+  const leadId =
+    activeFilesLeadId ||
+    cleanText(
+      elements.filesLeadId
+        ?.value,
+      100
+    );
+
+  if (!leadId) {
+    showToast(
+      'Не удалось определить клиента.',
+      'error'
+    );
+
+    return;
+  }
+
+  const lead =
+    leads.find(
+      (item) =>
+        item.id === leadId
+    );
+
+  if (!lead) {
+    showToast(
+      'Клиент больше не найден в таблице.',
+      'warning'
+    );
+
+    return;
+  }
+
+  const file =
+    elements.fileInput
+      ?.files?.[0];
+
+  if (!file) {
+    showToast(
+      'Сначала выберите файл.',
+      'warning'
+    );
+
+    elements.fileInput
+      ?.click();
+
+    return;
+  }
+
+  if (
+    file.size <= 0
+  ) {
+    showToast(
+      'Выбранный файл пуст.',
+      'warning'
+    );
+
+    return;
+  }
+
+  if (
+    file.size >
+    MAX_FILE_SIZE
+  ) {
+    showToast(
+      'Файл слишком большой. Максимальный размер сейчас — 20 МБ.',
+      'warning',
+      6000
+    );
+
+    return;
+  }
+
+  const description =
+    cleanText(
+      elements.fileDescription
+        ?.value,
+      1000
+    );
+
+  const safeName =
+    sanitizeStorageFileName(
+      file.name
+    );
+
+  const storagePath =
+    'leads/' +
+    lead.id +
+    '/' +
+    createRandomId() +
+    '_' +
+    safeName;
+
+  fileUploadInProgress =
+    true;
+
+  if (
+    elements.uploadFileBtn
+  ) {
+    elements.uploadFileBtn.disabled =
+      true;
+
+    elements.uploadFileBtn.textContent =
+      'Загружаем…';
+  }
+
+  if (
+    elements.fileInput
+  ) {
+    elements.fileInput.disabled =
+      true;
+  }
+
+  try {
+    /*
+     * 1. Загружаем сам файл в приватный Storage.
+     */
+
+    const uploadOptions = {
+      cacheControl:
+        '3600',
+
+      upsert:
+        false
+    };
+
+    if (file.type) {
+      uploadOptions.contentType =
+        file.type;
+    }
+
+    const {
+      error:
+        uploadError
+    } =
+      await supabaseClient
+        .storage
+        .from(
+          STORAGE_BUCKET
+        )
+        .upload(
+          storagePath,
+          file,
+          uploadOptions
+        );
+
+    if (
+      uploadError
+    ) {
+      throw uploadError;
+    }
+
+    /*
+     * 2. Сохраняем связь файла с лидом
+     *    в нашей таблице crm_files.
+     */
+
+    const {
+      data:
+        metadata,
+      error:
+        metadataError
+    } =
+      await supabaseClient
+        .from(
+          'crm_files'
+        )
+        .insert({
+          lead_id:
+            lead.id,
+
+          file_name:
+            safeName,
+
+          original_file_name:
+            cleanText(
+              file.name,
+              255
+            ),
+
+          storage_bucket:
+            STORAGE_BUCKET,
+
+          storage_path:
+            storagePath,
+
+          mime_type:
+            cleanText(
+              file.type,
+              150
+            ) ||
+            null,
+
+          file_size:
+            file.size,
+
+          description:
+            description ||
+            null,
+
+          uploaded_by:
+            currentUser.id
+        })
+        .select()
+        .single();
+
+    /*
+     * Если Storage успешно принял файл,
+     * а метаданные сохранить не удалось,
+     * удаляем загруженный объект обратно,
+     * чтобы не оставлять "сиротский" файл.
+     */
+
+    if (
+      metadataError
+    ) {
+      await supabaseClient
+        .storage
+        .from(
+          STORAGE_BUCKET
+        )
+        .remove([
+          storagePath
+        ]);
+
+      throw metadataError;
+    }
+
+    upsertFileLocally(
+      metadata
+    );
+
+    resetFileUploadForm();
+
+    renderFilesList();
+
+    renderTable();
+
+    showToast(
+      'Файл прикреплён.',
+      'success'
+    );
+  } catch (error) {
+    console.error(
+      'Ошибка загрузки файла:',
+      error
+    );
+
+    showToast(
+      getFriendlyFileError(
+        error
+      ),
+      'error',
+      6500
+    );
+  } finally {
+    fileUploadInProgress =
+      false;
+
+    if (
+      elements.uploadFileBtn
+    ) {
+      elements.uploadFileBtn.disabled =
+        false;
+
+      elements.uploadFileBtn.textContent =
+        '＋ Прикрепить файл';
+    }
+
+    if (
+      elements.fileInput
+    ) {
+      elements.fileInput.disabled =
+        false;
+    }
+  }
+}
+
+
+/* ============================================================
+   28. FILES — OPEN
+   ============================================================ */
+
+async function openFile(fileId) {
+  const file =
+    crmFiles.find(
+      (item) =>
+        item.id === fileId
+    );
+
+  if (!file) {
+    showToast(
+      'Информация о файле не найдена.',
+      'warning'
+    );
+
+    return;
+  }
+
+  const bucket =
+    file.storage_bucket ||
+    STORAGE_BUCKET;
+
+  const path =
+    file.storage_path;
+
+  if (!path) {
+    showToast(
+      'У файла отсутствует путь в хранилище.',
+      'error'
+    );
+
+    return;
+  }
+
+  /*
+   * Открываем пустую вкладку сразу,
+   * чтобы браузер не заблокировал window.open()
+   * после асинхронного запроса к Supabase.
+   */
+
+  const newWindow =
+    window.open(
+      '',
+      '_blank'
+    );
+
+  try {
+    const {
+      data,
+      error
+    } =
+      await supabaseClient
+        .storage
+        .from(
+          bucket
+        )
+        .createSignedUrl(
+          path,
+          SIGNED_URL_LIFETIME_SECONDS
+        );
+
+    if (error) {
+      throw error;
+    }
+
+    const signedUrl =
+      data?.signedUrl;
+
+    if (!signedUrl) {
+      throw new Error(
+        'Signed URL was not returned.'
+      );
+    }
+
+    if (newWindow) {
+      newWindow.location.href =
+        signedUrl;
+    } else {
+      window.location.href =
+        signedUrl;
+    }
+  } catch (error) {
+    if (
+      newWindow &&
+      !newWindow.closed
+    ) {
+      newWindow.close();
+    }
+
+    console.error(
+      'Ошибка открытия файла:',
+      error
+    );
+
+    showToast(
+      getFriendlyFileError(
+        error
+      ),
+      'error',
+      6000
+    );
+  }
+}
+
+
+/* ============================================================
+   29. FILES — DELETE
+   ============================================================ */
+
+async function deleteFile(fileId) {
+  const file =
+    crmFiles.find(
+      (item) =>
+        item.id === fileId
+    );
+
+  if (!file) {
+    return;
+  }
+
+  const displayName =
+    file.original_file_name ||
+    file.file_name ||
+    'файл';
+
+  const confirmed =
+    window.confirm(
+      'Удалить файл «' +
+      displayName +
+      '»?\n\n' +
+      'Файл будет удалён окончательно.'
+    );
+
+  if (!confirmed) {
+    return;
+  }
+
+  try {
+    /*
+     * Сначала удаляем физический файл.
+     */
+
+    if (
+      file.storage_path
+    ) {
+      const {
+        error:
+          storageError
+      } =
+        await supabaseClient
+          .storage
+          .from(
+            file.storage_bucket ||
+            STORAGE_BUCKET
+          )
+          .remove([
+            file.storage_path
+          ]);
+
+      if (
+        storageError
+      ) {
+        throw storageError;
+      }
+    }
+
+    /*
+     * Затем удаляем запись о файле.
+     */
+
+    const {
+      error:
+        metadataError
+    } =
+      await supabaseClient
+        .from(
+          'crm_files'
+        )
+        .delete()
+        .eq(
+          'id',
+          file.id
+        );
+
+    if (
+      metadataError
+    ) {
+      throw metadataError;
+    }
+
+    removeFileLocally(
+      file.id
+    );
+
+    renderFilesList();
+
+    renderTable();
+
+    showToast(
+      'Файл удалён.',
+      'success'
+    );
+  } catch (error) {
+    console.error(
+      'Ошибка удаления файла:',
+      error
+    );
+
+    showToast(
+      getFriendlyFileError(
+        error
+      ),
+      'error',
+      6000
+    );
+
+    /*
+     * Синхронизируем метаданные с сервером,
+     * если операция завершилась только частично.
+     */
+
+    await reloadFilesOnly();
+  }
+}
+
+
+/* ============================================================
+   30. FILES — RELOAD
+   ============================================================ */
+
+async function reloadFilesOnly() {
+  try {
+    const {
+      data,
+      error
+    } =
+      await supabaseClient
+        .from(
+          'crm_files'
+        )
+        .select('*')
+        .not(
+          'lead_id',
+          'is',
+          null
+        )
+        .order(
+          'created_at',
+          {
+            ascending:
+              false
+          }
+        );
+
+    if (error) {
+      throw error;
+    }
+
+    crmFiles =
+      Array.isArray(data)
+        ? data
+        : [];
+
+    renderTable();
+
+    if (
+      activeFilesLeadId
+    ) {
+      renderFilesList();
+    }
+  } catch (error) {
+    console.warn(
+      'Не удалось обновить список файлов:',
+      error
+    );
+  }
+}
+
+
+/* ============================================================
+   31. FILE ERRORS
+   ============================================================ */
+
+function getFriendlyFileError(error) {
+  const message =
+    String(
+      error?.message ||
+      error?.error ||
+      ''
+    ).toLocaleLowerCase(
+      'ru-RU'
+    );
+
+  if (
+    message.includes(
+      'maximum allowed size'
+    ) ||
+    message.includes(
+      'payload too large'
+    ) ||
+    message.includes(
+      'entity too large'
+    )
+  ) {
+    return (
+      'Файл превышает разрешённый размер.'
+    );
+  }
+
+  if (
+    message.includes(
+      'row-level security'
+    ) ||
+    message.includes(
+      'unauthorized'
+    ) ||
+    message.includes(
+      'forbidden'
+    )
+  ) {
+    return (
+      'Нет разрешения на работу с файлом. ' +
+      'Проверьте вход в систему.'
+    );
+  }
+
+  if (
+    message.includes(
+      'not found'
+    ) ||
+    message.includes(
+      'nosuchkey'
+    )
+  ) {
+    return (
+      'Файл не найден в хранилище.'
+    );
+  }
+
+  if (
+    message.includes(
+      'failed to fetch'
+    ) ||
+    message.includes(
+      'network'
+    )
+  ) {
+    return (
+      'Не удалось связаться с хранилищем. ' +
+      'Проверьте интернет.'
+    );
+  }
+
+  return (
+    'Не удалось выполнить операцию с файлом.'
+  );
+}
+
+
+/* ============================================================
+   32. EDIT
    ============================================================ */
 
 function editLead(id) {
@@ -3566,7 +4936,7 @@ function editLead(id) {
 
 
 /* ============================================================
-   26. DELETE
+   33. DELETE LEAD
    ============================================================ */
 
 async function deleteLead(id) {
@@ -3580,14 +4950,33 @@ async function deleteLead(id) {
     return;
   }
 
+  const files =
+    getLeadFiles(
+      id
+    );
+
+  const fileWarning =
+    files.length > 0
+      ? (
+          '\n\nК записи прикреплено ' +
+          files.length +
+          ' ' +
+          pluralizeFiles(
+            files.length
+          ) +
+          '.'
+        )
+      : '';
+
   const confirmed =
     window.confirm(
       'Удалить запись «' +
       getDisplayName(
         lead
       ) +
-      '»?\n\n' +
-      'Это действие нельзя отменить.'
+      '»?' +
+      fileWarning +
+      '\n\nЭто действие нельзя отменить.'
     );
 
   if (
@@ -3597,6 +4986,46 @@ async function deleteLead(id) {
   }
 
   try {
+    /*
+     * Сначала удаляем физические файлы.
+     * Записи crm_files затем удалятся каскадно
+     * вместе с planner_leads.
+     */
+
+    const storagePaths =
+      files
+        .filter(
+          (file) =>
+            file.storage_path
+        )
+        .map(
+          (file) =>
+            file.storage_path
+        );
+
+    if (
+      storagePaths.length > 0
+    ) {
+      const {
+        error:
+          filesDeleteError
+      } =
+        await supabaseClient
+          .storage
+          .from(
+            STORAGE_BUCKET
+          )
+          .remove(
+            storagePaths
+          );
+
+      if (
+        filesDeleteError
+      ) {
+        throw filesDeleteError;
+      }
+    }
+
     const {
       error
     } =
@@ -3620,6 +5049,12 @@ async function deleteLead(id) {
           item.id !== id
       );
 
+    crmFiles =
+      crmFiles.filter(
+        (file) =>
+          file.lead_id !== id
+      );
+
     render();
 
     showToast(
@@ -3636,14 +5071,15 @@ async function deleteLead(id) {
       getFriendlyDatabaseError(
         error
       ),
-      'error'
+      'error',
+      6000
     );
   }
 }
 
 
 /* ============================================================
-   27. DATABASE ERRORS
+   34. DATABASE ERRORS
    ============================================================ */
 
 function getFriendlyDatabaseError(
@@ -3703,7 +5139,7 @@ function getFriendlyDatabaseError(
 
 
 /* ============================================================
-   28. REALTIME — LEADS
+   35. REALTIME — LEADS
    ============================================================ */
 
 function subscribeToRealtime() {
@@ -3719,7 +5155,7 @@ function subscribeToRealtime() {
   realtimeChannel =
     supabaseClient
       .channel(
-        'jambalance-planner-leads-v22'
+        'jambalance-planner-leads-v23'
       )
       .on(
         'postgres_changes',
@@ -3867,12 +5303,24 @@ function handleRealtimeDelete(
         item.id !== id
     );
 
+  crmFiles =
+    crmFiles.filter(
+      (file) =>
+        file.lead_id !== id
+    );
+
   render();
+
+  if (
+    activeFilesLeadId === id
+  ) {
+    closeFilesModal();
+  }
 }
 
 
 /* ============================================================
-   29. REALTIME — PROFILES
+   36. REALTIME — PROFILES
    ============================================================ */
 
 function subscribeToProfilesRealtime() {
@@ -3888,7 +5336,7 @@ function subscribeToProfilesRealtime() {
   profilesRealtimeChannel =
     supabaseClient
       .channel(
-        'jambalance-profiles-v22'
+        'jambalance-profiles-v23'
       )
       .on(
         'postgres_changes',
@@ -3904,6 +5352,12 @@ function subscribeToProfilesRealtime() {
             await loadProfiles();
 
             render();
+
+            if (
+              activeFilesLeadId
+            ) {
+              renderFilesList();
+            }
           } catch (error) {
             console.warn(
               'Не удалось обновить список сотрудников:',
@@ -3917,7 +5371,149 @@ function subscribeToProfilesRealtime() {
 
 
 /* ============================================================
-   30. RESET FILTERS
+   37. REALTIME — FILE METADATA
+   ============================================================ */
+
+function subscribeToFilesRealtime() {
+  if (
+    filesRealtimeChannel
+  ) {
+    supabaseClient
+      .removeChannel(
+        filesRealtimeChannel
+      );
+  }
+
+  filesRealtimeChannel =
+    supabaseClient
+      .channel(
+        'jambalance-crm-files-v23'
+      )
+      .on(
+        'postgres_changes',
+        {
+          event:
+            'INSERT',
+
+          schema:
+            'public',
+
+          table:
+            'crm_files'
+        },
+        (payload) => {
+          const file =
+            payload.new;
+
+          if (
+            !file?.id ||
+            !file.lead_id
+          ) {
+            return;
+          }
+
+          upsertFileLocally(
+            file
+          );
+
+          renderTable();
+
+          if (
+            activeFilesLeadId ===
+            file.lead_id
+          ) {
+            renderFilesList();
+          }
+        }
+      )
+      .on(
+        'postgres_changes',
+        {
+          event:
+            'UPDATE',
+
+          schema:
+            'public',
+
+          table:
+            'crm_files'
+        },
+        (payload) => {
+          const file =
+            payload.new;
+
+          if (
+            !file?.id
+          ) {
+            return;
+          }
+
+          upsertFileLocally(
+            file
+          );
+
+          renderTable();
+
+          if (
+            activeFilesLeadId ===
+            file.lead_id
+          ) {
+            renderFilesList();
+          }
+        }
+      )
+      .on(
+        'postgres_changes',
+        {
+          event:
+            'DELETE',
+
+          schema:
+            'public',
+
+          table:
+            'crm_files'
+        },
+        (payload) => {
+          const id =
+            payload.old?.id;
+
+          if (!id) {
+            reloadFilesOnly();
+
+            return;
+          }
+
+          removeFileLocally(
+            id
+          );
+
+          renderTable();
+
+          if (
+            activeFilesLeadId
+          ) {
+            renderFilesList();
+          }
+        }
+      )
+      .subscribe(
+        (status) => {
+          if (
+            status ===
+            'SUBSCRIBED'
+          ) {
+            console.log(
+              'Files Realtime подключён.'
+            );
+          }
+        }
+      );
+}
+
+
+/* ============================================================
+   38. RESET FILTERS
    ============================================================ */
 
 function resetFilters() {
@@ -3986,7 +5582,7 @@ function resetFilters() {
 
 
 /* ============================================================
-   31. EXPORT
+   39. EXPORT
    ============================================================ */
 
 function downloadBlob(
@@ -4034,7 +5630,7 @@ function exportBackup() {
       'ДжемБаланс — планировщик',
 
     version:
-      '2.2',
+      '2.3',
 
     exportedAt:
       new Date()
@@ -4046,7 +5642,45 @@ function exportBackup() {
 
     profiles,
 
-    leads
+    leads,
+
+    fileMetadata:
+      crmFiles.map(
+        (file) => ({
+          id:
+            file.id,
+
+          lead_id:
+            file.lead_id,
+
+          original_file_name:
+            file.original_file_name,
+
+          file_name:
+            file.file_name,
+
+          storage_bucket:
+            file.storage_bucket,
+
+          storage_path:
+            file.storage_path,
+
+          mime_type:
+            file.mime_type,
+
+          file_size:
+            file.file_size,
+
+          description:
+            file.description,
+
+          uploaded_by:
+            file.uploaded_by,
+
+          created_at:
+            file.created_at
+        })
+      )
   };
 
   const blob =
@@ -4086,14 +5720,15 @@ function exportBackup() {
   );
 
   showToast(
-    'Резервная копия скачана.',
-    'success'
+    'Резервная копия данных скачана. Сами вложения в JSON не включаются.',
+    'success',
+    6000
   );
 }
 
 
 /* ============================================================
-   32. LEGACY DATA
+   40. LEGACY DATA
    ============================================================ */
 
 function getLegacyLeads() {
@@ -4445,7 +6080,7 @@ function skipLegacyMigration() {
 
 
 /* ============================================================
-   33. NOTIFICATIONS
+   41. NOTIFICATIONS
    ============================================================ */
 
 function getTodayKey() {
@@ -4819,7 +6454,7 @@ function checkTodayNotifications() {
 
 
 /* ============================================================
-   34. EVENTS
+   42. EVENTS
    ============================================================ */
 
 function bindEvents() {
@@ -4998,6 +6633,17 @@ function bindEvents() {
 
         if (
           action ===
+          'files'
+        ) {
+          openFilesModal(
+            id
+          );
+
+          return;
+        }
+
+        if (
+          action ===
           'edit'
         ) {
           editLead(
@@ -5018,9 +6664,7 @@ function bindEvents() {
       }
     );
 
-  /*
-   * Quick contact modal
-   */
+  /* Quick contact */
 
   elements.quickContactCloseBtn
     ?.addEventListener(
@@ -5073,6 +6717,173 @@ function bindEvents() {
       }
     );
 
+  /* Files */
+
+  elements.filesCloseBtn
+    ?.addEventListener(
+      'click',
+      closeFilesModal
+    );
+
+  elements.filesDoneBtn
+    ?.addEventListener(
+      'click',
+      closeFilesModal
+    );
+
+  elements.filesBackdrop
+    ?.addEventListener(
+      'click',
+      (event) => {
+        if (
+          event.target ===
+          elements.filesBackdrop
+        ) {
+          closeFilesModal();
+        }
+      }
+    );
+
+  elements.fileInput
+    ?.addEventListener(
+      'change',
+      updateSelectedFileDisplay
+    );
+
+  elements.uploadFileBtn
+    ?.addEventListener(
+      'click',
+      uploadSelectedFile
+    );
+
+  elements.filesList
+    ?.addEventListener(
+      'click',
+      (event) => {
+        const button =
+          event.target.closest(
+            'button[data-file-action]'
+          );
+
+        if (!button) {
+          return;
+        }
+
+        const id =
+          button.dataset.fileId;
+
+        const action =
+          button.dataset.fileAction;
+
+        if (
+          action ===
+          'open'
+        ) {
+          openFile(id);
+
+          return;
+        }
+
+        if (
+          action ===
+          'delete'
+        ) {
+          deleteFile(id);
+        }
+      }
+    );
+
+  /*
+   * Зона drag & drop.
+   */
+
+  elements.fileDropZone
+    ?.addEventListener(
+      'click',
+      () => {
+        elements.fileInput
+          ?.click();
+      }
+    );
+
+  elements.fileDropZone
+    ?.addEventListener(
+      'keydown',
+      (event) => {
+        if (
+          event.key ===
+            'Enter' ||
+          event.key ===
+            ' '
+        ) {
+          event.preventDefault();
+
+          elements.fileInput
+            ?.click();
+        }
+      }
+    );
+
+  elements.fileDropZone
+    ?.addEventListener(
+      'dragover',
+      (event) => {
+        event.preventDefault();
+
+        elements.fileDropZone
+          .classList.add(
+            'dragging'
+          );
+      }
+    );
+
+  elements.fileDropZone
+    ?.addEventListener(
+      'dragleave',
+      () => {
+        elements.fileDropZone
+          .classList.remove(
+            'dragging'
+          );
+      }
+    );
+
+  elements.fileDropZone
+    ?.addEventListener(
+      'drop',
+      (event) => {
+        event.preventDefault();
+
+        elements.fileDropZone
+          .classList.remove(
+            'dragging'
+          );
+
+        const file =
+          event.dataTransfer
+            ?.files?.[0];
+
+        if (
+          !file ||
+          !elements.fileInput
+        ) {
+          return;
+        }
+
+        const transfer =
+          new DataTransfer();
+
+        transfer.items.add(
+          file
+        );
+
+        elements.fileInput.files =
+          transfer.files;
+
+        updateSelectedFileDisplay();
+      }
+    );
+
   document.addEventListener(
     'keydown',
     (event) => {
@@ -5080,6 +6891,17 @@ function bindEvents() {
         event.key !==
         'Escape'
       ) {
+        return;
+      }
+
+      if (
+        elements.filesBackdrop
+          ?.classList.contains(
+            'show'
+          )
+      ) {
+        closeFilesModal();
+
         return;
       }
 
@@ -5159,7 +6981,7 @@ function bindEvents() {
 
 
 /* ============================================================
-   35. AUTH WATCHER
+   43. AUTH WATCHER
    ============================================================ */
 
 function bindAuthWatcher() {
@@ -5188,7 +7010,7 @@ function bindAuthWatcher() {
 
 
 /* ============================================================
-   36. PERIODIC TASKS
+   44. PERIODIC TASKS
    ============================================================ */
 
 function startPeriodicTasks() {
@@ -5220,7 +7042,7 @@ function startPeriodicTasks() {
 
 
 /* ============================================================
-   37. INITIALIZE
+   45. INITIALIZE
    ============================================================ */
 
 async function initialize() {
@@ -5256,7 +7078,7 @@ async function initialize() {
     await loadProfiles();
 
     setLoadingText(
-      'Загружаем общую таблицу потенциальных клиентов…'
+      'Загружаем общую таблицу и файлы…'
     );
 
     await loadLeads({
@@ -5270,6 +7092,8 @@ async function initialize() {
     subscribeToRealtime();
 
     subscribeToProfilesRealtime();
+
+    subscribeToFilesRealtime();
 
     updateNotificationInterface();
 
@@ -5295,7 +7119,7 @@ async function initialize() {
 
 
 /* ============================================================
-   38. START
+   46. START
    ============================================================ */
 
 initialize();
