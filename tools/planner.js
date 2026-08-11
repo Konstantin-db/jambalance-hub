@@ -1,15 +1,16 @@
 'use strict';
 
 /* ============================================================
-   ДЖЕМБАЛАНС — PLANNER v2.3
+   ДЖЕМБАЛАНС — PLANNER v2.4
    Supabase + Auth + Realtime + Responsible users
-   + Quick action "Связался"
-   + Private file attachments
+   + Quick contact
+   + Private files
+   + Smart reminders
    ============================================================ */
 
 
 /* ============================================================
-   1. SUPABASE
+   1. SUPABASE / STORAGE
    ============================================================ */
 
 const SUPABASE_URL =
@@ -25,7 +26,7 @@ const MAX_FILE_SIZE =
   20 * 1024 * 1024;
 
 const SIGNED_URL_LIFETIME_SECONDS =
-  60 * 5;
+  5 * 60;
 
 
 /* ============================================================
@@ -42,17 +43,32 @@ const MIGRATION_DONE_KEY =
   'jambalance_planner_migration_done_v2';
 
 const NOTIFICATION_HISTORY_KEY =
-  'jambalance_planner_notifications_v2';
+  'jambalance_planner_notifications_v24';
+
+const DAILY_SUMMARY_HISTORY_KEY =
+  'jambalance_planner_daily_summary_v24';
 
 
 /* ============================================================
-   3. СПРАВОЧНИКИ
+   3. SMART REMINDER SETTINGS
    ============================================================ */
 
-const CLOSED_STATUSES = new Set([
-  'client',
-  'lost'
-]);
+const REMINDER_SOON_MINUTES =
+  60;
+
+const OVERDUE_NOTIFICATION_COOLDOWN_HOURS =
+  24;
+
+
+/* ============================================================
+   4. DICTIONARIES
+   ============================================================ */
+
+const CLOSED_STATUSES =
+  new Set([
+    'client',
+    'lost'
+  ]);
 
 const STATUS_META = {
   new: {
@@ -134,7 +150,7 @@ const METHOD_META = {
 
 
 /* ============================================================
-   4. DOM
+   5. DOM
    ============================================================ */
 
 const elements = {
@@ -291,7 +307,7 @@ const elements = {
   toastStack:
     document.getElementById('toastStack'),
 
-  /* Быстрый контакт */
+  /* Quick contact */
 
   quickContactBackdrop:
     document.getElementById('quickContactBackdrop'),
@@ -329,7 +345,7 @@ const elements = {
   quickContactSaveBtn:
     document.getElementById('quickContactSaveBtn'),
 
-  /* Файлы */
+  /* Files */
 
   filesBackdrop:
     document.getElementById('filesBackdrop'),
@@ -365,12 +381,29 @@ const elements = {
     document.getElementById('fileDropZone'),
 
   selectedFileName:
-    document.getElementById('selectedFileName')
+    document.getElementById('selectedFileName'),
+
+  /* Smart summary — появится после HTML-патча */
+
+  smartSummary:
+    document.getElementById('smartSummary'),
+
+  smartSummaryToday:
+    document.getElementById('smartSummaryToday'),
+
+  smartSummaryOverdue:
+    document.getElementById('smartSummaryOverdue'),
+
+  smartSummaryWeek:
+    document.getElementById('smartSummaryWeek'),
+
+  smartSummaryText:
+    document.getElementById('smartSummaryText')
 };
 
 
 /* ============================================================
-   5. STATE
+   6. STATE
    ============================================================ */
 
 const state = {
@@ -412,34 +445,61 @@ let activeFilesLeadId = null;
 
 
 /* ============================================================
-   6. HELPERS
+   7. BASIC HELPERS
    ============================================================ */
 
-function cleanText(value, maxLength = 5000) {
+function cleanText(
+  value,
+  maxLength = 5000
+) {
   return String(value ?? '')
     .trim()
-    .slice(0, maxLength);
+    .slice(
+      0,
+      maxLength
+    );
 }
 
 function normalizeSearch(value) {
   return String(value ?? '')
     .toLocaleLowerCase('ru-RU')
-    .replace(/\s+/g, ' ')
+    .replace(
+      /\s+/g,
+      ' '
+    )
     .trim();
 }
 
 function escapeHtml(value) {
   return String(value ?? '')
-    .replaceAll('&', '&amp;')
-    .replaceAll('<', '&lt;')
-    .replaceAll('>', '&gt;')
-    .replaceAll('"', '&quot;')
-    .replaceAll("'", '&#039;');
+    .replaceAll(
+      '&',
+      '&amp;'
+    )
+    .replaceAll(
+      '<',
+      '&lt;'
+    )
+    .replaceAll(
+      '>',
+      '&gt;'
+    )
+    .replaceAll(
+      '"',
+      '&quot;'
+    )
+    .replaceAll(
+      "'",
+      '&#039;'
+    );
 }
 
 function padNumber(value) {
   return String(value)
-    .padStart(2, '0');
+    .padStart(
+      2,
+      '0'
+    );
 }
 
 function isValidDate(date) {
@@ -455,7 +515,7 @@ function pluralizeDays(value) {
   const number =
     Math.abs(value) % 100;
 
-  const lastDigit =
+  const last =
     number % 10;
 
   if (
@@ -465,13 +525,13 @@ function pluralizeDays(value) {
     return 'дней';
   }
 
-  if (lastDigit === 1) {
+  if (last === 1) {
     return 'день';
   }
 
   if (
-    lastDigit >= 2 &&
-    lastDigit <= 4
+    last >= 2 &&
+    last <= 4
   ) {
     return 'дня';
   }
@@ -483,7 +543,7 @@ function pluralizeRecords(value) {
   const number =
     Math.abs(value) % 100;
 
-  const digit =
+  const last =
     number % 10;
 
   if (
@@ -493,13 +553,13 @@ function pluralizeRecords(value) {
     return 'записей';
   }
 
-  if (digit === 1) {
+  if (last === 1) {
     return 'запись';
   }
 
   if (
-    digit >= 2 &&
-    digit <= 4
+    last >= 2 &&
+    last <= 4
   ) {
     return 'записи';
   }
@@ -511,7 +571,7 @@ function pluralizeFiles(value) {
   const number =
     Math.abs(value) % 100;
 
-  const digit =
+  const last =
     number % 10;
 
   if (
@@ -521,13 +581,13 @@ function pluralizeFiles(value) {
     return 'файлов';
   }
 
-  if (digit === 1) {
+  if (last === 1) {
     return 'файл';
   }
 
   if (
-    digit >= 2 &&
-    digit <= 4
+    last >= 2 &&
+    last <= 4
   ) {
     return 'файла';
   }
@@ -535,33 +595,42 @@ function pluralizeFiles(value) {
   return 'файлов';
 }
 
-function getInitials(name, email) {
+function getInitials(
+  name,
+  email
+) {
   const source =
-    cleanText(name, 200) ||
+    cleanText(
+      name,
+      200
+    ) ||
     cleanText(
       email,
       200
     ).split('@')[0] ||
     'Д';
 
-  const words =
+  const parts =
     source
       .split(/\s+/)
       .filter(Boolean);
 
   if (
-    words.length >= 2
+    parts.length >= 2
   ) {
     return (
-      words[0][0] +
-      words[1][0]
+      parts[0][0] +
+      parts[1][0]
     ).toLocaleUpperCase(
       'ru-RU'
     );
   }
 
   return source
-    .slice(0, 2)
+    .slice(
+      0,
+      2
+    )
     .toLocaleUpperCase(
       'ru-RU'
     );
@@ -629,182 +698,13 @@ function createRandomId() {
     '-' +
     Math.random()
       .toString(36)
-      .slice(2, 12)
+      .slice(2)
   );
-}
-
-function sanitizeStorageFileName(fileName) {
-  const original =
-    cleanText(
-      fileName,
-      220
-    );
-
-  const dotIndex =
-    original.lastIndexOf('.');
-
-  const extension =
-    dotIndex > 0
-      ? original
-          .slice(dotIndex + 1)
-          .toLowerCase()
-          .replace(
-            /[^a-z0-9]/g,
-            ''
-          )
-          .slice(0, 12)
-      : '';
-
-  const base =
-    (
-      dotIndex > 0
-        ? original.slice(
-            0,
-            dotIndex
-          )
-        : original
-    )
-      .normalize('NFKD')
-      .replace(
-        /[\u0300-\u036f]/g,
-        ''
-      )
-      .replace(
-        /[^a-zA-Z0-9_-]+/g,
-        '-'
-      )
-      .replace(
-        /^-+|-+$/g,
-        ''
-      )
-      .slice(0, 70) ||
-    'file';
-
-  return extension
-    ? `${base}.${extension}`
-    : base;
-}
-
-function formatFileSize(bytes) {
-  const size =
-    Number(bytes);
-
-  if (
-    !Number.isFinite(size) ||
-    size < 0
-  ) {
-    return '';
-  }
-
-  if (size < 1024) {
-    return `${size} Б`;
-  }
-
-  if (
-    size <
-    1024 * 1024
-  ) {
-    return (
-      (
-        size / 1024
-      ).toFixed(1) +
-      ' КБ'
-    );
-  }
-
-  return (
-    (
-      size /
-      1024 /
-      1024
-    ).toFixed(1) +
-    ' МБ'
-  );
-}
-
-function formatFileDate(value) {
-  if (!value) {
-    return '';
-  }
-
-  const date =
-    new Date(value);
-
-  if (!isValidDate(date)) {
-    return '';
-  }
-
-  return new Intl.DateTimeFormat(
-    'ru-RU',
-    {
-      day: '2-digit',
-      month: '2-digit',
-      year: 'numeric',
-      hour: '2-digit',
-      minute: '2-digit'
-    }
-  ).format(date);
-}
-
-function getFileIcon(file) {
-  const mime =
-    String(
-      file?.mime_type ||
-      ''
-    ).toLowerCase();
-
-  const name =
-    String(
-      file?.original_file_name ||
-      file?.file_name ||
-      ''
-    ).toLowerCase();
-
-  if (
-    mime.startsWith(
-      'image/'
-    )
-  ) {
-    return '🖼️';
-  }
-
-  if (
-    mime ===
-      'application/pdf' ||
-    name.endsWith('.pdf')
-  ) {
-    return '📕';
-  }
-
-  if (
-    name.endsWith('.doc') ||
-    name.endsWith('.docx')
-  ) {
-    return '📘';
-  }
-
-  if (
-    name.endsWith('.xls') ||
-    name.endsWith('.xlsx') ||
-    name.endsWith('.csv')
-  ) {
-    return '📗';
-  }
-
-  if (
-    name.endsWith('.zip') ||
-    name.endsWith('.rar') ||
-    name.endsWith('.7z')
-  ) {
-    return '🗜️';
-  }
-
-  return '📄';
 }
 
 
 /* ============================================================
-   7. PROFILE HELPERS
+   8. PROFILE HELPERS
    ============================================================ */
 
 function getProfileById(id) {
@@ -850,23 +750,17 @@ function getResponsibleDisplayName(lead) {
       lead.responsible_user
     );
 
-  if (profile) {
-    return getProfileDisplayName(
-      profile
-    );
-  }
-
-  return 'Сотрудник';
+  return profile
+    ? getProfileDisplayName(
+        profile
+      )
+    : 'Сотрудник';
 }
 
 function getUploaderDisplayName(file) {
-  if (!file?.uploaded_by) {
-    return '';
-  }
-
   const profile =
     getProfileById(
-      file.uploaded_by
+      file?.uploaded_by
     );
 
   return profile
@@ -878,7 +772,7 @@ function getUploaderDisplayName(file) {
 
 
 /* ============================================================
-   8. DATE HELPERS
+   9. DATE HELPERS
    ============================================================ */
 
 function toLocalDateTimeInput(value) {
@@ -924,11 +818,9 @@ function toDatabaseTimestamp(value) {
   const date =
     new Date(value);
 
-  if (!isValidDate(date)) {
-    return null;
-  }
-
-  return date.toISOString();
+  return isValidDate(date)
+    ? date.toISOString()
+    : null;
 }
 
 function getLocalDayNumber(date) {
@@ -955,12 +847,31 @@ function getDayDifference(value) {
   }
 
   return (
-    getLocalDayNumber(
-      target
-    ) -
+    getLocalDayNumber(target) -
     getLocalDayNumber(
       new Date()
     )
+  );
+}
+
+function getMinutesUntil(value) {
+  if (!value) {
+    return null;
+  }
+
+  const target =
+    new Date(value);
+
+  if (!isValidDate(target)) {
+    return null;
+  }
+
+  return Math.round(
+    (
+      target.getTime() -
+      Date.now()
+    ) /
+    60000
   );
 }
 
@@ -988,24 +899,29 @@ function formatContactDate(value) {
   ).format(date);
 }
 
-function getDueInfo(lead) {
-  if (!lead.next_contact) {
-    return {
-      type: 'no-date',
-      rowClass: '',
-      label:
-        'Дата не назначена',
-      dateText:
-        'Не назначен'
-    };
+function formatTime(value) {
+  if (!value) {
+    return '';
   }
 
   const date =
-    new Date(
-      lead.next_contact
-    );
+    new Date(value);
 
   if (!isValidDate(date)) {
+    return '';
+  }
+
+  return new Intl.DateTimeFormat(
+    'ru-RU',
+    {
+      hour: '2-digit',
+      minute: '2-digit'
+    }
+  ).format(date);
+}
+
+function getDueInfo(lead) {
+  if (!lead.next_contact) {
     return {
       type: 'no-date',
       rowClass: '',
@@ -1021,19 +937,28 @@ function getDueInfo(lead) {
       lead.next_contact
     );
 
-  const time =
-    new Intl.DateTimeFormat(
-      'ru-RU',
-      {
-        hour: '2-digit',
-        minute: '2-digit'
-      }
-    ).format(date);
-
   const dateText =
     formatContactDate(
       lead.next_contact
     );
+
+  const time =
+    formatTime(
+      lead.next_contact
+    );
+
+  if (
+    difference === null
+  ) {
+    return {
+      type: 'no-date',
+      rowClass: '',
+      label:
+        'Дата не назначена',
+      dateText:
+        'Не назначен'
+    };
+  }
 
   if (difference < 0) {
     const days =
@@ -1050,7 +975,9 @@ function getDueInfo(lead) {
         'Просрочено на ' +
         days +
         ' ' +
-        pluralizeDays(days),
+        pluralizeDays(
+          days
+        ),
 
       dateText
     };
@@ -1120,14 +1047,14 @@ function getDueInfo(lead) {
 
 function addDays(
   date,
-  numberOfDays
+  days
 ) {
   const result =
     new Date(date);
 
   result.setDate(
     result.getDate() +
-    numberOfDays
+    days
   );
 
   return result;
@@ -1135,7 +1062,7 @@ function addDays(
 
 function addMonths(
   date,
-  numberOfMonths
+  months
 ) {
   const result =
     new Date(date);
@@ -1147,7 +1074,7 @@ function addMonths(
 
   result.setMonth(
     result.getMonth() +
-    numberOfMonths
+    months
   );
 
   const maxDay =
@@ -1223,7 +1150,7 @@ function getPresetDate(preset) {
 
 
 /* ============================================================
-   9. TOAST
+   10. TOAST
    ============================================================ */
 
 function showToast(
@@ -1261,7 +1188,7 @@ function showToast(
 
 
 /* ============================================================
-   10. LOADING
+   11. LOADING
    ============================================================ */
 
 function setLoadingText(text) {
@@ -1334,9 +1261,7 @@ function showFatalError(message) {
           margin-bottom:18px;
         "
       >
-        ${escapeHtml(
-          message
-        )}
+        ${escapeHtml(message)}
       </div>
 
       <a
@@ -1360,7 +1285,7 @@ function showFatalError(message) {
 
 
 /* ============================================================
-   11. SUPABASE CLIENT
+   12. SUPABASE
    ============================================================ */
 
 function createSupabaseClient() {
@@ -1382,14 +1307,9 @@ function createSupabaseClient() {
         SUPABASE_PUBLISHABLE_KEY,
         {
           auth: {
-            persistSession:
-              true,
-
-            autoRefreshToken:
-              true,
-
-            detectSessionInUrl:
-              true
+            persistSession: true,
+            autoRefreshToken: true,
+            detectSessionInUrl: true
           }
         }
       );
@@ -1397,7 +1317,7 @@ function createSupabaseClient() {
 
 
 /* ============================================================
-   12. AUTH
+   13. AUTH / PROFILE
    ============================================================ */
 
 async function ensureAuthenticated() {
@@ -1417,11 +1337,8 @@ async function ensureAuthenticated() {
     throw error;
   }
 
-  const session =
-    data?.session;
-
   if (
-    !session?.user
+    !data?.session?.user
   ) {
     redirectToLogin();
 
@@ -1429,24 +1346,18 @@ async function ensureAuthenticated() {
   }
 
   currentUser =
-    session.user;
+    data.session.user;
 
   return true;
 }
 
 async function loadCurrentProfile() {
-  setLoadingText(
-    'Загружаем профиль сотрудника…'
-  );
-
   const {
     data,
     error
   } =
     await supabaseClient
-      .from(
-        'profiles'
-      )
+      .from('profiles')
       .select(
         'id, full_name, email, position, role, is_active'
       )
@@ -1458,14 +1369,13 @@ async function loadCurrentProfile() {
 
   if (error) {
     console.warn(
-      'Не удалось загрузить профиль:',
+      'Profile:',
       error
     );
   }
 
   if (
-    data &&
-    data.is_active === false
+    data?.is_active === false
   ) {
     await supabaseClient
       .auth
@@ -1485,8 +1395,7 @@ async function loadCurrentProfile() {
         currentUser
           .user_metadata
           ?.full_name ||
-        currentUser
-          .email
+        currentUser.email
           ?.split('@')[0] ||
         'Сотрудник',
 
@@ -1502,72 +1411,50 @@ async function loadCurrentProfile() {
 
 function renderCurrentUser() {
   const name =
-    cleanText(
+    getProfileDisplayName(
       currentProfile
-        ?.full_name,
-      200
-    ) ||
-    currentUser
-      ?.email
-      ?.split('@')[0] ||
-    'Сотрудник';
+    );
 
   const email =
     cleanText(
-      currentProfile
-        ?.email,
+      currentProfile?.email,
       200
     ) ||
-    currentUser
-      ?.email ||
+    currentUser?.email ||
     '';
 
   if (
     elements.userName
   ) {
-    elements.userName
-      .textContent =
-        name;
+    elements.userName.textContent =
+      name;
   }
 
   if (
     elements.userEmail
   ) {
-    elements.userEmail
-      .textContent =
-        email;
+    elements.userEmail.textContent =
+      email;
   }
 
   if (
     elements.userAvatar
   ) {
-    elements.userAvatar
-      .textContent =
-        getInitials(
-          name,
-          email
-        );
+    elements.userAvatar.textContent =
+      getInitials(
+        name,
+        email
+      );
   }
 }
 
-
-/* ============================================================
-   13. PROFILES
-   ============================================================ */
-
 async function loadProfiles() {
-  setLoadingText(
-    'Загружаем список сотрудников…'
-  );
-
   const {
     data,
     error
   } =
     await supabaseClient
-      .from(
-        'profiles'
-      )
+      .from('profiles')
       .select(
         'id, full_name, email, position, role, is_active'
       )
@@ -1578,8 +1465,7 @@ async function loadProfiles() {
       .order(
         'full_name',
         {
-          ascending:
-            true
+          ascending: true
         }
       );
 
@@ -1597,7 +1483,7 @@ async function loadProfiles() {
     !profiles.some(
       (profile) =>
         profile.id ===
-          currentProfile.id
+        currentProfile.id
     )
   ) {
     profiles.push(
@@ -1610,235 +1496,116 @@ async function loadProfiles() {
       getProfileDisplayName(a)
         .localeCompare(
           getProfileDisplayName(b),
-          'ru',
-          {
-            sensitivity:
-              'base'
-          }
+          'ru'
         )
   );
 
   renderResponsibleOptions();
 }
 
-
-/* ============================================================
-   14. RESPONSIBLE OPTIONS
-   ============================================================ */
-
 function renderResponsibleOptions() {
+  const createOptions =
+    (
+      includeFilters = false
+    ) => {
+      const options =
+        includeFilters
+          ? [
+              '<option value="all">Все сотрудники</option>',
+              '<option value="mine">Только мои</option>',
+              '<option value="none">Не назначен</option>'
+            ]
+          : [
+              '<option value="">Не назначен</option>'
+            ];
+
+      profiles.forEach(
+        (profile) => {
+          options.push(`
+            <option
+              value="${escapeHtml(
+                profile.id
+              )}"
+            >
+              ${escapeHtml(
+                getProfileDisplayName(
+                  profile
+                )
+              )}
+            </option>
+          `);
+        }
+      );
+
+      return options.join('');
+    };
+
   if (
     elements.responsibleUser
   ) {
-    const oldValue =
+    const old =
       elements.responsibleUser
         .value;
 
-    const options = [
-      '<option value="">Не назначен</option>'
-    ];
-
-    profiles.forEach(
-      (profile) => {
-        const name =
-          getProfileDisplayName(
-            profile
-          );
-
-        const position =
-          cleanText(
-            profile.position,
-            120
-          );
-
-        const label =
-          position
-            ? (
-                name +
-                ' — ' +
-                position
-              )
-            : name;
-
-        options.push(`
-          <option
-            value="${escapeHtml(
-              profile.id
-            )}"
-          >
-            ${escapeHtml(
-              label
-            )}
-          </option>
-        `);
-      }
-    );
-
     elements.responsibleUser
       .innerHTML =
-        options.join('');
+        createOptions();
 
-    if (
-      oldValue &&
-      profiles.some(
-        (profile) =>
-          profile.id ===
-            oldValue
-      )
-    ) {
-      elements.responsibleUser
+    if (old) {
+      elements.responsibleUser.value =
+        old;
+    }
+  }
+
+  if (
+    elements.quickContactResponsible
+  ) {
+    const old =
+      elements.quickContactResponsible
+        .value;
+
+    elements.quickContactResponsible
+      .innerHTML =
+        createOptions();
+
+    if (old) {
+      elements.quickContactResponsible
         .value =
-          oldValue;
+          old;
     }
   }
 
   if (
     elements.responsibleFilter
   ) {
-    const oldValue =
+    const old =
       elements.responsibleFilter
         .value ||
-      state.responsible ||
-      'all';
-
-    const options = [
-      '<option value="all">Все сотрудники</option>',
-      '<option value="mine">Только мои</option>',
-      '<option value="none">Не назначен</option>'
-    ];
-
-    profiles.forEach(
-      (profile) => {
-        options.push(`
-          <option
-            value="${escapeHtml(
-              profile.id
-            )}"
-          >
-            ${escapeHtml(
-              getProfileDisplayName(
-                profile
-              )
-            )}
-          </option>
-        `);
-      }
-    );
+      state.responsible;
 
     elements.responsibleFilter
       .innerHTML =
-        options.join('');
+        createOptions(true);
 
-    const allowed =
-      new Set([
-        'all',
-        'mine',
-        'none',
-        ...profiles.map(
-          (profile) =>
-            profile.id
-        )
-      ]);
-
-    if (
-      allowed.has(
-        oldValue
-      )
-    ) {
-      elements.responsibleFilter
-        .value =
-          oldValue;
-    } else {
-      elements.responsibleFilter
-        .value =
-          'all';
-
-      state.responsible =
-        'all';
-    }
-  }
-
-  renderQuickContactResponsibleOptions();
-}
-
-function renderQuickContactResponsibleOptions() {
-  if (
-    !elements.quickContactResponsible
-  ) {
-    return;
-  }
-
-  const oldValue =
-    elements.quickContactResponsible
-      .value;
-
-  const options = [
-    '<option value="">Не назначен</option>'
-  ];
-
-  profiles.forEach(
-    (profile) => {
-      options.push(`
-        <option
-          value="${escapeHtml(
-            profile.id
-          )}"
-        >
-          ${escapeHtml(
-            getProfileDisplayName(
-              profile
-            )
-          )}
-        </option>
-      `);
-    }
-  );
-
-  elements.quickContactResponsible
-    .innerHTML =
-      options.join('');
-
-  if (
-    oldValue &&
-    profiles.some(
-      (profile) =>
-        profile.id ===
-          oldValue
-    )
-  ) {
-    elements.quickContactResponsible
-      .value =
-        oldValue;
+    elements.responsibleFilter.value =
+      old || 'all';
   }
 }
 
 
 /* ============================================================
-   15. LOAD LEADS
+   14. LOAD DATA
    ============================================================ */
 
 async function loadLeads({
   silent = false
 } = {}) {
-  if (
-    isLoadingLeads
-  ) {
+  if (isLoadingLeads) {
     return;
   }
 
   isLoadingLeads =
     true;
-
-  if (
-    !silent &&
-    elements.refreshBtn
-  ) {
-    elements.refreshBtn.disabled =
-      true;
-
-    elements.refreshBtn.textContent =
-      'Обновляем…';
-  }
 
   try {
     const [
@@ -1847,34 +1614,22 @@ async function loadLeads({
     ] =
       await Promise.all([
         supabaseClient
-          .from(
-            'planner_leads'
-          )
+          .from('planner_leads')
           .select('*')
           .order(
             'created_at',
             {
-              ascending:
-                false
+              ascending: false
             }
           ),
 
         supabaseClient
-          .from(
-            'crm_files'
-          )
+          .from('crm_files')
           .select('*')
           .not(
             'lead_id',
             'is',
             null
-          )
-          .order(
-            'created_at',
-            {
-              ascending:
-                false
-            }
           )
       ]);
 
@@ -1891,18 +1646,12 @@ async function loadLeads({
     }
 
     leads =
-      Array.isArray(
-        leadsResult.data
-      )
-        ? leadsResult.data
-        : [];
+      leadsResult.data ||
+      [];
 
     crmFiles =
-      Array.isArray(
-        filesResult.data
-      )
-        ? filesResult.data
-        : [];
+      filesResult.data ||
+      [];
 
     render();
 
@@ -1912,58 +1661,35 @@ async function loadLeads({
       renderFilesList();
     }
 
-    checkTodayNotifications();
+    runSmartReminders();
   } catch (error) {
     console.error(
-      'Ошибка загрузки данных:',
       error
     );
 
-    showToast(
-      'Не удалось загрузить общую таблицу.',
-      'error'
-    );
+    if (!silent) {
+      showToast(
+        'Не удалось загрузить данные.',
+        'error'
+      );
+    }
   } finally {
     isLoadingLeads =
       false;
-
-    if (
-      !silent &&
-      elements.refreshBtn
-    ) {
-      elements.refreshBtn.disabled =
-        false;
-
-      elements.refreshBtn.textContent =
-        '↻ Обновить';
-    }
   }
 }
 
 
 /* ============================================================
-   16. FILE HELPERS
+   15. FILE HELPERS
    ============================================================ */
 
 function getLeadFiles(leadId) {
-  if (!leadId) {
-    return [];
-  }
-
   return crmFiles
     .filter(
       (file) =>
         file.lead_id ===
         leadId
-    )
-    .sort(
-      (a, b) =>
-        new Date(
-          b.created_at || 0
-        ).getTime() -
-        new Date(
-          a.created_at || 0
-        ).getTime()
     );
 }
 
@@ -1973,177 +1699,169 @@ function getLeadFileCount(leadId) {
   ).length;
 }
 
-function upsertFileLocally(file) {
-  if (!file?.id) {
-    return;
-  }
+function formatFileSize(bytes) {
+  const value =
+    Number(bytes);
 
-  const index =
-    crmFiles.findIndex(
-      (item) =>
-        item.id === file.id
-    );
-
-  if (index >= 0) {
-    crmFiles[index] =
-      file;
-  } else {
-    crmFiles.push(
-      file
+  if (
+    value < 1024
+  ) {
+    return (
+      value +
+      ' Б'
     );
   }
-}
 
-function removeFileLocally(id) {
-  crmFiles =
-    crmFiles.filter(
-      (file) =>
-        file.id !== id
+  if (
+    value <
+    1024 * 1024
+  ) {
+    return (
+      (
+        value / 1024
+      ).toFixed(1) +
+      ' КБ'
     );
-}
+  }
 
-
-/* ============================================================
-   17. SEARCH
-   ============================================================ */
-
-function getSearchText(lead) {
-  const fileNames =
-    getLeadFiles(
-      lead.id
-    )
-      .map(
-        (file) =>
-          file.original_file_name ||
-          file.file_name
-      )
-      .join(' ');
-
-  return normalizeSearch(
-    [
-      lead.client_name,
-      lead.org_form,
-      lead.inn,
-      lead.activity,
-      lead.source,
-      lead.phone,
-      lead.email,
-
-      METHOD_META[
-        lead.communication_method
-      ],
-
-      lead.estimated_amount,
-
-      PRIORITY_META[
-        lead.priority
-      ]?.label,
-
-      STATUS_META[
-        lead.status
-      ]?.label,
-
-      getResponsibleDisplayName(
-        lead
-      ),
-
-      lead.last_dialogue,
-      lead.next_step,
-      lead.notes,
-      fileNames
-    ].join(' ')
+  return (
+    (
+      value /
+      1024 /
+      1024
+    ).toFixed(1) +
+    ' МБ'
   );
 }
 
+function formatFileDate(value) {
+  if (!value) {
+    return '';
+  }
+
+  return new Intl.DateTimeFormat(
+    'ru-RU',
+    {
+      day: '2-digit',
+      month: '2-digit',
+      year: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit'
+    }
+  ).format(
+    new Date(value)
+  );
+}
+
+function sanitizeStorageFileName(fileName) {
+  const original =
+    cleanText(
+      fileName,
+      220
+    );
+
+  const dot =
+    original.lastIndexOf('.');
+
+  const extension =
+    dot > 0
+      ? original
+          .slice(
+            dot + 1
+          )
+          .replace(
+            /[^a-zA-Z0-9]/g,
+            ''
+          )
+          .slice(
+            0,
+            12
+          )
+      : '';
+
+  const base =
+    (
+      dot > 0
+        ? original.slice(
+            0,
+            dot
+          )
+        : original
+    )
+      .replace(
+        /[^a-zA-Z0-9_-]+/g,
+        '-'
+      )
+      .replace(
+        /^-+|-+$/g,
+        ''
+      )
+      .slice(
+        0,
+        70
+      ) ||
+    'file';
+
+  return extension
+    ? base +
+      '.' +
+      extension
+    : base;
+}
+
+function getFileIcon(file) {
+  const mime =
+    String(
+      file.mime_type ||
+      ''
+    ).toLowerCase();
+
+  const name =
+    String(
+      file.original_file_name ||
+      file.file_name ||
+      ''
+    ).toLowerCase();
+
+  if (
+    mime.startsWith(
+      'image/'
+    )
+  ) {
+    return '🖼️';
+  }
+
+  if (
+    name.endsWith(
+      '.pdf'
+    )
+  ) {
+    return '📕';
+  }
+
+  if (
+    /\.(doc|docx)$/.test(
+      name
+    )
+  ) {
+    return '📘';
+  }
+
+  if (
+    /\.(xls|xlsx|csv)$/.test(
+      name
+    )
+  ) {
+    return '📗';
+  }
+
+  return '📄';
+}
+
 
 /* ============================================================
-   18. FILTERS
+   16. FILTER / SORT
    ============================================================ */
-
-function matchesDateFilter(lead) {
-  if (
-    state.date ===
-    'all'
-  ) {
-    return true;
-  }
-
-  if (
-    state.date ===
-    'closed'
-  ) {
-    return isClosed(
-      lead
-    );
-  }
-
-  if (
-    isClosed(lead)
-  ) {
-    return false;
-  }
-
-  const difference =
-    getDayDifference(
-      lead.next_contact
-    );
-
-  if (
-    state.date ===
-    'nodate'
-  ) {
-    return (
-      difference ===
-      null
-    );
-  }
-
-  if (
-    difference ===
-    null
-  ) {
-    return false;
-  }
-
-  if (
-    state.date ===
-    'today'
-  ) {
-    return (
-      difference === 0
-    );
-  }
-
-  if (
-    state.date ===
-    'week'
-  ) {
-    return (
-      difference >= 0 &&
-      difference <= 7
-    );
-  }
-
-  if (
-    state.date ===
-    'overdue'
-  ) {
-    return (
-      difference < 0
-    );
-  }
-
-  if (
-    state.date ===
-    'future'
-  ) {
-    return (
-      difference > 0
-    );
-  }
-
-  return true;
-}
 
 function matchesResponsibleFilter(
   lead
@@ -2180,13 +1898,122 @@ function matchesResponsibleFilter(
   );
 }
 
+function matchesDateFilter(lead) {
+  if (
+    state.date === 'all'
+  ) {
+    return true;
+  }
+
+  if (
+    state.date === 'closed'
+  ) {
+    return isClosed(
+      lead
+    );
+  }
+
+  if (
+    isClosed(lead)
+  ) {
+    return false;
+  }
+
+  const diff =
+    getDayDifference(
+      lead.next_contact
+    );
+
+  if (
+    state.date ===
+    'nodate'
+  ) {
+    return diff === null;
+  }
+
+  if (
+    diff === null
+  ) {
+    return false;
+  }
+
+  if (
+    state.date ===
+    'today'
+  ) {
+    return diff === 0;
+  }
+
+  if (
+    state.date ===
+    'week'
+  ) {
+    return (
+      diff >= 0 &&
+      diff <= 7
+    );
+  }
+
+  if (
+    state.date ===
+    'overdue'
+  ) {
+    return diff < 0;
+  }
+
+  if (
+    state.date ===
+    'future'
+  ) {
+    return diff > 0;
+  }
+
+  return true;
+}
+
+function getSearchText(lead) {
+  return normalizeSearch(
+    [
+      lead.client_name,
+      lead.org_form,
+      lead.inn,
+      lead.activity,
+      lead.source,
+      lead.phone,
+      lead.email,
+      METHOD_META[
+        lead.communication_method
+      ],
+      lead.estimated_amount,
+      PRIORITY_META[
+        lead.priority
+      ]?.label,
+      STATUS_META[
+        lead.status
+      ]?.label,
+      getResponsibleDisplayName(
+        lead
+      ),
+      lead.last_dialogue,
+      lead.next_step,
+      lead.notes,
+      ...getLeadFiles(
+        lead.id
+      ).map(
+        (file) =>
+          file.original_file_name
+      )
+    ].join(' ')
+  );
+}
+
 function getVisibleLeads() {
   const search =
     normalizeSearch(
       state.search
     );
 
-  const filtered =
+  return sortLeads(
     leads.filter(
       (lead) => {
         if (
@@ -2233,22 +2060,13 @@ function getVisibleLeads() {
           lead
         );
       }
-    );
-
-  return sortLeads(
-    filtered
+    )
   );
 }
 
-
-/* ============================================================
-   19. SORT
-   ============================================================ */
-
 function sortLeads(items) {
-  const copy = [
-    ...items
-  ];
+  const copy =
+    [...items];
 
   if (
     state.sort ===
@@ -2259,11 +2077,7 @@ function sortLeads(items) {
         getDisplayName(a)
           .localeCompare(
             getDisplayName(b),
-            'ru',
-            {
-              sensitivity:
-                'base'
-            }
+            'ru'
           )
     );
   }
@@ -2276,10 +2090,10 @@ function sortLeads(items) {
       (a, b) =>
         new Date(
           b.created_at || 0
-        ).getTime() -
+        ) -
         new Date(
           a.created_at || 0
-        ).getTime()
+        )
     );
   }
 
@@ -2291,10 +2105,10 @@ function sortLeads(items) {
       (a, b) =>
         new Date(
           b.updated_at || 0
-        ).getTime() -
+        ) -
         new Date(
           a.updated_at || 0
-        ).getTime()
+        )
     );
   }
 
@@ -2303,111 +2117,7 @@ function sortLeads(items) {
     'priority'
   ) {
     return copy.sort(
-      (a, b) => {
-        const aPriority =
-          PRIORITY_META[
-            a.priority ||
-            'none'
-          ]?.order ||
-          4;
-
-        const bPriority =
-          PRIORITY_META[
-            b.priority ||
-            'none'
-          ]?.order ||
-          4;
-
-        if (
-          aPriority !==
-          bPriority
-        ) {
-          return (
-            aPriority -
-            bPriority
-          );
-        }
-
-        const aDate =
-          a.next_contact
-            ? new Date(
-                a.next_contact
-              ).getTime()
-            : Number
-                .MAX_SAFE_INTEGER;
-
-        const bDate =
-          b.next_contact
-            ? new Date(
-                b.next_contact
-              ).getTime()
-            : Number
-                .MAX_SAFE_INTEGER;
-
-        return (
-          aDate -
-          bDate
-        );
-      }
-    );
-  }
-
-  return copy.sort(
-    (a, b) => {
-      const aClosed =
-        isClosed(a);
-
-      const bClosed =
-        isClosed(b);
-
-      if (
-        aClosed !==
-        bClosed
-      ) {
-        return aClosed
-          ? 1
-          : -1;
-      }
-
-      const aHasDate =
-        Boolean(
-          a.next_contact
-        );
-
-      const bHasDate =
-        Boolean(
-          b.next_contact
-        );
-
-      if (
-        aHasDate !==
-        bHasDate
-      ) {
-        return aHasDate
-          ? -1
-          : 1;
-      }
-
-      if (
-        aHasDate &&
-        bHasDate
-      ) {
-        const difference =
-          new Date(
-            a.next_contact
-          ).getTime() -
-          new Date(
-            b.next_contact
-          ).getTime();
-
-        if (
-          difference !== 0
-        ) {
-          return difference;
-        }
-      }
-
-      const priorityDifference =
+      (a, b) =>
         (
           PRIORITY_META[
             a.priority ||
@@ -2421,34 +2131,139 @@ function sortLeads(items) {
             'none'
           ]?.order ||
           4
-        );
+        )
+    );
+  }
+
+  return copy.sort(
+    (a, b) => {
+      if (
+        isClosed(a) !==
+        isClosed(b)
+      ) {
+        return isClosed(a)
+          ? 1
+          : -1;
+      }
+
+      const aDate =
+        a.next_contact
+          ? new Date(
+              a.next_contact
+            ).getTime()
+          : Number
+              .MAX_SAFE_INTEGER;
+
+      const bDate =
+        b.next_contact
+          ? new Date(
+              b.next_contact
+            ).getTime()
+          : Number
+              .MAX_SAFE_INTEGER;
 
       if (
-        priorityDifference !==
-        0
+        aDate !==
+        bDate
       ) {
         return (
-          priorityDifference
+          aDate -
+          bDate
         );
       }
 
-      return getDisplayName(a)
-        .localeCompare(
-          getDisplayName(b),
-          'ru',
-          {
-            sensitivity:
-              'base'
-          }
-        );
+      return (
+        (
+          PRIORITY_META[
+            a.priority ||
+            'none'
+          ]?.order ||
+          4
+        ) -
+        (
+          PRIORITY_META[
+            b.priority ||
+            'none'
+          ]?.order ||
+          4
+        )
+      );
     }
   );
 }
 
 
 /* ============================================================
-   20. STATISTICS
+   17. STATISTICS / SMART SUMMARY
    ============================================================ */
+
+function getReminderScopeLeads() {
+  return leads.filter(
+    (lead) => {
+      if (
+        isClosed(lead)
+      ) {
+        return false;
+      }
+
+      return (
+        !lead.responsible_user ||
+        lead.responsible_user ===
+          currentUser?.id
+      );
+    }
+  );
+}
+
+function getSmartSummaryData() {
+  const ownLeads =
+    getReminderScopeLeads();
+
+  const today =
+    ownLeads.filter(
+      (lead) =>
+        getDayDifference(
+          lead.next_contact
+        ) === 0
+    );
+
+  const overdue =
+    ownLeads.filter(
+      (lead) => {
+        const diff =
+          getDayDifference(
+            lead.next_contact
+          );
+
+        return (
+          diff !== null &&
+          diff < 0
+        );
+      }
+    );
+
+  const week =
+    ownLeads.filter(
+      (lead) => {
+        const diff =
+          getDayDifference(
+            lead.next_contact
+          );
+
+        return (
+          diff !== null &&
+          diff >= 0 &&
+          diff <= 7
+        );
+      }
+    );
+
+  return {
+    today,
+    overdue,
+    week
+  };
+}
 
 function renderStatistics() {
   const active =
@@ -2468,15 +2283,15 @@ function renderStatistics() {
   const week =
     active.filter(
       (lead) => {
-        const difference =
+        const diff =
           getDayDifference(
             lead.next_contact
           );
 
         return (
-          difference !== null &&
-          difference >= 0 &&
-          difference <= 7
+          diff !== null &&
+          diff >= 0 &&
+          diff <= 7
         );
       }
     ).length;
@@ -2484,14 +2299,14 @@ function renderStatistics() {
   const overdue =
     active.filter(
       (lead) => {
-        const difference =
+        const diff =
           getDayDifference(
             lead.next_contact
           );
 
         return (
-          difference !== null &&
-          difference < 0
+          diff !== null &&
+          diff < 0
         );
       }
     ).length;
@@ -2502,47 +2317,134 @@ function renderStatistics() {
         !lead.next_contact
     ).length;
 
-  elements.statActive
+  if (
+    elements.statActive
+  ) {
+    elements.statActive.textContent =
+      String(
+        active.length
+      );
+  }
+
+  if (
+    elements.statToday
+  ) {
+    elements.statToday.textContent =
+      String(today);
+  }
+
+  if (
+    elements.statWeek
+  ) {
+    elements.statWeek.textContent =
+      String(week);
+  }
+
+  if (
+    elements.statOverdue
+  ) {
+    elements.statOverdue.textContent =
+      String(overdue);
+  }
+
+  if (
+    elements.statNoDate
+  ) {
+    elements.statNoDate.textContent =
+      String(noDate);
+  }
+
+  renderSmartSummary();
+}
+function updateSmartSummarySelection() {
+  if (!elements.smartSummary) {
+    return;
+  }
+
+  const items =
+    elements.smartSummary.querySelectorAll(
+      '[data-summary-filter]'
+    );
+
+  items.forEach(
+    (item) => {
+      const isActive =
+        item.dataset.summaryFilter ===
+        state.date;
+
+      item.classList.toggle(
+        'active',
+        isActive
+      );
+
+      item.setAttribute(
+        'aria-pressed',
+        String(isActive)
+      );
+    }
+  );
+}
+function renderSmartSummary() {
+  if (
+    !elements.smartSummary
+  ) {
+    return;
+  }
+
+  const summary =
+    getSmartSummaryData();
+
+  elements.smartSummaryToday
     ?.replaceChildren(
       document.createTextNode(
         String(
-          active.length
+          summary.today.length
         )
       )
     );
 
-  elements.statToday
+  elements.smartSummaryOverdue
     ?.replaceChildren(
       document.createTextNode(
-        String(today)
+        String(
+          summary.overdue.length
+        )
       )
     );
 
-  elements.statWeek
+  elements.smartSummaryWeek
     ?.replaceChildren(
       document.createTextNode(
-        String(week)
+        String(
+          summary.week.length
+        )
       )
     );
 
-  elements.statOverdue
-    ?.replaceChildren(
-      document.createTextNode(
-        String(overdue)
-      )
-    );
-
-  elements.statNoDate
-    ?.replaceChildren(
-      document.createTextNode(
-        String(noDate)
-      )
-    );
+  if (
+    elements.smartSummaryText
+  ) {
+    if (
+      summary.overdue.length > 0
+    ) {
+      elements.smartSummaryText.textContent =
+        `Есть просроченные контакты: ${summary.overdue.length}.`;
+    } else if (
+      summary.today.length > 0
+    ) {
+      elements.smartSummaryText.textContent =
+        `Сегодня запланировано контактов: ${summary.today.length}.`;
+    } else {
+      elements.smartSummaryText.textContent =
+        'Просроченных и сегодняшних контактов нет.';
+    }
+  }
+updateSmartSummarySelection();
 }
 
 
 /* ============================================================
-   21. TABLE ROW
+   18. TABLE
    ============================================================ */
 
 function createLeadRowHtml(lead) {
@@ -2564,257 +2466,77 @@ function createLeadRowHtml(lead) {
     ] ||
     PRIORITY_META.none;
 
-  const classes = [];
-
-  if (
-    isClosed(lead)
-  ) {
-    classes.push(
-      'row-closed'
+  const responsible =
+    getProfileById(
+      lead.responsible_user
     );
-  } else if (
-    due.rowClass
-  ) {
-    classes.push(
-      due.rowClass
-    );
-  }
 
-  const contacts = [];
-
-  if (lead.phone) {
-    const phoneHref =
-      cleanText(
-        lead.phone,
-        100
-      ).replace(
-        /[^\d+]/g,
-        ''
-      );
-
-    contacts.push(`
-      <a
-        class="contactLink"
-        href="tel:${escapeHtml(
-          phoneHref
-        )}"
-      >
-        ${escapeHtml(
-          lead.phone
-        )}
-      </a>
-    `);
-  }
-
-  if (lead.email) {
-    contacts.push(`
-      <a
-        class="contactLink"
-        href="mailto:${escapeHtml(
-          lead.email
-        )}"
-      >
-        ${escapeHtml(
-          lead.email
-        )}
-      </a>
-    `);
-  }
-
-  const dialogue = [];
-
-  if (
-    lead.last_dialogue
-  ) {
-    dialogue.push(`
-      <div class="dialogueBlock">
-
-        <span
-          class="dialogueLabel"
-        >
-          Предыдущий диалог
-        </span>
-
+  const responsibleHtml =
+    responsible
+      ? `
         <div
-          class="dialogueText"
+          style="
+            display:flex;
+            align-items:center;
+            gap:7px;
+          "
         >
-          ${escapeHtml(
-            lead.last_dialogue
-          )}
+          <span
+            style="
+              display:inline-flex;
+              align-items:center;
+              justify-content:center;
+              width:27px;
+              height:27px;
+              border-radius:50%;
+              color:#a85b17;
+              background:#fff3e3;
+              font-size:10px;
+              font-weight:900;
+            "
+          >
+            ${escapeHtml(
+              getInitials(
+                getProfileDisplayName(
+                  responsible
+                ),
+                responsible.email
+              )
+            )}
+          </span>
+
+          <span
+            style="
+              font-size:12px;
+              font-weight:800;
+            "
+          >
+            ${escapeHtml(
+              getProfileDisplayName(
+                responsible
+              )
+            )}
+          </span>
         </div>
-
-      </div>
-    `);
-  }
-
-  if (
-    lead.next_step
-  ) {
-    dialogue.push(`
-      <div class="dialogueBlock">
-
-        <span
-          class="dialogueLabel"
-        >
-          Следующий шаг
-        </span>
-
-        <div
-          class="dialogueText"
-        >
-          ${escapeHtml(
-            lead.next_step
-          )}
-        </div>
-
-      </div>
-    `);
-  }
-
-  const business = [];
-
-  if (
-    lead.source
-  ) {
-    business.push(`
-      <div class="clientMeta">
-        Канал:
-        ${escapeHtml(
-          lead.source
-        )}
-      </div>
-    `);
-  }
-
-  if (
-    lead.activity
-  ) {
-    business.push(`
-      <div class="activity">
-        ${escapeHtml(
-          lead.activity
-        )}
-      </div>
-    `);
-  }
+      `
+      : '<span class="muted">Не назначен</span>';
 
   const methodLabel =
     METHOD_META[
       lead.communication_method
     ];
 
-  const responsible =
-    getProfileById(
-      lead.responsible_user
-    );
-
-  let responsibleHtml =
-    '<span class="muted">Не назначен</span>';
-
-  if (responsible) {
-    const responsibleName =
-      getProfileDisplayName(
-        responsible
-      );
-
-    const initials =
-      getInitials(
-        responsibleName,
-        responsible.email
-      );
-
-    responsibleHtml = `
-      <div
-        style="
-          display:flex;
-          align-items:center;
-          gap:7px;
-        "
-      >
-        <span
-          style="
-            display:inline-flex;
-            align-items:center;
-            justify-content:center;
-            flex:0 0 auto;
-            width:27px;
-            height:27px;
-            border-radius:50%;
-            color:#a85b17;
-            background:#fff3e3;
-            font-size:10px;
-            font-weight:900;
-          "
-        >
-          ${escapeHtml(
-            initials
-          )}
-        </span>
-
-        <span
-          style="
-            color:#374151;
-            font-size:12px;
-            font-weight:800;
-            line-height:1.3;
-          "
-        >
-          ${escapeHtml(
-            responsibleName
-          )}
-        </span>
-      </div>
-    `;
-  }
-
-  const quickContactButton =
-    isClosed(lead)
-      ? ''
-      : `
-        <button
-          class="tableButton"
-          type="button"
-          data-action="contacted"
-          data-id="${escapeHtml(
-            lead.id
-          )}"
-          title="Зафиксировать контакт и назначить следующий"
-        >
-          📞 Связался
-        </button>
-      `;
-
-  const fileCount =
+  const files =
     getLeadFileCount(
       lead.id
     );
 
-  const filesButton = `
-    <button
-      class="tableButton"
-      type="button"
-      data-action="files"
-      data-id="${escapeHtml(
-        lead.id
-      )}"
-      title="Файлы клиента"
-    >
-      📎 Файлы${
-        fileCount > 0
-          ? ' (' +
-            fileCount +
-            ')'
-          : ''
-      }
-    </button>
-  `;
-
   return `
-    <tr
-      class="${classes.join(
-        ' '
-      )}"
-    >
+    <tr class="${
+      isClosed(lead)
+        ? 'row-closed'
+        : due.rowClass
+    }">
 
       <td>
         <div class="clientName">
@@ -2839,17 +2561,74 @@ function createLeadRowHtml(lead) {
 
       <td>
         ${
-          business.length
-            ? business.join('')
+          lead.source
+            ? `
+              <div class="clientMeta">
+                Канал:
+                ${escapeHtml(
+                  lead.source
+                )}
+              </div>
+            `
+            : ''
+        }
+
+        ${
+          lead.activity
+            ? `
+              <div class="activity">
+                ${escapeHtml(
+                  lead.activity
+                )}
+              </div>
+            `
             : '<span class="muted">Не указано</span>'
         }
       </td>
 
       <td>
         ${
-          contacts.length
-            ? contacts.join('')
-            : '<span class="muted">Не указаны</span>'
+          lead.phone
+            ? `
+              <a
+                class="contactLink"
+                href="tel:${escapeHtml(
+                  lead.phone.replace(
+                    /[^\d+]/g,
+                    ''
+                  )
+                )}"
+              >
+                ${escapeHtml(
+                  lead.phone
+                )}
+              </a>
+            `
+            : ''
+        }
+
+        ${
+          lead.email
+            ? `
+              <a
+                class="contactLink"
+                href="mailto:${escapeHtml(
+                  lead.email
+                )}"
+              >
+                ${escapeHtml(
+                  lead.email
+                )}
+              </a>
+            `
+            : ''
+        }
+
+        ${
+          !lead.phone &&
+          !lead.email
+            ? '<span class="muted">Не указаны</span>'
+            : ''
         }
       </td>
 
@@ -2857,9 +2636,7 @@ function createLeadRowHtml(lead) {
         ${
           methodLabel
             ? `
-              <span
-                class="pill methodPill"
-              >
+              <span class="pill methodPill">
                 ${escapeHtml(
                   methodLabel
                 )}
@@ -2889,9 +2666,7 @@ function createLeadRowHtml(lead) {
             priority.className
           )}"
         >
-          <span
-            class="priorityDot"
-          ></span>
+          <span class="priorityDot"></span>
 
           ${escapeHtml(
             priority.label
@@ -2904,9 +2679,7 @@ function createLeadRowHtml(lead) {
       </td>
 
       <td>
-        <div
-          class="dateMain"
-        >
+        <div class="dateMain">
           ${escapeHtml(
             due.dateText
           )}
@@ -2937,9 +2710,46 @@ function createLeadRowHtml(lead) {
 
       <td>
         ${
-          dialogue.length
-            ? dialogue.join('')
-            : '<span class="muted">Не заполнено</span>'
+          lead.last_dialogue
+            ? `
+              <div class="dialogueBlock">
+                <span class="dialogueLabel">
+                  Предыдущий диалог
+                </span>
+
+                <div class="dialogueText">
+                  ${escapeHtml(
+                    lead.last_dialogue
+                  )}
+                </div>
+              </div>
+            `
+            : ''
+        }
+
+        ${
+          lead.next_step
+            ? `
+              <div class="dialogueBlock">
+                <span class="dialogueLabel">
+                  Следующий шаг
+                </span>
+
+                <div class="dialogueText">
+                  ${escapeHtml(
+                    lead.next_step
+                  )}
+                </div>
+              </div>
+            `
+            : ''
+        }
+
+        ${
+          !lead.last_dialogue &&
+          !lead.next_step
+            ? '<span class="muted">Не заполнено</span>'
+            : ''
         }
       </td>
 
@@ -2947,9 +2757,7 @@ function createLeadRowHtml(lead) {
         ${
           lead.notes
             ? `
-              <div
-                class="notesText"
-              >
+              <div class="notesText">
                 ${escapeHtml(
                   lead.notes
                 )}
@@ -2960,13 +2768,41 @@ function createLeadRowHtml(lead) {
       </td>
 
       <td>
-        <div
-          class="rowActions"
-        >
+        <div class="rowActions">
 
-          ${quickContactButton}
+          ${
+            isClosed(lead)
+              ? ''
+              : `
+                <button
+                  class="tableButton"
+                  type="button"
+                  data-action="contacted"
+                  data-id="${escapeHtml(
+                    lead.id
+                  )}"
+                >
+                  📞 Связался
+                </button>
+              `
+          }
 
-          ${filesButton}
+          <button
+            class="tableButton"
+            type="button"
+            data-action="files"
+            data-id="${escapeHtml(
+              lead.id
+            )}"
+          >
+            📎 Файлы${
+              files
+                ? ' (' +
+                  files +
+                  ')'
+                : ''
+            }
+          </button>
 
           <button
             class="tableButton"
@@ -2997,69 +2833,46 @@ function createLeadRowHtml(lead) {
   `;
 }
 
-
-/* ============================================================
-   22. TABLE RENDER
-   ============================================================ */
-
 function renderTable() {
-  if (
-    !elements.leadTableBody
-  ) {
-    return;
-  }
-
   const visible =
     getVisibleLeads();
 
   if (
     elements.visibleCount
   ) {
-    elements.visibleCount
-      .textContent =
-        'Показано: ' +
-        visible.length +
-        ' из ' +
-        leads.length;
+    elements.visibleCount.textContent =
+      `Показано: ${visible.length} из ${leads.length}`;
   }
 
   if (
-    visible.length ===
-    0
+    visible.length === 0
   ) {
-    elements.leadTableBody
-      .innerHTML = `
-        <tr>
-          <td
-            class="emptyCell"
-            colspan="12"
-          >
-            <div
-              class="emptyTitle"
-            >
-              Записей не найдено
-            </div>
+    elements.leadTableBody.innerHTML = `
+      <tr>
+        <td
+          class="emptyCell"
+          colspan="12"
+        >
+          <div class="emptyTitle">
+            Записей не найдено
+          </div>
 
-            <div
-              class="emptyText"
-            >
-              Измените фильтры или добавьте нового
-              потенциального клиента.
-            </div>
-          </td>
-        </tr>
-      `;
+          <div class="emptyText">
+            Измените фильтры или добавьте нового потенциального клиента.
+          </div>
+        </td>
+      </tr>
+    `;
 
     return;
   }
 
-  elements.leadTableBody
-    .innerHTML =
-      visible
-        .map(
-          createLeadRowHtml
-        )
-        .join('');
+  elements.leadTableBody.innerHTML =
+    visible
+      .map(
+        createLeadRowHtml
+      )
+      .join('');
 }
 
 function render() {
@@ -3069,7 +2882,7 @@ function render() {
 
 
 /* ============================================================
-   23. MAIN FORM
+   19. MAIN FORM
    ============================================================ */
 
 function resetLeadForm() {
@@ -3079,42 +2892,30 @@ function resetLeadForm() {
   if (
     elements.leadId
   ) {
-    elements.leadId
-      .value =
-        '';
+    elements.leadId.value =
+      '';
   }
 
   if (
     elements.priority
   ) {
-    elements.priority
-      .value =
-        'none';
+    elements.priority.value =
+      'none';
   }
 
   if (
     elements.status
   ) {
-    elements.status
-      .value =
-        'new';
-  }
-
-  if (
-    elements.communicationMethod
-  ) {
-    elements.communicationMethod
-      .value =
-        '';
+    elements.status.value =
+      'new';
   }
 
   if (
     elements.responsibleUser &&
-    currentUser?.id
+    currentUser
   ) {
-    elements.responsibleUser
-      .value =
-        currentUser.id;
+    elements.responsibleUser.value =
+      currentUser.id;
   }
 }
 
@@ -3124,9 +2925,8 @@ function openLeadModal(
   resetLeadForm();
 
   if (lead) {
-    elements.modalTitle
-      .textContent =
-        'Редактирование клиента';
+    elements.modalTitle.textContent =
+      'Редактирование клиента';
 
     elements.leadId.value =
       lead.id;
@@ -3171,14 +2971,9 @@ function openLeadModal(
       lead.priority ||
       'none';
 
-    if (
-      elements.responsibleUser
-    ) {
-      elements.responsibleUser
-        .value =
-          lead.responsible_user ||
-          '';
-    }
+    elements.responsibleUser.value =
+      lead.responsible_user ||
+      '';
 
     elements.status.value =
       lead.status ||
@@ -3200,10 +2995,6 @@ function openLeadModal(
     elements.notes.value =
       lead.notes ||
       '';
-  } else {
-    elements.modalTitle
-      .textContent =
-        'Новый потенциальный клиент';
   }
 
   elements.modalBackdrop
@@ -3215,14 +3006,6 @@ function openLeadModal(
     .classList.add(
       'modal-open'
     );
-
-  window.setTimeout(
-    () => {
-      elements.clientName
-        ?.focus();
-    },
-    40
-  );
 }
 
 function closeLeadModal() {
@@ -3243,113 +3026,103 @@ function collectLeadFormData() {
   return {
     client_name:
       cleanText(
-        elements.clientName
-          ?.value,
+        elements.clientName.value,
         180
       ),
 
     org_form:
       cleanText(
-        elements.orgForm
-          ?.value,
+        elements.orgForm.value,
         80
-      ) || null,
+      ) ||
+      null,
 
     inn:
       cleanText(
-        elements.inn
-          ?.value,
+        elements.inn.value,
         20
-      ) || null,
+      ) ||
+      null,
 
     activity:
       cleanText(
-        elements.activity
-          ?.value,
+        elements.activity.value,
         180
-      ) || null,
+      ) ||
+      null,
 
     source:
       cleanText(
-        elements.source
-          ?.value,
+        elements.source.value,
         140
-      ) || null,
+      ) ||
+      null,
 
     phone:
       cleanText(
-        elements.phone
-          ?.value,
+        elements.phone.value,
         80
-      ) || null,
+      ) ||
+      null,
 
     email:
       cleanText(
-        elements.email
-          ?.value,
+        elements.email.value,
         180
-      ) || null,
+      ) ||
+      null,
 
     communication_method:
       elements.communicationMethod
-        ?.value ||
+        .value ||
       null,
 
     estimated_amount:
       cleanText(
-        elements.estimatedAmount
-          ?.value,
+        elements.estimatedAmount.value,
         120
-      ) || null,
+      ) ||
+      null,
 
     priority:
-      elements.priority
-        ?.value ||
+      elements.priority.value ||
       'none',
 
     responsible_user:
-      elements.responsibleUser
-        ?.value ||
+      elements.responsibleUser.value ||
       null,
 
     status:
-      elements.status
-        ?.value ||
+      elements.status.value ||
       'new',
 
     next_contact:
       toDatabaseTimestamp(
-        elements.nextContact
-          ?.value
+        elements.nextContact.value
       ),
 
     last_dialogue:
       cleanText(
-        elements.lastDialogue
-          ?.value,
+        elements.lastDialogue.value,
         3000
-      ) || null,
+      ) ||
+      null,
 
     next_step:
       cleanText(
-        elements.nextStep
-          ?.value,
+        elements.nextStep.value,
         2000
-      ) || null,
+      ) ||
+      null,
 
     notes:
       cleanText(
-        elements.notes
-          ?.value,
+        elements.notes.value,
         3000
-      ) || null
+      ) ||
+      null
   };
 }
-
-
-/* ============================================================
-   24. MAIN SAVE
-   ============================================================ */
 
 async function handleLeadSubmit(
   event
@@ -3373,9 +3146,6 @@ async function handleLeadSubmit(
       'warning'
     );
 
-    elements.clientName
-      ?.focus();
-
     return;
   }
 
@@ -3388,26 +3158,14 @@ async function handleLeadSubmit(
   elements.saveLeadBtn.textContent =
     'Сохраняем…';
 
-  const leadId =
-    cleanText(
-      elements.leadId
-        ?.value,
-      100
-    );
-
-  const existingLead =
-    leadId
-      ? leads.find(
-          (lead) =>
-            lead.id ===
-            leadId
-        )
-      : null;
-
   try {
-    if (
-      existingLead
-    ) {
+    const id =
+      cleanText(
+        elements.leadId.value,
+        100
+      );
+
+    if (id) {
       payload.updated_by =
         currentUser.id;
 
@@ -3416,15 +3174,11 @@ async function handleLeadSubmit(
         error
       } =
         await supabaseClient
-          .from(
-            'planner_leads'
-          )
-          .update(
-            payload
-          )
+          .from('planner_leads')
+          .update(payload)
           .eq(
             'id',
-            existingLead.id
+            id
           )
           .select()
           .single();
@@ -3435,15 +3189,6 @@ async function handleLeadSubmit(
 
       upsertLeadLocally(
         data
-      );
-
-      render();
-
-      closeLeadModal();
-
-      showToast(
-        'Запись обновлена.',
-        'success'
       );
     } else {
       payload.created_by =
@@ -3452,24 +3197,17 @@ async function handleLeadSubmit(
       payload.updated_by =
         currentUser.id;
 
-      if (
-        !payload.responsible_user
-      ) {
-        payload.responsible_user =
-          currentUser.id;
-      }
+      payload.responsible_user =
+        payload.responsible_user ||
+        currentUser.id;
 
       const {
         data,
         error
       } =
         await supabaseClient
-          .from(
-            'planner_leads'
-          )
-          .insert(
-            payload
-          )
+          .from('planner_leads')
+          .insert(payload)
           .select()
           .single();
 
@@ -3480,30 +3218,26 @@ async function handleLeadSubmit(
       upsertLeadLocally(
         data
       );
-
-      render();
-
-      closeLeadModal();
-
-      showToast(
-        'Потенциальный клиент добавлен.',
-        'success'
-      );
     }
 
-    checkTodayNotifications();
+    render();
+
+    closeLeadModal();
+
+    runSmartReminders();
+
+    showToast(
+      'Запись сохранена.',
+      'success'
+    );
   } catch (error) {
     console.error(
-      'Ошибка сохранения:',
       error
     );
 
     showToast(
-      getFriendlyDatabaseError(
-        error
-      ),
-      'error',
-      6000
+      'Не удалось сохранить запись.',
+      'error'
     );
   } finally {
     saveInProgress =
@@ -3517,20 +3251,11 @@ async function handleLeadSubmit(
   }
 }
 
-function upsertLeadLocally(
-  lead
-) {
-  if (
-    !lead?.id
-  ) {
-    return;
-  }
-
+function upsertLeadLocally(lead) {
   const index =
     leads.findIndex(
       (item) =>
-        item.id ===
-        lead.id
+        item.id === lead.id
     );
 
   if (
@@ -3547,49 +3272,8 @@ function upsertLeadLocally(
 
 
 /* ============================================================
-   25. QUICK CONTACT
+   20. QUICK CONTACT
    ============================================================ */
-
-function resetQuickContactForm() {
-  elements.quickContactForm
-    ?.reset();
-
-  if (
-    elements.quickContactLeadId
-  ) {
-    elements.quickContactLeadId
-      .value =
-        '';
-  }
-
-  if (
-    elements.quickContactPreset
-  ) {
-    elements.quickContactPreset
-      .value =
-        'week';
-  }
-
-  if (
-    elements.quickContactDate
-  ) {
-    elements.quickContactDate
-      .value =
-        toLocalDateTimeInput(
-          getPresetDate(
-            'week'
-          )
-        );
-  }
-
-  if (
-    elements.quickContactComment
-  ) {
-    elements.quickContactComment
-      .value =
-        '';
-  }
-}
 
 function openQuickContactModal(id) {
   const lead =
@@ -3598,84 +3282,37 @@ function openQuickContactModal(id) {
         item.id === id
     );
 
-  if (!lead) {
-    showToast(
-      'Запись не найдена.',
-      'warning'
-    );
-
+  if (
+    !lead ||
+    !elements.quickContactBackdrop
+  ) {
     return;
   }
 
-  if (
-    isClosed(lead)
-  ) {
-    showToast(
-      'Эта запись уже завершена.',
-      'warning'
+  elements.quickContactLeadId.value =
+    lead.id;
+
+  elements.quickContactClient.textContent =
+    getDisplayName(
+      lead
     );
 
-    return;
-  }
+  elements.quickContactPreset.value =
+    'week';
 
-  if (
-    !elements.quickContactBackdrop ||
-    !elements.quickContactForm
-  ) {
-    showToast(
-      'Для кнопки «Связался» нужно добавить окно в planner.html.',
-      'warning',
-      6000
+  elements.quickContactDate.value =
+    toLocalDateTimeInput(
+      getPresetDate(
+        'week'
+      )
     );
 
-    return;
-  }
+  elements.quickContactComment.value =
+    '';
 
-  resetQuickContactForm();
-
-  elements.quickContactLeadId
-    .value =
-      lead.id;
-
-  if (
-    elements.quickContactClient
-  ) {
-    elements.quickContactClient
-      .textContent =
-        getDisplayName(
-          lead
-        );
-  }
-
-  if (
-    elements.quickContactTitle
-  ) {
-    elements.quickContactTitle
-      .textContent =
-        'Связались с клиентом';
-  }
-
-  if (
-    elements.quickContactResponsible
-  ) {
-    elements.quickContactResponsible
-      .value =
-        lead.responsible_user ||
-        currentUser?.id ||
-        '';
-  }
-
-  elements.quickContactPreset
-    .value =
-      'week';
-
-  elements.quickContactDate
-    .value =
-      toLocalDateTimeInput(
-        getPresetDate(
-          'week'
-        )
-      );
+  elements.quickContactResponsible.value =
+    lead.responsible_user ||
+    currentUser.id;
 
   elements.quickContactBackdrop
     .classList.add(
@@ -3686,14 +3323,6 @@ function openQuickContactModal(id) {
     .classList.add(
       'modal-open'
     );
-
-  window.setTimeout(
-    () => {
-      elements.quickContactComment
-        ?.focus();
-    },
-    50
-  );
 }
 
 function closeQuickContactModal() {
@@ -3706,29 +3335,16 @@ function closeQuickContactModal() {
     .classList.remove(
       'modal-open'
     );
-
-  resetQuickContactForm();
 }
 
 function applyQuickContactPreset() {
-  if (
-    !elements.quickContactPreset ||
-    !elements.quickContactDate
-  ) {
-    return;
-  }
-
   const preset =
     elements.quickContactPreset
       .value;
 
   if (
-    preset ===
-    'custom'
+    preset === 'custom'
   ) {
-    elements.quickContactDate
-      .focus();
-
     return;
   }
 
@@ -3738,11 +3354,10 @@ function applyQuickContactPreset() {
     );
 
   if (date) {
-    elements.quickContactDate
-      .value =
-        toLocalDateTimeInput(
-          date
-        );
+    elements.quickContactDate.value =
+      toLocalDateTimeInput(
+        date
+      );
   }
 }
 
@@ -3757,38 +3372,22 @@ async function handleQuickContactSubmit(
     return;
   }
 
-  const id =
-    cleanText(
-      elements.quickContactLeadId
-        ?.value,
-      100
-    );
-
   const lead =
     leads.find(
       (item) =>
-        item.id === id
+        item.id ===
+        elements.quickContactLeadId
+          .value
     );
 
   if (!lead) {
-    showToast(
-      'Запись уже была изменена или удалена.',
-      'warning'
-    );
-
-    closeQuickContactModal();
-
-    await loadLeads({
-      silent: true
-    });
-
     return;
   }
 
   const nextContact =
     toDatabaseTimestamp(
       elements.quickContactDate
-        ?.value
+        .value
     );
 
   if (!nextContact) {
@@ -3797,70 +3396,51 @@ async function handleQuickContactSubmit(
       'warning'
     );
 
-    elements.quickContactDate
-      ?.focus();
-
     return;
-  }
-
-  const comment =
-    cleanText(
-      elements.quickContactComment
-        ?.value,
-      3000
-    );
-
-  const responsibleUser =
-    elements.quickContactResponsible
-      ?.value ||
-    lead.responsible_user ||
-    currentUser?.id ||
-    null;
-
-  const payload = {
-    next_contact:
-      nextContact,
-
-    status:
-      'callback',
-
-    responsible_user:
-      responsibleUser,
-
-    updated_by:
-      currentUser.id
-  };
-
-  if (comment) {
-    payload.last_dialogue =
-      comment;
   }
 
   quickContactSaveInProgress =
     true;
 
-  if (
-    elements.quickContactSaveBtn
-  ) {
-    elements.quickContactSaveBtn.disabled =
-      true;
-
-    elements.quickContactSaveBtn.textContent =
-      'Сохраняем…';
-  }
+  elements.quickContactSaveBtn.disabled =
+    true;
 
   try {
+    const comment =
+      cleanText(
+        elements.quickContactComment
+          .value,
+        3000
+      );
+
+    const payload = {
+      next_contact:
+        nextContact,
+
+      status:
+        'callback',
+
+      responsible_user:
+        elements.quickContactResponsible
+          .value ||
+        currentUser.id,
+
+      updated_by:
+        currentUser.id
+    };
+
+    if (comment) {
+      payload.last_dialogue =
+        comment;
+    }
+
     const {
       data,
       error
     } =
       await supabaseClient
-        .from(
-          'planner_leads'
-        )
-        .update(
-          payload
-        )
+        .from('planner_leads')
+        .update(payload)
         .eq(
           'id',
           lead.id
@@ -3881,91 +3461,33 @@ async function handleQuickContactSubmit(
     closeQuickContactModal();
 
     showToast(
-      'Контакт зафиксирован. Следующая дата назначена.',
-      'success',
-      5200
+      'Контакт зафиксирован.',
+      'success'
     );
 
-    checkTodayNotifications();
+    runSmartReminders();
   } catch (error) {
     console.error(
-      'Ошибка быстрого контакта:',
       error
     );
 
     showToast(
-      getFriendlyDatabaseError(
-        error
-      ),
-      'error',
-      6000
+      'Не удалось сохранить контакт.',
+      'error'
     );
   } finally {
     quickContactSaveInProgress =
       false;
 
-    if (
-      elements.quickContactSaveBtn
-    ) {
-      elements.quickContactSaveBtn.disabled =
-        false;
-
-      elements.quickContactSaveBtn.textContent =
-        'Сохранить';
-    }
+    elements.quickContactSaveBtn.disabled =
+      false;
   }
 }
 
 
 /* ============================================================
-   26. FILES — MODAL
+   21. FILES
    ============================================================ */
-
-function resetFileUploadForm() {
-  if (
-    elements.fileInput
-  ) {
-    elements.fileInput.value =
-      '';
-  }
-
-  if (
-    elements.fileDescription
-  ) {
-    elements.fileDescription.value =
-      '';
-  }
-
-  updateSelectedFileDisplay();
-}
-
-function updateSelectedFileDisplay() {
-  if (
-    !elements.selectedFileName
-  ) {
-    return;
-  }
-
-  const file =
-    elements.fileInput
-      ?.files?.[0];
-
-  if (!file) {
-    elements.selectedFileName
-      .textContent =
-        'Файл не выбран';
-
-    return;
-  }
-
-  elements.selectedFileName
-    .textContent =
-      file.name +
-      ' · ' +
-      formatFileSize(
-        file.size
-      );
-}
 
 function openFilesModal(id) {
   const lead =
@@ -3974,54 +3496,23 @@ function openFilesModal(id) {
         item.id === id
     );
 
-  if (!lead) {
-    showToast(
-      'Запись не найдена.',
-      'warning'
-    );
-
-    return;
-  }
-
   if (
+    !lead ||
     !elements.filesBackdrop
   ) {
-    showToast(
-      'Для файлов нужно добавить окно в planner.html.',
-      'warning',
-      6000
-    );
-
     return;
   }
 
   activeFilesLeadId =
-    lead.id;
+    id;
 
-  if (
-    elements.filesLeadId
-  ) {
-    elements.filesLeadId.value =
-      lead.id;
-  }
+  elements.filesLeadId.value =
+    id;
 
-  if (
-    elements.filesTitle
-  ) {
-    elements.filesTitle.textContent =
-      'Файлы клиента';
-  }
-
-  if (
-    elements.filesClient
-  ) {
-    elements.filesClient.textContent =
-      getDisplayName(
-        lead
-      );
-  }
-
-  resetFileUploadForm();
+  elements.filesClient.textContent =
+    getDisplayName(
+      lead
+    );
 
   renderFilesList();
 
@@ -4051,28 +3542,18 @@ function closeFilesModal() {
     null;
 
   if (
-    elements.filesLeadId
+    elements.fileInput
   ) {
-    elements.filesLeadId.value =
+    elements.fileInput.value =
       '';
   }
-
-  resetFileUploadForm();
 }
 
 function renderFilesList() {
   if (
-    !elements.filesList
-  ) {
-    return;
-  }
-
-  if (
+    !elements.filesList ||
     !activeFilesLeadId
   ) {
-    elements.filesList.innerHTML =
-      '';
-
     return;
   }
 
@@ -4086,26 +3567,13 @@ function renderFilesList() {
   ) {
     elements.filesList.innerHTML = `
       <div class="filesEmpty">
-
-        <div
-          class="filesEmptyIcon"
-        >
+        <div class="filesEmptyIcon">
           📎
         </div>
 
-        <div
-          class="filesEmptyTitle"
-        >
+        <div class="filesEmptyTitle">
           Файлов пока нет
         </div>
-
-        <div
-          class="filesEmptyText"
-        >
-          Прикрепите коммерческое предложение,
-          договор, таблицу, изображение или другой документ.
-        </div>
-
       </div>
     `;
 
@@ -4115,213 +3583,96 @@ function renderFilesList() {
   elements.filesList.innerHTML =
     files
       .map(
-        createFileItemHtml
+        (file) => `
+          <div class="fileItem">
+
+            <div class="fileIcon">
+              ${getFileIcon(
+                file
+              )}
+            </div>
+
+            <div class="fileInfo">
+
+              <div class="fileName">
+                ${escapeHtml(
+                  file.original_file_name ||
+                  file.file_name
+                )}
+              </div>
+
+              <div class="fileMeta">
+                ${escapeHtml(
+                  [
+                    formatFileSize(
+                      file.file_size
+                    ),
+                    getUploaderDisplayName(
+                      file
+                    ),
+                    formatFileDate(
+                      file.created_at
+                    )
+                  ]
+                    .filter(Boolean)
+                    .join(' · ')
+                )}
+              </div>
+
+              ${
+                file.description
+                  ? `
+                    <div class="fileDescription">
+                      ${escapeHtml(
+                        file.description
+                      )}
+                    </div>
+                  `
+                  : ''
+              }
+
+            </div>
+
+            <div class="fileActions">
+
+              <button
+                class="tableButton"
+                data-file-action="open"
+                data-file-id="${escapeHtml(
+                  file.id
+                )}"
+              >
+                Открыть
+              </button>
+
+              <button
+                class="tableButton delete"
+                data-file-action="delete"
+                data-file-id="${escapeHtml(
+                  file.id
+                )}"
+              >
+                Удалить
+              </button>
+
+            </div>
+
+          </div>
+        `
       )
       .join('');
 }
 
-function createFileItemHtml(file) {
-  const displayName =
-    file.original_file_name ||
-    file.file_name ||
-    'Файл';
-
-  const uploader =
-    getUploaderDisplayName(
-      file
-    );
-
-  const metaParts = [];
-
-  if (
-    file.file_size !== null &&
-    file.file_size !== undefined
-  ) {
-    metaParts.push(
-      formatFileSize(
-        file.file_size
-      )
-    );
-  }
-
-  if (uploader) {
-    metaParts.push(
-      uploader
-    );
-  }
-
-  const created =
-    formatFileDate(
-      file.created_at
-    );
-
-  if (created) {
-    metaParts.push(
-      created
-    );
-  }
-
-  return `
-    <div
-      class="fileItem"
-      data-file-id="${escapeHtml(
-        file.id
-      )}"
-    >
-
-      <div
-        class="fileIcon"
-        aria-hidden="true"
-      >
-        ${getFileIcon(
-          file
-        )}
-      </div>
-
-      <div
-        class="fileInfo"
-      >
-
-        <div
-          class="fileName"
-        >
-          ${escapeHtml(
-            displayName
-          )}
-        </div>
-
-        ${
-          metaParts.length
-            ? `
-              <div
-                class="fileMeta"
-              >
-                ${escapeHtml(
-                  metaParts.join(
-                    ' · '
-                  )
-                )}
-              </div>
-            `
-            : ''
-        }
-
-        ${
-          file.description
-            ? `
-              <div
-                class="fileDescription"
-              >
-                ${escapeHtml(
-                  file.description
-                )}
-              </div>
-            `
-            : ''
-        }
-
-      </div>
-
-      <div
-        class="fileActions"
-      >
-
-        <button
-          class="tableButton"
-          type="button"
-          data-file-action="open"
-          data-file-id="${escapeHtml(
-            file.id
-          )}"
-        >
-          Открыть
-        </button>
-
-        <button
-          class="tableButton delete"
-          type="button"
-          data-file-action="delete"
-          data-file-id="${escapeHtml(
-            file.id
-          )}"
-        >
-          Удалить
-        </button>
-
-      </div>
-
-    </div>
-  `;
-}
-
-
-/* ============================================================
-   27. FILES — UPLOAD
-   ============================================================ */
-
 async function uploadSelectedFile() {
-  if (
-    fileUploadInProgress
-  ) {
-    return;
-  }
-
-  const leadId =
-    activeFilesLeadId ||
-    cleanText(
-      elements.filesLeadId
-        ?.value,
-      100
-    );
-
-  if (!leadId) {
-    showToast(
-      'Не удалось определить клиента.',
-      'error'
-    );
-
-    return;
-  }
-
-  const lead =
-    leads.find(
-      (item) =>
-        item.id === leadId
-    );
-
-  if (!lead) {
-    showToast(
-      'Клиент больше не найден в таблице.',
-      'warning'
-    );
-
-    return;
-  }
-
   const file =
     elements.fileInput
       ?.files?.[0];
 
-  if (!file) {
-    showToast(
-      'Сначала выберите файл.',
-      'warning'
-    );
-
-    elements.fileInput
-      ?.click();
-
-    return;
-  }
-
   if (
-    file.size <= 0
+    !file ||
+    !activeFilesLeadId ||
+    fileUploadInProgress
   ) {
-    showToast(
-      'Выбранный файл пуст.',
-      'warning'
-    );
-
     return;
   }
 
@@ -4330,71 +3681,32 @@ async function uploadSelectedFile() {
     MAX_FILE_SIZE
   ) {
     showToast(
-      'Файл слишком большой. Максимальный размер сейчас — 20 МБ.',
-      'warning',
-      6000
+      'Файл больше 20 МБ.',
+      'warning'
     );
 
     return;
   }
 
-  const description =
-    cleanText(
-      elements.fileDescription
-        ?.value,
-      1000
-    );
-
-  const safeName =
-    sanitizeStorageFileName(
-      file.name
-    );
-
-  const storagePath =
-    'leads/' +
-    lead.id +
-    '/' +
-    createRandomId() +
-    '_' +
-    safeName;
-
   fileUploadInProgress =
     true;
 
-  if (
-    elements.uploadFileBtn
-  ) {
-    elements.uploadFileBtn.disabled =
-      true;
-
-    elements.uploadFileBtn.textContent =
-      'Загружаем…';
-  }
-
-  if (
-    elements.fileInput
-  ) {
-    elements.fileInput.disabled =
-      true;
-  }
+  elements.uploadFileBtn.disabled =
+    true;
 
   try {
-    /*
-     * 1. Загружаем сам файл в приватный Storage.
-     */
+    const safeName =
+      sanitizeStorageFileName(
+        file.name
+      );
 
-    const uploadOptions = {
-      cacheControl:
-        '3600',
-
-      upsert:
-        false
-    };
-
-    if (file.type) {
-      uploadOptions.contentType =
-        file.type;
-    }
+    const path =
+      'leads/' +
+      activeFilesLeadId +
+      '/' +
+      createRandomId() +
+      '_' +
+      safeName;
 
     const {
       error:
@@ -4406,9 +3718,11 @@ async function uploadSelectedFile() {
           STORAGE_BUCKET
         )
         .upload(
-          storagePath,
+          path,
           file,
-          uploadOptions
+          {
+            upsert: false
+          }
         );
 
     if (
@@ -4417,52 +3731,41 @@ async function uploadSelectedFile() {
       throw uploadError;
     }
 
-    /*
-     * 2. Сохраняем связь файла с лидом
-     *    в нашей таблице crm_files.
-     */
-
     const {
-      data:
-        metadata,
-      error:
-        metadataError
+      data,
+      error
     } =
       await supabaseClient
-        .from(
-          'crm_files'
-        )
+        .from('crm_files')
         .insert({
           lead_id:
-            lead.id,
+            activeFilesLeadId,
 
           file_name:
             safeName,
 
           original_file_name:
-            cleanText(
-              file.name,
-              255
-            ),
+            file.name,
 
           storage_bucket:
             STORAGE_BUCKET,
 
           storage_path:
-            storagePath,
+            path,
 
           mime_type:
-            cleanText(
-              file.type,
-              150
-            ) ||
+            file.type ||
             null,
 
           file_size:
             file.size,
 
           description:
-            description ||
+            cleanText(
+              elements.fileDescription
+                ?.value,
+              1000
+            ) ||
             null,
 
           uploaded_by:
@@ -4471,33 +3774,32 @@ async function uploadSelectedFile() {
         .select()
         .single();
 
-    /*
-     * Если Storage успешно принял файл,
-     * а метаданные сохранить не удалось,
-     * удаляем загруженный объект обратно,
-     * чтобы не оставлять "сиротский" файл.
-     */
-
-    if (
-      metadataError
-    ) {
+    if (error) {
       await supabaseClient
         .storage
         .from(
           STORAGE_BUCKET
         )
         .remove([
-          storagePath
+          path
         ]);
 
-      throw metadataError;
+      throw error;
     }
 
-    upsertFileLocally(
-      metadata
+    crmFiles.push(
+      data
     );
 
-    resetFileUploadForm();
+    elements.fileInput.value =
+      '';
+
+    if (
+      elements.fileDescription
+    ) {
+      elements.fileDescription.value =
+        '';
+    }
 
     renderFilesList();
 
@@ -4509,84 +3811,34 @@ async function uploadSelectedFile() {
     );
   } catch (error) {
     console.error(
-      'Ошибка загрузки файла:',
       error
     );
 
     showToast(
-      getFriendlyFileError(
-        error
-      ),
-      'error',
-      6500
+      'Не удалось загрузить файл.',
+      'error'
     );
   } finally {
     fileUploadInProgress =
       false;
 
-    if (
-      elements.uploadFileBtn
-    ) {
-      elements.uploadFileBtn.disabled =
-        false;
-
-      elements.uploadFileBtn.textContent =
-        '＋ Прикрепить файл';
-    }
-
-    if (
-      elements.fileInput
-    ) {
-      elements.fileInput.disabled =
-        false;
-    }
+    elements.uploadFileBtn.disabled =
+      false;
   }
 }
 
-
-/* ============================================================
-   28. FILES — OPEN
-   ============================================================ */
-
-async function openFile(fileId) {
+async function openFile(id) {
   const file =
     crmFiles.find(
       (item) =>
-        item.id === fileId
+        item.id === id
     );
 
   if (!file) {
-    showToast(
-      'Информация о файле не найдена.',
-      'warning'
-    );
-
     return;
   }
 
-  const bucket =
-    file.storage_bucket ||
-    STORAGE_BUCKET;
-
-  const path =
-    file.storage_path;
-
-  if (!path) {
-    showToast(
-      'У файла отсутствует путь в хранилище.',
-      'error'
-    );
-
-    return;
-  }
-
-  /*
-   * Открываем пустую вкладку сразу,
-   * чтобы браузер не заблокировал window.open()
-   * после асинхронного запроса к Supabase.
-   */
-
-  const newWindow =
+  const popup =
     window.open(
       '',
       '_blank'
@@ -4600,10 +3852,11 @@ async function openFile(fileId) {
       await supabaseClient
         .storage
         .from(
-          bucket
+          file.storage_bucket ||
+          STORAGE_BUCKET
         )
         .createSignedUrl(
-          path,
+          file.storage_path,
           SIGNED_URL_LIFETIME_SECONDS
         );
 
@@ -4611,134 +3864,78 @@ async function openFile(fileId) {
       throw error;
     }
 
-    const signedUrl =
-      data?.signedUrl;
-
-    if (!signedUrl) {
-      throw new Error(
-        'Signed URL was not returned.'
-      );
-    }
-
-    if (newWindow) {
-      newWindow.location.href =
-        signedUrl;
+    if (popup) {
+      popup.location.href =
+        data.signedUrl;
     } else {
       window.location.href =
-        signedUrl;
+        data.signedUrl;
     }
   } catch (error) {
-    if (
-      newWindow &&
-      !newWindow.closed
-    ) {
-      newWindow.close();
-    }
-
-    console.error(
-      'Ошибка открытия файла:',
-      error
-    );
+    popup?.close();
 
     showToast(
-      getFriendlyFileError(
-        error
-      ),
-      'error',
-      6000
+      'Не удалось открыть файл.',
+      'error'
     );
   }
 }
 
-
-/* ============================================================
-   29. FILES — DELETE
-   ============================================================ */
-
-async function deleteFile(fileId) {
+async function deleteFile(id) {
   const file =
     crmFiles.find(
       (item) =>
-        item.id === fileId
+        item.id === id
     );
 
   if (!file) {
     return;
   }
 
-  const displayName =
-    file.original_file_name ||
-    file.file_name ||
-    'файл';
-
-  const confirmed =
-    window.confirm(
+  if (
+    !window.confirm(
       'Удалить файл «' +
-      displayName +
-      '»?\n\n' +
-      'Файл будет удалён окончательно.'
-    );
-
-  if (!confirmed) {
+      (
+        file.original_file_name ||
+        file.file_name
+      ) +
+      '»?'
+    )
+  ) {
     return;
   }
 
   try {
-    /*
-     * Сначала удаляем физический файл.
-     */
-
-    if (
-      file.storage_path
-    ) {
-      const {
-        error:
-          storageError
-      } =
-        await supabaseClient
-          .storage
-          .from(
-            file.storage_bucket ||
-            STORAGE_BUCKET
-          )
-          .remove([
-            file.storage_path
-          ]);
-
-      if (
-        storageError
-      ) {
-        throw storageError;
-      }
-    }
-
-    /*
-     * Затем удаляем запись о файле.
-     */
+    await supabaseClient
+      .storage
+      .from(
+        file.storage_bucket ||
+        STORAGE_BUCKET
+      )
+      .remove([
+        file.storage_path
+      ]);
 
     const {
-      error:
-        metadataError
+      error
     } =
       await supabaseClient
-        .from(
-          'crm_files'
-        )
+        .from('crm_files')
         .delete()
         .eq(
           'id',
-          file.id
+          id
         );
 
-    if (
-      metadataError
-    ) {
-      throw metadataError;
+    if (error) {
+      throw error;
     }
 
-    removeFileLocally(
-      file.id
-    );
+    crmFiles =
+      crmFiles.filter(
+        (item) =>
+          item.id !== id
+      );
 
     renderFilesList();
 
@@ -4750,163 +3947,19 @@ async function deleteFile(fileId) {
     );
   } catch (error) {
     console.error(
-      'Ошибка удаления файла:',
       error
     );
 
     showToast(
-      getFriendlyFileError(
-        error
-      ),
-      'error',
-      6000
-    );
-
-    /*
-     * Синхронизируем метаданные с сервером,
-     * если операция завершилась только частично.
-     */
-
-    await reloadFilesOnly();
-  }
-}
-
-
-/* ============================================================
-   30. FILES — RELOAD
-   ============================================================ */
-
-async function reloadFilesOnly() {
-  try {
-    const {
-      data,
-      error
-    } =
-      await supabaseClient
-        .from(
-          'crm_files'
-        )
-        .select('*')
-        .not(
-          'lead_id',
-          'is',
-          null
-        )
-        .order(
-          'created_at',
-          {
-            ascending:
-              false
-          }
-        );
-
-    if (error) {
-      throw error;
-    }
-
-    crmFiles =
-      Array.isArray(data)
-        ? data
-        : [];
-
-    renderTable();
-
-    if (
-      activeFilesLeadId
-    ) {
-      renderFilesList();
-    }
-  } catch (error) {
-    console.warn(
-      'Не удалось обновить список файлов:',
-      error
+      'Не удалось удалить файл.',
+      'error'
     );
   }
 }
 
 
 /* ============================================================
-   31. FILE ERRORS
-   ============================================================ */
-
-function getFriendlyFileError(error) {
-  const message =
-    String(
-      error?.message ||
-      error?.error ||
-      ''
-    ).toLocaleLowerCase(
-      'ru-RU'
-    );
-
-  if (
-    message.includes(
-      'maximum allowed size'
-    ) ||
-    message.includes(
-      'payload too large'
-    ) ||
-    message.includes(
-      'entity too large'
-    )
-  ) {
-    return (
-      'Файл превышает разрешённый размер.'
-    );
-  }
-
-  if (
-    message.includes(
-      'row-level security'
-    ) ||
-    message.includes(
-      'unauthorized'
-    ) ||
-    message.includes(
-      'forbidden'
-    )
-  ) {
-    return (
-      'Нет разрешения на работу с файлом. ' +
-      'Проверьте вход в систему.'
-    );
-  }
-
-  if (
-    message.includes(
-      'not found'
-    ) ||
-    message.includes(
-      'nosuchkey'
-    )
-  ) {
-    return (
-      'Файл не найден в хранилище.'
-    );
-  }
-
-  if (
-    message.includes(
-      'failed to fetch'
-    ) ||
-    message.includes(
-      'network'
-    )
-  ) {
-    return (
-      'Не удалось связаться с хранилищем. ' +
-      'Проверьте интернет.'
-    );
-  }
-
-  return (
-    'Не удалось выполнить операцию с файлом.'
-  );
-}
-
-
-/* ============================================================
-   32. EDIT
+   22. EDIT / DELETE LEAD
    ============================================================ */
 
 function editLead(id) {
@@ -4916,28 +3969,12 @@ function editLead(id) {
         item.id === id
     );
 
-  if (!lead) {
-    showToast(
-      'Запись уже была изменена или удалена.',
-      'warning'
+  if (lead) {
+    openLeadModal(
+      lead
     );
-
-    loadLeads({
-      silent: true
-    });
-
-    return;
   }
-
-  openLeadModal(
-    lead
-  );
 }
-
-
-/* ============================================================
-   33. DELETE LEAD
-   ============================================================ */
 
 async function deleteLead(id) {
   const lead =
@@ -4950,89 +3987,47 @@ async function deleteLead(id) {
     return;
   }
 
-  const files =
-    getLeadFiles(
-      id
-    );
-
-  const fileWarning =
-    files.length > 0
-      ? (
-          '\n\nК записи прикреплено ' +
-          files.length +
-          ' ' +
-          pluralizeFiles(
-            files.length
-          ) +
-          '.'
-        )
-      : '';
-
-  const confirmed =
-    window.confirm(
+  if (
+    !window.confirm(
       'Удалить запись «' +
       getDisplayName(
         lead
       ) +
-      '»?' +
-      fileWarning +
-      '\n\nЭто действие нельзя отменить.'
-    );
-
-  if (
-    !confirmed
+      '»?'
+    )
   ) {
     return;
   }
 
   try {
-    /*
-     * Сначала удаляем физические файлы.
-     * Записи crm_files затем удалятся каскадно
-     * вместе с planner_leads.
-     */
-
-    const storagePaths =
-      files
-        .filter(
-          (file) =>
-            file.storage_path
-        )
-        .map(
-          (file) =>
-            file.storage_path
-        );
+    const files =
+      getLeadFiles(
+        id
+      );
 
     if (
-      storagePaths.length > 0
+      files.length
     ) {
-      const {
-        error:
-          filesDeleteError
-      } =
-        await supabaseClient
-          .storage
-          .from(
-            STORAGE_BUCKET
-          )
-          .remove(
-            storagePaths
-          );
-
-      if (
-        filesDeleteError
-      ) {
-        throw filesDeleteError;
-      }
+      await supabaseClient
+        .storage
+        .from(
+          STORAGE_BUCKET
+        )
+        .remove(
+          files
+            .map(
+              (file) =>
+                file.storage_path
+            )
+            .filter(Boolean)
+        );
     }
 
     const {
       error
     } =
       await supabaseClient
-        .from(
-          'planner_leads'
-        )
+        .from('planner_leads')
         .delete()
         .eq(
           'id',
@@ -5063,1121 +4058,535 @@ async function deleteLead(id) {
     );
   } catch (error) {
     console.error(
-      'Ошибка удаления:',
       error
     );
 
     showToast(
-      getFriendlyDatabaseError(
-        error
-      ),
-      'error',
-      6000
+      'Не удалось удалить запись.',
+      'error'
     );
   }
 }
 
 
 /* ============================================================
-   34. DATABASE ERRORS
-   ============================================================ */
-
-function getFriendlyDatabaseError(
-  error
-) {
-  const message =
-    String(
-      error?.message ||
-      ''
-    ).toLocaleLowerCase(
-      'ru-RU'
-    );
-
-  if (
-    message.includes(
-      'jwt'
-    ) ||
-    message.includes(
-      'authentication'
-    )
-  ) {
-    return (
-      'Сессия входа устарела. ' +
-      'Вернитесь на главную и войдите снова.'
-    );
-  }
-
-  if (
-    message.includes(
-      'row-level security'
-    )
-  ) {
-    return (
-      'Supabase не разрешил это действие. ' +
-      'Проверьте авторизацию пользователя.'
-    );
-  }
-
-  if (
-    message.includes(
-      'failed to fetch'
-    ) ||
-    message.includes(
-      'network'
-    )
-  ) {
-    return (
-      'Нет связи с общей базой. ' +
-      'Проверьте интернет и попробуйте снова.'
-    );
-  }
-
-  return (
-    'Не удалось выполнить операцию с общей базой.'
-  );
-}
-
-
-/* ============================================================
-   35. REALTIME — LEADS
-   ============================================================ */
-
-function subscribeToRealtime() {
-  if (
-    realtimeChannel
-  ) {
-    supabaseClient
-      .removeChannel(
-        realtimeChannel
-      );
-  }
-
-  realtimeChannel =
-    supabaseClient
-      .channel(
-        'jambalance-planner-leads-v23'
-      )
-      .on(
-        'postgres_changes',
-        {
-          event:
-            'INSERT',
-
-          schema:
-            'public',
-
-          table:
-            'planner_leads'
-        },
-        handleRealtimeInsert
-      )
-      .on(
-        'postgres_changes',
-        {
-          event:
-            'UPDATE',
-
-          schema:
-            'public',
-
-          table:
-            'planner_leads'
-        },
-        handleRealtimeUpdate
-      )
-      .on(
-        'postgres_changes',
-        {
-          event:
-            'DELETE',
-
-          schema:
-            'public',
-
-          table:
-            'planner_leads'
-        },
-        handleRealtimeDelete
-      )
-      .subscribe(
-        (status) => {
-          if (
-            status ===
-            'SUBSCRIBED'
-          ) {
-            console.log(
-              'Planner Realtime подключён.'
-            );
-          }
-
-          if (
-            status ===
-              'CHANNEL_ERROR' ||
-            status ===
-              'TIMED_OUT'
-          ) {
-            console.warn(
-              'Проблема Realtime:',
-              status
-            );
-          }
-        }
-      );
-}
-
-function handleRealtimeInsert(
-  payload
-) {
-  const lead =
-    payload.new;
-
-  if (
-    !lead?.id
-  ) {
-    return;
-  }
-
-  const existed =
-    leads.some(
-      (item) =>
-        item.id ===
-        lead.id
-    );
-
-  upsertLeadLocally(
-    lead
-  );
-
-  render();
-
-  if (
-    !existed
-  ) {
-    showToast(
-      'В таблице появилась новая запись.',
-      'success'
-    );
-  }
-
-  checkTodayNotifications();
-}
-
-function handleRealtimeUpdate(
-  payload
-) {
-  const lead =
-    payload.new;
-
-  if (
-    !lead?.id
-  ) {
-    return;
-  }
-
-  upsertLeadLocally(
-    lead
-  );
-
-  render();
-
-  checkTodayNotifications();
-}
-
-function handleRealtimeDelete(
-  payload
-) {
-  const id =
-    payload.old?.id;
-
-  if (!id) {
-    loadLeads({
-      silent: true
-    });
-
-    return;
-  }
-
-  leads =
-    leads.filter(
-      (item) =>
-        item.id !== id
-    );
-
-  crmFiles =
-    crmFiles.filter(
-      (file) =>
-        file.lead_id !== id
-    );
-
-  render();
-
-  if (
-    activeFilesLeadId === id
-  ) {
-    closeFilesModal();
-  }
-}
-
-
-/* ============================================================
-   36. REALTIME — PROFILES
-   ============================================================ */
-
-function subscribeToProfilesRealtime() {
-  if (
-    profilesRealtimeChannel
-  ) {
-    supabaseClient
-      .removeChannel(
-        profilesRealtimeChannel
-      );
-  }
-
-  profilesRealtimeChannel =
-    supabaseClient
-      .channel(
-        'jambalance-profiles-v23'
-      )
-      .on(
-        'postgres_changes',
-        {
-          event: '*',
-          schema:
-            'public',
-          table:
-            'profiles'
-        },
-        async () => {
-          try {
-            await loadProfiles();
-
-            render();
-
-            if (
-              activeFilesLeadId
-            ) {
-              renderFilesList();
-            }
-          } catch (error) {
-            console.warn(
-              'Не удалось обновить список сотрудников:',
-              error
-            );
-          }
-        }
-      )
-      .subscribe();
-}
-
-
-/* ============================================================
-   37. REALTIME — FILE METADATA
-   ============================================================ */
-
-function subscribeToFilesRealtime() {
-  if (
-    filesRealtimeChannel
-  ) {
-    supabaseClient
-      .removeChannel(
-        filesRealtimeChannel
-      );
-  }
-
-  filesRealtimeChannel =
-    supabaseClient
-      .channel(
-        'jambalance-crm-files-v23'
-      )
-      .on(
-        'postgres_changes',
-        {
-          event:
-            'INSERT',
-
-          schema:
-            'public',
-
-          table:
-            'crm_files'
-        },
-        (payload) => {
-          const file =
-            payload.new;
-
-          if (
-            !file?.id ||
-            !file.lead_id
-          ) {
-            return;
-          }
-
-          upsertFileLocally(
-            file
-          );
-
-          renderTable();
-
-          if (
-            activeFilesLeadId ===
-            file.lead_id
-          ) {
-            renderFilesList();
-          }
-        }
-      )
-      .on(
-        'postgres_changes',
-        {
-          event:
-            'UPDATE',
-
-          schema:
-            'public',
-
-          table:
-            'crm_files'
-        },
-        (payload) => {
-          const file =
-            payload.new;
-
-          if (
-            !file?.id
-          ) {
-            return;
-          }
-
-          upsertFileLocally(
-            file
-          );
-
-          renderTable();
-
-          if (
-            activeFilesLeadId ===
-            file.lead_id
-          ) {
-            renderFilesList();
-          }
-        }
-      )
-      .on(
-        'postgres_changes',
-        {
-          event:
-            'DELETE',
-
-          schema:
-            'public',
-
-          table:
-            'crm_files'
-        },
-        (payload) => {
-          const id =
-            payload.old?.id;
-
-          if (!id) {
-            reloadFilesOnly();
-
-            return;
-          }
-
-          removeFileLocally(
-            id
-          );
-
-          renderTable();
-
-          if (
-            activeFilesLeadId
-          ) {
-            renderFilesList();
-          }
-        }
-      )
-      .subscribe(
-        (status) => {
-          if (
-            status ===
-            'SUBSCRIBED'
-          ) {
-            console.log(
-              'Files Realtime подключён.'
-            );
-          }
-        }
-      );
-}
-
-
-/* ============================================================
-   38. RESET FILTERS
-   ============================================================ */
-
-function resetFilters() {
-  state.search =
-    '';
-
-  state.status =
-    'all';
-
-  state.priority =
-    'all';
-
-  state.responsible =
-    'all';
-
-  state.date =
-    'all';
-
-  state.sort =
-    'nearest';
-
-  if (
-    elements.searchInput
-  ) {
-    elements.searchInput.value =
-      '';
-  }
-
-  if (
-    elements.statusFilter
-  ) {
-    elements.statusFilter.value =
-      'all';
-  }
-
-  if (
-    elements.priorityFilter
-  ) {
-    elements.priorityFilter.value =
-      'all';
-  }
-
-  if (
-    elements.responsibleFilter
-  ) {
-    elements.responsibleFilter.value =
-      'all';
-  }
-
-  if (
-    elements.dateFilter
-  ) {
-    elements.dateFilter.value =
-      'all';
-  }
-
-  if (
-    elements.sortSelect
-  ) {
-    elements.sortSelect.value =
-      'nearest';
-  }
-
-  renderTable();
-}
-
-
-/* ============================================================
-   39. EXPORT
-   ============================================================ */
-
-function downloadBlob(
-  blob,
-  fileName
-) {
-  const url =
-    URL.createObjectURL(
-      blob
-    );
-
-  const link =
-    document.createElement(
-      'a'
-    );
-
-  link.href =
-    url;
-
-  link.download =
-    fileName;
-
-  document.body
-    .appendChild(
-      link
-    );
-
-  link.click();
-
-  link.remove();
-
-  window.setTimeout(
-    () => {
-      URL.revokeObjectURL(
-        url
-      );
-    },
-    1000
-  );
-}
-
-function exportBackup() {
-  const payload = {
-    application:
-      'ДжемБаланс — планировщик',
-
-    version:
-      '2.3',
-
-    exportedAt:
-      new Date()
-        .toISOString(),
-
-    exportedBy:
-      currentUser?.email ||
-      null,
-
-    profiles,
-
-    leads,
-
-    fileMetadata:
-      crmFiles.map(
-        (file) => ({
-          id:
-            file.id,
-
-          lead_id:
-            file.lead_id,
-
-          original_file_name:
-            file.original_file_name,
-
-          file_name:
-            file.file_name,
-
-          storage_bucket:
-            file.storage_bucket,
-
-          storage_path:
-            file.storage_path,
-
-          mime_type:
-            file.mime_type,
-
-          file_size:
-            file.file_size,
-
-          description:
-            file.description,
-
-          uploaded_by:
-            file.uploaded_by,
-
-          created_at:
-            file.created_at
-        })
-      )
-  };
-
-  const blob =
-    new Blob(
-      [
-        JSON.stringify(
-          payload,
-          null,
-          2
-        )
-      ],
-      {
-        type:
-          'application/json;charset=utf-8'
-      }
-    );
-
-  const today =
-    new Date();
-
-  const fileName =
-    'jambalance-planner-' +
-    today.getFullYear() +
-    '-' +
-    padNumber(
-      today.getMonth() + 1
-    ) +
-    '-' +
-    padNumber(
-      today.getDate()
-    ) +
-    '.json';
-
-  downloadBlob(
-    blob,
-    fileName
-  );
-
-  showToast(
-    'Резервная копия данных скачана. Сами вложения в JSON не включаются.',
-    'success',
-    6000
-  );
-}
-
-
-/* ============================================================
-   40. LEGACY DATA
-   ============================================================ */
-
-function getLegacyLeads() {
-  try {
-    const raw =
-      localStorage.getItem(
-        LEGACY_STORAGE_KEY
-      );
-
-    if (!raw) {
-      return [];
-    }
-
-    const parsed =
-      JSON.parse(raw);
-
-    if (
-      !Array.isArray(
-        parsed
-      )
-    ) {
-      return [];
-    }
-
-    return parsed.filter(
-      (item) =>
-        cleanText(
-          item?.clientName,
-          180
-        )
-    );
-  } catch (error) {
-    console.warn(
-      'Не удалось прочитать старый localStorage:',
-      error
-    );
-
-    return [];
-  }
-}
-
-function checkLegacyMigration() {
-  if (
-    !elements.migrationPanel
-  ) {
-    return;
-  }
-
-  const migrated =
-    localStorage.getItem(
-      MIGRATION_DONE_KEY
-    ) === '1';
-
-  const dismissed =
-    localStorage.getItem(
-      MIGRATION_DISMISSED_KEY
-    ) === '1';
-
-  if (
-    migrated ||
-    dismissed
-  ) {
-    elements.migrationPanel
-      .classList.remove(
-        'show'
-      );
-
-    return;
-  }
-
-  const legacy =
-    getLegacyLeads();
-
-  if (
-    legacy.length > 0
-  ) {
-    elements.migrationPanel
-      .classList.add(
-        'show'
-      );
-
-    if (
-      elements.migrateBtn
-    ) {
-      elements.migrateBtn
-        .textContent =
-          'Перенести ' +
-          legacy.length +
-          ' ' +
-          pluralizeRecords(
-            legacy.length
-          );
-    }
-  } else {
-    elements.migrationPanel
-      .classList.remove(
-        'show'
-      );
-  }
-}
-
-function legacyToDatabaseLead(
-  item
-) {
-  const method =
-    METHOD_META[
-      item.communicationMethod
-    ]
-      ? item.communicationMethod
-      : null;
-
-  const priority =
-    PRIORITY_META[
-      item.priority
-    ]
-      ? item.priority
-      : 'none';
-
-  const status =
-    STATUS_META[
-      item.status
-    ]
-      ? item.status
-      : 'new';
-
-  return {
-    client_name:
-      cleanText(
-        item.clientName,
-        180
-      ),
-
-    org_form:
-      cleanText(
-        item.orgForm,
-        80
-      ) || null,
-
-    inn:
-      cleanText(
-        item.inn,
-        20
-      ) || null,
-
-    activity:
-      cleanText(
-        item.activity,
-        180
-      ) || null,
-
-    source:
-      cleanText(
-        item.source,
-        140
-      ) || null,
-
-    phone:
-      cleanText(
-        item.phone,
-        80
-      ) || null,
-
-    email:
-      cleanText(
-        item.email,
-        180
-      ) || null,
-
-    communication_method:
-      method,
-
-    estimated_amount:
-      cleanText(
-        item.estimatedAmount,
-        120
-      ) || null,
-
-    priority,
-
-    responsible_user:
-      currentUser.id,
-
-    status,
-
-    next_contact:
-      item.nextContact
-        ? toDatabaseTimestamp(
-            item.nextContact
-          )
-        : null,
-
-    last_dialogue:
-      cleanText(
-        item.lastDialogue,
-        3000
-      ) || null,
-
-    next_step:
-      cleanText(
-        item.nextStep,
-        2000
-      ) || null,
-
-    notes:
-      cleanText(
-        item.notes,
-        3000
-      ) || null,
-
-    created_by:
-      currentUser.id,
-
-    updated_by:
-      currentUser.id
-  };
-}
-
-async function migrateLegacyData() {
-  const legacy =
-    getLegacyLeads();
-
-  if (
-    legacy.length === 0
-  ) {
-    elements.migrationPanel
-      ?.classList.remove(
-        'show'
-      );
-
-    return;
-  }
-
-  const confirmed =
-    window.confirm(
-      'Перенести старые записи в общую базу?\n\n' +
-      'Будет добавлено записей: ' +
-      legacy.length +
-      '.\n\n' +
-      'После переноса они станут видны всем сотрудникам.'
-    );
-
-  if (
-    !confirmed
-  ) {
-    return;
-  }
-
-  elements.migrateBtn.disabled =
-    true;
-
-  elements.skipMigrationBtn.disabled =
-    true;
-
-  elements.migrateBtn.textContent =
-    'Переносим…';
-
-  try {
-    const prepared =
-      legacy
-        .map(
-          legacyToDatabaseLead
-        )
-        .filter(
-          (item) =>
-            item.client_name
-        );
-
-    const {
-      data,
-      error
-    } =
-      await supabaseClient
-        .from(
-          'planner_leads'
-        )
-        .insert(
-          prepared
-        )
-        .select();
-
-    if (error) {
-      throw error;
-    }
-
-    localStorage.setItem(
-      MIGRATION_DONE_KEY,
-      '1'
-    );
-
-    elements.migrationPanel
-      .classList.remove(
-        'show'
-      );
-
-    showToast(
-      'Старые записи перенесены: ' +
-      data.length +
-      '.',
-      'success',
-      6000
-    );
-
-    await loadLeads({
-      silent: true
-    });
-  } catch (error) {
-    console.error(
-      'Ошибка миграции:',
-      error
-    );
-
-    showToast(
-      'Не удалось перенести старые записи.',
-      'error',
-      6000
-    );
-  } finally {
-    elements.migrateBtn.disabled =
-      false;
-
-    elements.skipMigrationBtn.disabled =
-      false;
-  }
-}
-
-function skipLegacyMigration() {
-  const confirmed =
-    window.confirm(
-      'Не переносить старые локальные записи?\n\n' +
-      'Они останутся только в браузере этого компьютера.'
-    );
-
-  if (
-    !confirmed
-  ) {
-    return;
-  }
-
-  localStorage.setItem(
-    MIGRATION_DISMISSED_KEY,
-    '1'
-  );
-
-  elements.migrationPanel
-    ?.classList.remove(
-      'show'
-    );
-}
-
-
-/* ============================================================
-   41. NOTIFICATIONS
+   23. SMART NOTIFICATIONS
    ============================================================ */
 
 function getTodayKey() {
-  const today =
+  const now =
     new Date();
 
   return (
-    today.getFullYear() +
+    now.getFullYear() +
     '-' +
     padNumber(
-      today.getMonth() + 1
+      now.getMonth() + 1
     ) +
     '-' +
     padNumber(
-      today.getDate()
+      now.getDate()
     )
   );
 }
 
-function loadNotificationHistory() {
+function readJsonStorage(
+  key,
+  fallback = {}
+) {
   try {
     const raw =
       localStorage.getItem(
-        NOTIFICATION_HISTORY_KEY
+        key
       );
 
-    if (!raw) {
-      return {};
-    }
-
-    const parsed =
-      JSON.parse(raw);
-
-    if (
-      !parsed ||
-      typeof parsed !==
-        'object' ||
-      Array.isArray(parsed)
-    ) {
-      return {};
-    }
-
-    return parsed;
-  } catch (error) {
-    return {};
+    return raw
+      ? JSON.parse(raw)
+      : fallback;
+  } catch {
+    return fallback;
   }
+}
+
+function writeJsonStorage(
+  key,
+  value
+) {
+  try {
+    localStorage.setItem(
+      key,
+      JSON.stringify(
+        value
+      )
+    );
+  } catch {
+    /* ignore */
+  }
+}
+
+function loadNotificationHistory() {
+  return readJsonStorage(
+    NOTIFICATION_HISTORY_KEY,
+    {}
+  );
 }
 
 function saveNotificationHistory(
   history
 ) {
-  try {
-    const cutoff =
-      Date.now() -
-      (
-        60 *
-        24 *
-        60 *
-        60 *
-        1000
-      );
+  const cutoff =
+    Date.now() -
+    90 *
+      24 *
+      60 *
+      60 *
+      1000;
 
-    const cleaned = {};
+  const cleaned = {};
 
-    Object.entries(
-      history
-    ).forEach(
-      (
-        [
-          key,
-          value
-        ]
-      ) => {
-        if (
-          Number(value) >
-          cutoff
-        ) {
-          cleaned[key] =
-            Number(value);
-        }
+  Object.entries(
+    history
+  ).forEach(
+    (
+      [
+        key,
+        value
+      ]
+    ) => {
+      if (
+        Number(value) >=
+        cutoff
+      ) {
+        cleaned[key] =
+          Number(value);
       }
-    );
+    }
+  );
 
-    localStorage.setItem(
-      NOTIFICATION_HISTORY_KEY,
-      JSON.stringify(
-        cleaned
+  writeJsonStorage(
+    NOTIFICATION_HISTORY_KEY,
+    cleaned
+  );
+}
+
+function mayNotifyLead(lead) {
+  if (
+    isClosed(lead)
+  ) {
+    return false;
+  }
+
+  return (
+    !lead.responsible_user ||
+    lead.responsible_user ===
+      currentUser?.id
+  );
+}
+
+function buildNotificationBody(
+  lead
+) {
+  const parts = [];
+
+  if (
+    lead.next_contact
+  ) {
+    parts.push(
+      formatTime(
+        lead.next_contact
       )
     );
-  } catch (error) {
-    console.warn(
-      'Не удалось сохранить историю уведомлений.'
+  }
+
+  if (
+    lead.communication_method
+  ) {
+    parts.push(
+      METHOD_META[
+        lead.communication_method
+      ] ||
+      lead.communication_method
     );
+  }
+
+  if (
+    lead.next_step
+  ) {
+    parts.push(
+      lead.next_step
+    );
+  } else if (
+    lead.last_dialogue
+  ) {
+    parts.push(
+      lead.last_dialogue
+    );
+  }
+
+  return (
+    parts
+      .join(' · ')
+      .slice(
+        0,
+        240
+      ) ||
+    'Откройте Planner для подробностей.'
+  );
+}
+
+function showBrowserNotification(
+  title,
+  body,
+  tag,
+  leadId = null
+) {
+  if (
+    !(
+      'Notification'
+      in window
+    ) ||
+    Notification.permission !==
+      'granted'
+  ) {
+    return false;
+  }
+
+  try {
+    const notification =
+      new Notification(
+        title,
+        {
+          body,
+          icon:
+            '/favicon.png',
+          tag
+        }
+      );
+
+    notification.onclick =
+      () => {
+        window.focus();
+
+        if (leadId) {
+          editLead(
+            leadId
+          );
+        }
+
+        notification.close();
+      };
+
+    return true;
+  } catch {
+    return false;
   }
 }
 
+function runTodayNotifications(
+  history
+) {
+  const today =
+    getTodayKey();
+
+  getReminderScopeLeads()
+    .filter(
+      (lead) =>
+        getDayDifference(
+          lead.next_contact
+        ) === 0
+    )
+    .forEach(
+      (lead) => {
+        const key =
+          `today:${lead.id}:${today}`;
+
+        if (
+          history[key]
+        ) {
+          return;
+        }
+
+        const shown =
+          showBrowserNotification(
+            'Сегодня контакт: ' +
+              getDisplayName(
+                lead
+              ),
+
+            buildNotificationBody(
+              lead
+            ),
+
+            key,
+
+            lead.id
+          );
+
+        if (shown) {
+          history[key] =
+            Date.now();
+        }
+      }
+    );
+}
+
+function runOneHourNotifications(
+  history
+) {
+  getReminderScopeLeads()
+    .forEach(
+      (lead) => {
+        const minutes =
+          getMinutesUntil(
+            lead.next_contact
+          );
+
+        if (
+          minutes === null ||
+          minutes < 0 ||
+          minutes >
+            REMINDER_SOON_MINUTES
+        ) {
+          return;
+        }
+
+        const dateKey =
+          new Date(
+            lead.next_contact
+          ).toISOString();
+
+        const key =
+          `soon:${lead.id}:${dateKey}`;
+
+        if (
+          history[key]
+        ) {
+          return;
+        }
+
+        const shown =
+          showBrowserNotification(
+            'Скоро контакт: ' +
+              getDisplayName(
+                lead
+              ),
+
+            (
+              'Примерно через ' +
+              Math.max(
+                1,
+                minutes
+              ) +
+              ' мин. · ' +
+              buildNotificationBody(
+                lead
+              )
+            ).slice(
+              0,
+              240
+            ),
+
+            key,
+
+            lead.id
+          );
+
+        if (shown) {
+          history[key] =
+            Date.now();
+        }
+      }
+    );
+}
+
+function runOverdueNotifications(
+  history
+) {
+  const cooldown =
+    OVERDUE_NOTIFICATION_COOLDOWN_HOURS *
+    60 *
+    60 *
+    1000;
+
+  getReminderScopeLeads()
+    .filter(
+      (lead) => {
+        const diff =
+          getDayDifference(
+            lead.next_contact
+          );
+
+        return (
+          diff !== null &&
+          diff < 0
+        );
+      }
+    )
+    .forEach(
+      (lead) => {
+        const days =
+          Math.abs(
+            getDayDifference(
+              lead.next_contact
+            )
+          );
+
+        const key =
+          `overdue:${lead.id}`;
+
+        const previous =
+          Number(
+            history[key] ||
+            0
+          );
+
+        if (
+          Date.now() -
+            previous <
+          cooldown
+        ) {
+          return;
+        }
+
+        const shown =
+          showBrowserNotification(
+            'Просрочен контакт: ' +
+              getDisplayName(
+                lead
+              ),
+
+            (
+              'Просрочено на ' +
+              days +
+              ' ' +
+              pluralizeDays(
+                days
+              ) +
+              '. ' +
+              buildNotificationBody(
+                lead
+              )
+            ).slice(
+              0,
+              240
+            ),
+
+            key,
+
+            lead.id
+          );
+
+        if (shown) {
+          history[key] =
+            Date.now();
+        }
+      }
+    );
+}
+
+function showDailySummaryIfNeeded() {
+  const today =
+    getTodayKey();
+
+  const history =
+    readJsonStorage(
+      DAILY_SUMMARY_HISTORY_KEY,
+      {}
+    );
+
+  if (
+    history[today]
+  ) {
+    return;
+  }
+
+  const summary =
+    getSmartSummaryData();
+
+  /*
+   * Сводку показываем внутри страницы toast-ом.
+   * Браузерное системное уведомление — только если
+   * сегодня или просрочено действительно что-то есть.
+   */
+
+  const text =
+    `Сегодня: ${summary.today.length}. ` +
+    `Просрочено: ${summary.overdue.length}. ` +
+    `На ближайшие 7 дней: ${summary.week.length}.`;
+
+  showToast(
+    'Сводка: ' +
+      text,
+    summary.overdue.length
+      ? 'warning'
+      : 'success',
+    8000
+  );
+
+  if (
+    summary.today.length > 0 ||
+    summary.overdue.length > 0
+  ) {
+    showBrowserNotification(
+      'Planner — сводка на сегодня',
+      text,
+      'daily-summary-' +
+        today
+    );
+  }
+
+  history[today] =
+    Date.now();
+
+  writeJsonStorage(
+    DAILY_SUMMARY_HISTORY_KEY,
+    history
+  );
+}
+
+function runSmartReminders() {
+  renderSmartSummary();
+
+  if (
+    !currentUser
+  ) {
+    return;
+  }
+
+  const history =
+    loadNotificationHistory();
+
+  runTodayNotifications(
+    history
+  );
+
+  runOneHourNotifications(
+    history
+  );
+
+  runOverdueNotifications(
+    history
+  );
+
+  saveNotificationHistory(
+    history
+  );
+
+  showDailySummaryIfNeeded();
+}
+
+
+/* ============================================================
+   24. NOTIFICATION PERMISSION
+   ============================================================ */
+
 function updateNotificationInterface() {
+  if (
+    !elements.notificationBtn
+  ) {
+    return;
+  }
+
   if (
     !(
       'Notification'
@@ -6197,9 +4606,6 @@ function updateNotificationInterface() {
     Notification.permission ===
     'granted'
   ) {
-    elements.notificationBtn.disabled =
-      false;
-
     elements.notificationBtn.textContent =
       '✓ Уведомления включены';
 
@@ -6210,17 +4616,11 @@ function updateNotificationInterface() {
     Notification.permission ===
     'denied'
   ) {
-    elements.notificationBtn.disabled =
-      false;
-
     elements.notificationBtn.textContent =
       '× Уведомления запрещены';
 
     return;
   }
-
-  elements.notificationBtn.disabled =
-    false;
 
   elements.notificationBtn.textContent =
     '🔔 Включить уведомления';
@@ -6233,24 +4633,6 @@ async function requestNotifications() {
       in window
     )
   ) {
-    showToast(
-      'Этот браузер не поддерживает уведомления.',
-      'warning'
-    );
-
-    return;
-  }
-
-  if (
-    !window.isSecureContext &&
-    window.location.hostname !==
-      'localhost'
-  ) {
-    showToast(
-      'Для уведомлений сайт должен работать через HTTPS.',
-      'warning'
-    );
-
     return;
   }
 
@@ -6259,211 +4641,438 @@ async function requestNotifications() {
     'denied'
   ) {
     showToast(
-      'Уведомления запрещены в настройках браузера.',
+      'Разрешите уведомления в настройках браузера.',
       'warning'
     );
 
     return;
   }
 
-  try {
-    const permission =
-      await Notification
-        .requestPermission();
+  const permission =
+    await Notification
+      .requestPermission();
 
-    updateNotificationInterface();
+  updateNotificationInterface();
 
-    if (
-      permission ===
-      'granted'
-    ) {
-      showToast(
-        'Уведомления включены.',
-        'success'
-      );
-
-      checkTodayNotifications();
-    }
-  } catch (error) {
+  if (
+    permission ===
+    'granted'
+  ) {
     showToast(
-      'Не удалось включить уведомления.',
-      'error'
-    );
-  }
-}
-
-function checkTodayNotifications() {
-  if (
-    !(
-      'Notification'
-      in window
-    ) ||
-    Notification.permission !==
-      'granted'
-  ) {
-    return;
-  }
-
-  const todayKey =
-    getTodayKey();
-
-  const history =
-    loadNotificationHistory();
-
-  const todayLeads =
-    leads.filter(
-      (lead) => {
-        if (
-          isClosed(lead)
-        ) {
-          return false;
-        }
-
-        if (
-          getDayDifference(
-            lead.next_contact
-          ) !== 0
-        ) {
-          return false;
-        }
-
-        return (
-          !lead.responsible_user ||
-          lead.responsible_user ===
-            currentUser?.id
-        );
-      }
+      'Умные уведомления включены.',
+      'success'
     );
 
-  let changed =
-    false;
-
-  todayLeads.forEach(
-    (lead) => {
-      const key =
-        lead.id +
-        ':' +
-        todayKey;
-
-      if (
-        history[key]
-      ) {
-        return;
-      }
-
-      const parts = [];
-
-      if (
-        lead.next_step
-      ) {
-        parts.push(
-          lead.next_step
-        );
-      } else if (
-        lead.last_dialogue
-      ) {
-        parts.push(
-          lead.last_dialogue
-        );
-      }
-
-      if (
-        lead.communication_method
-      ) {
-        parts.push(
-          'Связь: ' +
-          (
-            METHOD_META[
-              lead.communication_method
-            ] ||
-            lead.communication_method
-          )
-        );
-      }
-
-      if (
-        lead.phone
-      ) {
-        parts.push(
-          'Телефон: ' +
-          lead.phone
-        );
-      }
-
-      try {
-        const notification =
-          new Notification(
-            'Сегодня назначен контакт: ' +
-            getDisplayName(
-              lead
-            ),
-            {
-              body:
-                parts
-                  .join(' · ')
-                  .slice(
-                    0,
-                    220
-                  ) ||
-                'Откройте планировщик для подробностей.',
-
-              icon:
-                '/favicon.png',
-
-              tag:
-                'jambalance-' +
-                lead.id +
-                '-' +
-                todayKey
-            }
-          );
-
-        notification.onclick =
-          () => {
-            window.focus();
-
-            editLead(
-              lead.id
-            );
-
-            notification.close();
-          };
-
-        history[key] =
-          Date.now();
-
-        changed =
-          true;
-      } catch (error) {
-        console.warn(
-          'Не удалось показать уведомление:',
-          error
-        );
-      }
-    }
-  );
-
-  if (
-    changed
-  ) {
-    saveNotificationHistory(
-      history
-    );
+    runSmartReminders();
   }
 }
 
 
 /* ============================================================
-   42. EVENTS
+   25. FILTER RESET / EXPORT
+   ============================================================ */
+
+function resetFilters() {
+  Object.assign(
+    state,
+    {
+      search: '',
+      status: 'all',
+      priority: 'all',
+      responsible: 'all',
+      date: 'all',
+      sort: 'nearest'
+    }
+  );
+
+  elements.searchInput.value =
+    '';
+
+  elements.statusFilter.value =
+    'all';
+
+  elements.priorityFilter.value =
+    'all';
+
+  elements.responsibleFilter.value =
+    'all';
+
+  elements.dateFilter.value =
+    'all';
+
+  elements.sortSelect.value =
+    'nearest';
+
+  renderTable();
+}
+
+function exportBackup() {
+  const blob =
+    new Blob(
+      [
+        JSON.stringify(
+          {
+            version:
+              '2.4',
+
+            exported_at:
+              new Date()
+                .toISOString(),
+
+            leads,
+
+            fileMetadata:
+              crmFiles
+          },
+          null,
+          2
+        )
+      ],
+      {
+        type:
+          'application/json'
+      }
+    );
+
+  const url =
+    URL.createObjectURL(
+      blob
+    );
+
+  const link =
+    document.createElement(
+      'a'
+    );
+
+  link.href =
+    url;
+
+  link.download =
+    'jambalance-planner-' +
+    getTodayKey() +
+    '.json';
+
+  link.click();
+
+  URL.revokeObjectURL(
+    url
+  );
+}
+
+
+/* ============================================================
+   26. LEGACY MIGRATION
+   ============================================================ */
+
+function getLegacyLeads() {
+  try {
+    const parsed =
+      JSON.parse(
+        localStorage.getItem(
+          LEGACY_STORAGE_KEY
+        ) ||
+        '[]'
+      );
+
+    return Array.isArray(
+      parsed
+    )
+      ? parsed
+      : [];
+  } catch {
+    return [];
+  }
+}
+
+function checkLegacyMigration() {
+  if (
+    !elements.migrationPanel
+  ) {
+    return;
+  }
+
+  if (
+    localStorage.getItem(
+      MIGRATION_DONE_KEY
+    ) === '1' ||
+    localStorage.getItem(
+      MIGRATION_DISMISSED_KEY
+    ) === '1'
+  ) {
+    return;
+  }
+
+  const legacy =
+    getLegacyLeads();
+
+  if (
+    legacy.length
+  ) {
+    elements.migrationPanel
+      .classList.add(
+        'show'
+      );
+
+    elements.migrateBtn.textContent =
+      `Перенести ${legacy.length} ${pluralizeRecords(
+        legacy.length
+      )}`;
+  }
+}
+
+async function migrateLegacyData() {
+  const legacy =
+    getLegacyLeads();
+
+  if (
+    !legacy.length
+  ) {
+    return;
+  }
+
+  const rows =
+    legacy
+      .filter(
+        (item) =>
+          cleanText(
+            item.clientName
+          )
+      )
+      .map(
+        (item) => ({
+          client_name:
+            cleanText(
+              item.clientName,
+              180
+            ),
+
+          org_form:
+            cleanText(
+              item.orgForm,
+              80
+            ) ||
+            null,
+
+          inn:
+            cleanText(
+              item.inn,
+              20
+            ) ||
+            null,
+
+          activity:
+            cleanText(
+              item.activity,
+              180
+            ) ||
+            null,
+
+          source:
+            cleanText(
+              item.source,
+              140
+            ) ||
+            null,
+
+          phone:
+            cleanText(
+              item.phone,
+              80
+            ) ||
+            null,
+
+          email:
+            cleanText(
+              item.email,
+              180
+            ) ||
+            null,
+
+          communication_method:
+            item.communicationMethod ||
+            null,
+
+          estimated_amount:
+            cleanText(
+              item.estimatedAmount,
+              120
+            ) ||
+            null,
+
+          priority:
+            item.priority ||
+            'none',
+
+          status:
+            item.status ||
+            'new',
+
+          next_contact:
+            item.nextContact
+              ? toDatabaseTimestamp(
+                  item.nextContact
+                )
+              : null,
+
+          last_dialogue:
+            cleanText(
+              item.lastDialogue,
+              3000
+            ) ||
+            null,
+
+          next_step:
+            cleanText(
+              item.nextStep,
+              2000
+            ) ||
+            null,
+
+          notes:
+            cleanText(
+              item.notes,
+              3000
+            ) ||
+            null,
+
+          responsible_user:
+            currentUser.id,
+
+          created_by:
+            currentUser.id,
+
+          updated_by:
+            currentUser.id
+        })
+      );
+
+  const {
+    error
+  } =
+    await supabaseClient
+      .from('planner_leads')
+      .insert(rows);
+
+  if (error) {
+    showToast(
+      'Не удалось перенести старые записи.',
+      'error'
+    );
+
+    return;
+  }
+
+  localStorage.setItem(
+    MIGRATION_DONE_KEY,
+    '1'
+  );
+
+  elements.migrationPanel
+    .classList.remove(
+      'show'
+    );
+
+  await loadLeads();
+
+  showToast(
+    'Старые записи перенесены.',
+    'success'
+  );
+}
+
+function skipLegacyMigration() {
+  localStorage.setItem(
+    MIGRATION_DISMISSED_KEY,
+    '1'
+  );
+
+  elements.migrationPanel
+    ?.classList.remove(
+      'show'
+    );
+}
+
+
+/* ============================================================
+   27. REALTIME
+   ============================================================ */
+
+function subscribeToRealtime() {
+  realtimeChannel =
+    supabaseClient
+      .channel(
+        'planner-v24'
+      )
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table:
+            'planner_leads'
+        },
+        () => {
+          loadLeads({
+            silent: true
+          });
+        }
+      )
+      .subscribe();
+
+  profilesRealtimeChannel =
+    supabaseClient
+      .channel(
+        'profiles-v24'
+      )
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table:
+            'profiles'
+        },
+        async () => {
+          await loadProfiles();
+
+          render();
+        }
+      )
+      .subscribe();
+
+  filesRealtimeChannel =
+    supabaseClient
+      .channel(
+        'files-v24'
+      )
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table:
+            'crm_files'
+        },
+        () => {
+          loadLeads({
+            silent: true
+          });
+        }
+      )
+      .subscribe();
+}
+
+
+/* ============================================================
+   28. EVENTS
    ============================================================ */
 
 function bindEvents() {
   elements.addLeadBtn
     ?.addEventListener(
       'click',
-      () => {
-        openLeadModal();
-      }
+      () =>
+        openLeadModal()
     );
 
   elements.closeModalBtn
@@ -6476,19 +5085,6 @@ function bindEvents() {
     ?.addEventListener(
       'click',
       closeLeadModal
-    );
-
-  elements.modalBackdrop
-    ?.addEventListener(
-      'click',
-      (event) => {
-        if (
-          event.target ===
-          elements.modalBackdrop
-        ) {
-          closeLeadModal();
-        }
-      }
     );
 
   elements.leadForm
@@ -6549,8 +5145,58 @@ function bindEvents() {
           elements.dateFilter.value;
 
         renderTable();
+
+updateSmartSummarySelection();
       }
     );
+/* ============================================================
+   PLANNER v2.4 — КЛИКАБЕЛЬНАЯ СВОДКА
+   ============================================================ */
+
+elements.smartSummary
+  ?.addEventListener(
+    'click',
+    (event) => {
+      const item =
+        event.target.closest(
+          '[data-summary-filter]'
+        );
+
+      if (!item) {
+        return;
+      }
+
+      const selectedFilter =
+        item.dataset.summaryFilter;
+
+      /*
+       * Повторное нажатие на уже активную карточку
+       * возвращает фильтр "Все даты".
+       */
+
+      const newFilter =
+        state.date === selectedFilter
+          ? 'all'
+          : selectedFilter;
+
+      state.date =
+        newFilter;
+
+      /*
+       * Синхронизируем обычный выпадающий
+       * фильтр даты.
+       */
+
+      if (elements.dateFilter) {
+        elements.dateFilter.value =
+          newFilter;
+      }
+
+      renderTable();
+
+      updateSmartSummarySelection();
+    }
+  );
 
   elements.sortSelect
     ?.addEventListener(
@@ -6572,9 +5218,8 @@ function bindEvents() {
   elements.refreshBtn
     ?.addEventListener(
       'click',
-      () => {
-        loadLeads();
-      }
+      () =>
+        loadLeads()
     );
 
   elements.exportBtn
@@ -6607,7 +5252,7 @@ function bindEvents() {
       (event) => {
         const button =
           event.target.closest(
-            'button[data-action]'
+            '[data-action]'
           );
 
         if (!button) {
@@ -6617,54 +5262,35 @@ function bindEvents() {
         const id =
           button.dataset.id;
 
-        const action =
-          button.dataset.action;
-
-        if (
-          action ===
-          'contacted'
+        switch (
+          button.dataset.action
         ) {
-          openQuickContactModal(
-            id
-          );
+          case 'contacted':
+            openQuickContactModal(
+              id
+            );
+            break;
 
-          return;
-        }
+          case 'files':
+            openFilesModal(
+              id
+            );
+            break;
 
-        if (
-          action ===
-          'files'
-        ) {
-          openFilesModal(
-            id
-          );
+          case 'edit':
+            editLead(
+              id
+            );
+            break;
 
-          return;
-        }
-
-        if (
-          action ===
-          'edit'
-        ) {
-          editLead(
-            id
-          );
-
-          return;
-        }
-
-        if (
-          action ===
-          'delete'
-        ) {
-          deleteLead(
-            id
-          );
+          case 'delete':
+            deleteLead(
+              id
+            );
+            break;
         }
       }
     );
-
-  /* Quick contact */
 
   elements.quickContactCloseBtn
     ?.addEventListener(
@@ -6676,19 +5302,6 @@ function bindEvents() {
     ?.addEventListener(
       'click',
       closeQuickContactModal
-    );
-
-  elements.quickContactBackdrop
-    ?.addEventListener(
-      'click',
-      (event) => {
-        if (
-          event.target ===
-          elements.quickContactBackdrop
-        ) {
-          closeQuickContactModal();
-        }
-      }
     );
 
   elements.quickContactForm
@@ -6703,22 +5316,6 @@ function bindEvents() {
       applyQuickContactPreset
     );
 
-  elements.quickContactDate
-    ?.addEventListener(
-      'input',
-      () => {
-        if (
-          elements.quickContactPreset
-        ) {
-          elements.quickContactPreset
-            .value =
-              'custom';
-        }
-      }
-    );
-
-  /* Files */
-
   elements.filesCloseBtn
     ?.addEventListener(
       'click',
@@ -6731,29 +5328,31 @@ function bindEvents() {
       closeFilesModal
     );
 
-  elements.filesBackdrop
+  elements.uploadFileBtn
     ?.addEventListener(
       'click',
-      (event) => {
-        if (
-          event.target ===
-          elements.filesBackdrop
-        ) {
-          closeFilesModal();
-        }
-      }
+      uploadSelectedFile
     );
 
   elements.fileInput
     ?.addEventListener(
       'change',
-      updateSelectedFileDisplay
-    );
+      () => {
+        const file =
+          elements.fileInput
+            .files?.[0];
 
-  elements.uploadFileBtn
-    ?.addEventListener(
-      'click',
-      uploadSelectedFile
+        if (
+          elements.selectedFileName
+        ) {
+          elements.selectedFileName.textContent =
+            file
+              ? `${file.name} · ${formatFileSize(
+                  file.size
+                )}`
+              : 'Файл не выбран';
+        }
+      }
     );
 
   elements.filesList
@@ -6762,170 +5361,32 @@ function bindEvents() {
       (event) => {
         const button =
           event.target.closest(
-            'button[data-file-action]'
+            '[data-file-action]'
           );
 
         if (!button) {
           return;
         }
 
-        const id =
-          button.dataset.fileId;
-
-        const action =
-          button.dataset.fileAction;
-
         if (
-          action ===
+          button.dataset.fileAction ===
           'open'
         ) {
-          openFile(id);
-
-          return;
+          openFile(
+            button.dataset.fileId
+          );
         }
 
         if (
-          action ===
+          button.dataset.fileAction ===
           'delete'
         ) {
-          deleteFile(id);
+          deleteFile(
+            button.dataset.fileId
+          );
         }
       }
     );
-
-  /*
-   * Зона drag & drop.
-   */
-
-  elements.fileDropZone
-    ?.addEventListener(
-      'click',
-      () => {
-        elements.fileInput
-          ?.click();
-      }
-    );
-
-  elements.fileDropZone
-    ?.addEventListener(
-      'keydown',
-      (event) => {
-        if (
-          event.key ===
-            'Enter' ||
-          event.key ===
-            ' '
-        ) {
-          event.preventDefault();
-
-          elements.fileInput
-            ?.click();
-        }
-      }
-    );
-
-  elements.fileDropZone
-    ?.addEventListener(
-      'dragover',
-      (event) => {
-        event.preventDefault();
-
-        elements.fileDropZone
-          .classList.add(
-            'dragging'
-          );
-      }
-    );
-
-  elements.fileDropZone
-    ?.addEventListener(
-      'dragleave',
-      () => {
-        elements.fileDropZone
-          .classList.remove(
-            'dragging'
-          );
-      }
-    );
-
-  elements.fileDropZone
-    ?.addEventListener(
-      'drop',
-      (event) => {
-        event.preventDefault();
-
-        elements.fileDropZone
-          .classList.remove(
-            'dragging'
-          );
-
-        const file =
-          event.dataTransfer
-            ?.files?.[0];
-
-        if (
-          !file ||
-          !elements.fileInput
-        ) {
-          return;
-        }
-
-        const transfer =
-          new DataTransfer();
-
-        transfer.items.add(
-          file
-        );
-
-        elements.fileInput.files =
-          transfer.files;
-
-        updateSelectedFileDisplay();
-      }
-    );
-
-  document.addEventListener(
-    'keydown',
-    (event) => {
-      if (
-        event.key !==
-        'Escape'
-      ) {
-        return;
-      }
-
-      if (
-        elements.filesBackdrop
-          ?.classList.contains(
-            'show'
-          )
-      ) {
-        closeFilesModal();
-
-        return;
-      }
-
-      if (
-        elements.quickContactBackdrop
-          ?.classList.contains(
-            'show'
-          )
-      ) {
-        closeQuickContactModal();
-
-        return;
-      }
-
-      if (
-        elements.modalBackdrop
-          ?.classList.contains(
-            'show'
-          )
-      ) {
-        closeLeadModal();
-      }
-    }
-  );
 
   document.addEventListener(
     'visibilitychange',
@@ -6937,7 +5398,7 @@ function bindEvents() {
           silent: true
         });
 
-        checkTodayNotifications();
+        runSmartReminders();
       }
     }
   );
@@ -6945,85 +5406,36 @@ function bindEvents() {
   window.addEventListener(
     'focus',
     () => {
-      loadLeads({
-        silent: true
-      });
-
-      checkTodayNotifications();
-    }
-  );
-
-  window.addEventListener(
-    'online',
-    () => {
-      showToast(
-        'Соединение с интернетом восстановлено.',
-        'success'
-      );
-
-      loadLeads({
-        silent: true
-      });
-    }
-  );
-
-  window.addEventListener(
-    'offline',
-    () => {
-      showToast(
-        'Нет подключения к интернету. Изменения пока нельзя сохранить.',
-        'warning',
-        6000
-      );
+      runSmartReminders();
     }
   );
 }
 
 
 /* ============================================================
-   43. AUTH WATCHER
-   ============================================================ */
-
-function bindAuthWatcher() {
-  supabaseClient
-    .auth
-    .onAuthStateChange(
-      (
-        event,
-        session
-      ) => {
-        if (
-          event ===
-            'SIGNED_OUT' ||
-          !session?.user
-        ) {
-          redirectToLogin();
-
-          return;
-        }
-
-        currentUser =
-          session.user;
-      }
-    );
-}
-
-
-/* ============================================================
-   44. PERIODIC TASKS
+   29. PERIODIC TASKS
    ============================================================ */
 
 function startPeriodicTasks() {
+  /*
+   * Каждую минуту:
+   * - меняем "сегодня/завтра/просрочено";
+   * - проверяем часовой reminder;
+   * - проверяем просрочку.
+   */
+
   window.setInterval(
     () => {
-      renderStatistics();
+      render();
 
-      renderTable();
-
-      checkTodayNotifications();
+      runSmartReminders();
     },
-    60000
+    60 * 1000
   );
+
+  /*
+   * Страховочная синхронизация.
+   */
 
   window.setInterval(
     () => {
@@ -7042,84 +5454,75 @@ function startPeriodicTasks() {
 
 
 /* ============================================================
-   45. INITIALIZE
+   30. INIT
    ============================================================ */
 
 async function initialize() {
   try {
-    setLoadingText(
-      'Подключаем Supabase…'
-    );
-
     createSupabaseClient();
 
     bindEvents();
 
-    bindAuthWatcher();
-
     const authenticated =
       await ensureAuthenticated();
 
-    if (
-      !authenticated
-    ) {
+    if (!authenticated) {
       return;
     }
 
     const profileLoaded =
       await loadCurrentProfile();
 
-    if (
-      !profileLoaded
-    ) {
+    if (!profileLoaded) {
       return;
     }
 
     await loadProfiles();
 
-    setLoadingText(
-      'Загружаем общую таблицу и файлы…'
-    );
-
     await loadLeads({
       silent: true
     });
 
-    setLoadingText(
-      'Подключаем обновления в реальном времени…'
-    );
-
     subscribeToRealtime();
-
-    subscribeToProfilesRealtime();
-
-    subscribeToFilesRealtime();
 
     updateNotificationInterface();
 
     checkLegacyMigration();
 
-    startPeriodicTasks();
-
     showApplication();
 
-    checkTodayNotifications();
+    startPeriodicTasks();
+
+    runSmartReminders();
+
+    supabaseClient.auth
+      .onAuthStateChange(
+        (
+          event,
+          session
+        ) => {
+          if (
+            event ===
+              'SIGNED_OUT' ||
+            !session?.user
+          ) {
+            redirectToLogin();
+          } else {
+            currentUser =
+              session.user;
+          }
+        }
+      );
   } catch (error) {
     console.error(
-      'Ошибка запуска Planner:',
+      'Planner init:',
       error
     );
 
     showFatalError(
-      'Не удалось подключиться к общей базе. ' +
-      'Проверьте интернет и обновите страницу.'
+      'Не удалось подключиться к общей базе.'
     );
   }
 }
 
-
-/* ============================================================
-   46. START
-   ============================================================ */
-
-initialize();
+initialize();bindEvents()

@@ -1942,6 +1942,228 @@ tbody td {
     grid-template-columns: 1fr;
   }
 }
+/* ============================================================
+   PLANNER v2.4 — УМНАЯ ДНЕВНАЯ СВОДКА
+   ============================================================ */
+
+.smartSummary {
+  display: grid;
+  grid-template-columns: auto repeat(3, minmax(125px, 160px));
+  align-items: stretch;
+  gap: 10px;
+
+  margin: 0 0 14px;
+  padding: 12px;
+
+  border: 1px solid #f1d3aa;
+  border-radius: 18px;
+
+  background:
+    linear-gradient(
+      135deg,
+      #fffaf3 0%,
+      #fff 55%,
+      #fff8ed 100%
+    );
+
+  box-shadow:
+    0 7px 22px rgba(84, 55, 22, .06);
+}
+
+.smartSummaryIntro {
+  display: flex;
+  align-items: center;
+  gap: 11px;
+
+  min-width: 240px;
+  padding: 5px 8px;
+}
+
+.smartSummaryIcon {
+  display: flex;
+  flex: 0 0 auto;
+  align-items: center;
+  justify-content: center;
+
+  width: 42px;
+  height: 42px;
+
+  border-radius: 13px;
+
+  background: #fff0dc;
+  color: #c66b00;
+
+  font-size: 21px;
+}
+
+.smartSummaryHeading {
+  margin: 0 0 3px;
+
+  color: var(--strong);
+  font-size: 13px;
+  font-weight: 900;
+}
+
+.smartSummaryText {
+  color: var(--muted);
+  font-size: 11px;
+  line-height: 1.4;
+}
+
+.smartSummaryItem {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+
+  min-width: 0;
+  padding: 10px 12px;
+
+  border: 1px solid var(--line);
+  border-radius: 14px;
+
+  background: #fff;
+}
+
+.smartSummaryItem.today {
+  border-color: #bcd9f7;
+  background: #f5faff;
+}
+
+.smartSummaryItem.overdue {
+  border-color: #f1c1bc;
+  background: #fff6f5;
+}
+
+.smartSummaryItem.week {
+  border-color: #bfe2cb;
+  background: #f5fbf7;
+}
+
+.smartSummaryItemIcon {
+  display: flex;
+  flex: 0 0 auto;
+  align-items: center;
+  justify-content: center;
+
+  width: 32px;
+  height: 32px;
+
+  border-radius: 10px;
+
+  font-size: 15px;
+}
+
+.smartSummaryItem.today .smartSummaryItemIcon {
+  color: #3478b9;
+  background: #e4f1ff;
+}
+
+.smartSummaryItem.overdue .smartSummaryItemIcon {
+  color: #c4473d;
+  background: #ffe8e5;
+}
+
+.smartSummaryItem.week .smartSummaryItemIcon {
+  color: #37865a;
+  background: #e5f6eb;
+}
+
+.smartSummaryNumber {
+  color: var(--strong);
+  font-size: 20px;
+  font-weight: 950;
+  line-height: 1;
+}
+
+.smartSummaryLabel {
+  margin-top: 3px;
+
+  color: var(--muted);
+  font-size: 10px;
+  font-weight: 800;
+  line-height: 1.2;
+  text-transform: uppercase;
+}
+
+
+/* Кликабельные показатели */
+
+.smartSummaryItem {
+  cursor: pointer;
+
+  transition:
+    transform .15s ease,
+    box-shadow .15s ease,
+    border-color .15s ease;
+}
+
+.smartSummaryItem:hover {
+  transform: translateY(-1px);
+
+  box-shadow:
+    0 6px 16px rgba(31, 41, 55, .08);
+}
+
+
+/* Планшеты */
+
+@media (max-width: 1050px) {
+  .smartSummary {
+    grid-template-columns:
+      repeat(3, minmax(0, 1fr));
+  }
+
+  .smartSummaryIntro {
+    grid-column: 1 / -1;
+    min-width: 0;
+  }
+}
+
+
+/* Телефоны */
+
+@media (max-width: 620px) {
+  .smartSummary {
+    grid-template-columns: 1fr;
+  }
+
+  .smartSummaryIntro {
+    grid-column: auto;
+  }
+
+  .smartSummaryItem {
+    min-height: 58px;
+  }
+}
+/* Planner v2.4 — активный фильтр умной сводки */
+
+.smartSummaryItem.active {
+  border-color: #f99303;
+
+  box-shadow:
+    0 0 0 2px rgba(249, 147, 3, .13),
+    0 7px 18px rgba(249, 147, 3, .12);
+
+  transform: translateY(-1px);
+}
+
+.smartSummaryItem.active::after {
+  content: "Показано";
+
+  margin-left: auto;
+
+  padding: 4px 7px;
+
+  border-radius: 999px;
+
+  color: #a85b00;
+  background: #fff0dc;
+
+  font-size: 9px;
+  font-weight: 900;
+  letter-spacing: .03em;
+  text-transform: uppercase;
+}
   </style>
 </head>
 
