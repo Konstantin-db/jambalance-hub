@@ -2,145 +2,35 @@
 
 /* ============================================================
    ДЖЕМБАЛАНС — ГЕНЕРАТОР КС-2 / КС-3
-   ============================================================
 
-   Ожидаемая структура:
+   Структура файлов:
 
    tools/
-   ├── ks-generator.html
-   ├── ks-generator.js
-   ├── xlsx.full.min.js
-   └── templates/
-       ├── KS-2.xlsx
-       └── KS-3.xlsx
+     ks-generator.html
+     ks-generator.js
+     jszip.min.js
+     xlsx.full.min.js
 
-   Экспорт XLSX:
-   - загружает настоящий XLSX-шаблон;
-   - не создаёт книгу с нуля;
-   - заполняет найденные/настроенные ячейки;
-   - сохраняет результат отдельным файлом.
+     templates/
+       KS-2.xlsx
+       KS-3.xlsx
 
+   ВАЖНО:
+   Excel экспортируется НЕ пересозданием книги.
+   Исходный XLSX патчится через JSZip, поэтому оформление
+   оригинального шаблона сохраняется максимально полно.
    ============================================================ */
 
 
 /* ============================================================
-   КОНФИГУРАЦИЯ
+   КОНСТАНТЫ
    ============================================================ */
 
-const STORAGE_KEY = 'jembalance_db_v2';
+const STORAGE_KEY = 'jembalance_db_v1';
 
 const TEMPLATE_PATHS = {
   ks2: './templates/KS-2.xlsx',
   ks3: './templates/KS-3.xlsx'
-};
-
-/*
-  Основной блок настройки XLSX.
-
-  Координаты здесь используются как fallback.
-  Перед записью программа также пытается найти подписи
-  непосредственно в листе шаблона.
-
-  Для КС-2 зоны строк работ вынесены отдельно.
-*/
-const TEMPLATE_MAP = {
-  ks2: {
-    sheetIndex: 0,
-
-    cells: {
-      docNum: ['K13', 'L13', 'M13'],
-      docDate: ['N13', 'O13', 'P13'],
-
-      investor: ['A16', 'B16', 'C16'],
-      customer: ['A18', 'B18', 'C18'],
-      contractor: ['A20', 'B20', 'C20'],
-
-      object: ['A23', 'B23', 'C23'],
-
-      contractNum: ['K18', 'L18', 'M18'],
-      contractDate: ['N18', 'O18', 'P18'],
-
-      dateFrom: ['K20', 'L20'],
-      dateTo: ['N20', 'O20'],
-
-      totalBase: ['N45', 'O45', 'P45'],
-      vat: ['N46', 'O46', 'P46'],
-      totalGross: ['N47', 'O47', 'P47']
-    },
-
-    /*
-      Строки таблицы работ.
-
-      Эти строки соответствуют той структуре КС-2,
-      которую мы ранее обсуждали: первая часть таблицы и
-      продолжение на второй странице.
-
-      При необходимости сюда просто добавляются номера строк.
-    */
-    workRows: [
-      29, 30, 31,
-      42, 43, 44
-    ],
-
-    /*
-      Колонки строки КС-2.
-
-      name — наименование;
-      unit — единица;
-      qty — количество;
-      price — цена;
-      sum — стоимость.
-    */
-    workColumns: {
-      number: 'A',
-      name: 'B',
-      unit: 'J',
-      qty: 'K',
-      price: 'M',
-      sum: 'O'
-    }
-  },
-
-  ks3: {
-    sheetIndex: 0,
-
-    cells: {
-      docNum: ['K13', 'L13', 'M13'],
-      docDate: ['N13', 'O13', 'P13'],
-
-      investor: ['A16', 'B16', 'C16'],
-      customer: ['A18', 'B18', 'C18'],
-      contractor: ['A20', 'B20', 'C20'],
-
-      object: ['A22', 'B22', 'C22'],
-
-      contractNum: ['K18', 'L18', 'M18'],
-      contractDate: ['N18', 'O18', 'P18'],
-
-      period: ['K20', 'L20', 'M20'],
-
-      totalBase: ['M48', 'N48', 'O48'],
-      vat: ['M49', 'N49', 'O49'],
-      totalGross: ['M50', 'N50', 'O50']
-    },
-
-    /*
-      Таблица КС-3.
-      Ранее мы уже определили диапазон примерно 25–47.
-    */
-    workRows: Array.from(
-      { length: 23 },
-      (_, i) => 25 + i
-    ),
-
-    workColumns: {
-      number: 'A',
-      title: 'B',
-      base: 'L',
-      vat: 'N',
-      gross: 'P'
-    }
-  }
 };
 
 
@@ -176,18 +66,19 @@ function uid() {
 }
 
 
-function safeString(value) {
-  if (value === null || value === undefined) return '';
-  return String(value);
+function byId(id) {
+  return document.getElementById(id);
+}
+
+
+function safeValue(id) {
+  const el = byId(id);
+  return el ? el.value : '';
 }
 
 
 function num(value) {
-  if (
-    value === null ||
-    value === undefined ||
-    value === ''
-  ) {
+  if (value === null || value === undefined || value === '') {
     return 0;
   }
 
@@ -196,83 +87,103 @@ function num(value) {
   }
 
   const normalized = String(value)
-    .replace(/\s+/g, '')
+    .replace(/\s/g, '')
     .replace(',', '.');
 
-  const result = Number(normalized);
+  const parsed = Number(normalized);
 
-  return Number.isFinite(result) ? result : 0;
+  return Number.isFinite(parsed) ? parsed : 0;
 }
 
 
-function roundMoney(value) {
+function round2(value) {
   return Math.round((num(value) + Number.EPSILON) * 100) / 100;
 }
 
 
 function fmtMoney(value) {
-  return (
-    roundMoney(value).toLocaleString('ru-RU', {
-      minimumFractionDigits: 2,
-      maximumFractionDigits: 2
-    }) + ' ₽'
-  );
+  return num(value).toLocaleString('ru-RU', {
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2
+  }) + ' ₽';
 }
 
 
 function fmtMoneyPlain(value) {
-  return roundMoney(value).toLocaleString('ru-RU', {
+  return num(value).toLocaleString('ru-RU', {
     minimumFractionDigits: 2,
     maximumFractionDigits: 2
   });
 }
 
 
-function fmtDate(iso) {
-  if (!iso) return '—';
-
-  const parts = String(iso).split('-');
-
-  if (parts.length !== 3) return String(iso);
-
-  const [y, m, d] = parts;
-
-  return `${d}.${m}.${y}`;
+function fmtNumber(value) {
+  return num(value).toLocaleString('ru-RU', {
+    minimumFractionDigits: 0,
+    maximumFractionDigits: 4
+  });
 }
 
 
-function isoDateToExcelDate(iso) {
-  if (!iso) return '';
+function fmtDate(iso) {
+  if (!iso) {
+    return '—';
+  }
 
   const parts = String(iso).split('-');
 
   if (parts.length !== 3) {
-    return iso;
+    return String(iso);
   }
 
-  const [year, month, day] = parts.map(Number);
+  return `${parts[2]}.${parts[1]}.${parts[0]}`;
+}
 
-  if (!year || !month || !day) {
-    return iso;
+
+function parseISODate(iso) {
+  if (!iso) {
+    return null;
   }
 
-  /*
-    В XLSX можно записать Date.
-    SheetJS сам сформирует числовое значение даты.
-  */
-  return new Date(
-    year,
-    month - 1,
-    day,
-    12,
-    0,
-    0
+  const parts = String(iso).split('-');
+
+  if (parts.length !== 3) {
+    return null;
+  }
+
+  const y = Number(parts[0]);
+  const m = Number(parts[1]);
+  const d = Number(parts[2]);
+
+  if (!y || !m || !d) {
+    return null;
+  }
+
+  return new Date(Date.UTC(y, m - 1, d));
+}
+
+
+function excelSerialFromISO(iso) {
+  const date = parseISODate(iso);
+
+  if (!date) {
+    return null;
+  }
+
+  const excelEpoch = Date.UTC(1899, 11, 30);
+
+  return Math.floor(
+    (date.getTime() - excelEpoch) / 86400000
   );
 }
 
 
 function escapeHtml(value) {
-  return safeString(value)
+  if (value === null || value === undefined) {
+    return '';
+  }
+
+  return String(value)
     .replace(/&/g, '&amp;')
     .replace(/</g, '&lt;')
     .replace(/>/g, '&gt;')
@@ -282,7 +193,11 @@ function escapeHtml(value) {
 
 
 function escapeXml(value) {
-  return safeString(value)
+  if (value === null || value === undefined) {
+    return '';
+  }
+
+  return String(value)
     .replace(/&/g, '&amp;')
     .replace(/</g, '&lt;')
     .replace(/>/g, '&gt;')
@@ -291,32 +206,43 @@ function escapeXml(value) {
 }
 
 
-function normalizeSearch(value) {
-  return safeString(value)
-    .toLowerCase()
-    .replace(/ё/g, 'е')
+function normalizeText(value) {
+  return String(value || '')
+    .replace(/\u00A0/g, ' ')
     .replace(/\s+/g, ' ')
-    .trim();
+    .trim()
+    .toLowerCase()
+    .replace(/ё/g, 'е');
 }
 
 
-function deepClone(obj) {
-  if (
-    typeof structuredClone === 'function'
-  ) {
-    try {
-      return structuredClone(obj);
-    } catch (_) {
-      /* fallback ниже */
-    }
-  }
+function downloadBlob(content, filename, mime) {
+  const blob =
+    content instanceof Blob
+      ? content
+      : new Blob([content], {
+          type: mime || 'application/octet-stream'
+        });
 
-  return JSON.parse(JSON.stringify(obj));
+  const url = URL.createObjectURL(blob);
+
+  const a = document.createElement('a');
+
+  a.href = url;
+  a.download = filename;
+
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+
+  setTimeout(() => {
+    URL.revokeObjectURL(url);
+  }, 1000);
 }
 
 
 /* ============================================================
-   LOCAL STORAGE
+   ХРАНИЛИЩЕ
    ============================================================ */
 
 function loadDB() {
@@ -324,59 +250,25 @@ function loadDB() {
     const raw = localStorage.getItem(STORAGE_KEY);
 
     if (!raw) {
-      /*
-        Миграция со старой версии, если пользователь уже
-        работал с предыдущим генератором.
-      */
-      const legacyRaw =
-        localStorage.getItem('jembalance_db_v1');
-
-      if (legacyRaw) {
-        const legacy = JSON.parse(legacyRaw);
-
-        DB.contractors =
-          Array.isArray(legacy.contractors)
-            ? legacy.contractors
-            : [];
-
-        DB.customers =
-          Array.isArray(legacy.customers)
-            ? legacy.customers
-            : [];
-
-        DB.archive =
-          Array.isArray(legacy.archive)
-            ? legacy.archive
-            : [];
-
-        saveDB();
-      }
-
       return;
     }
 
     const parsed = JSON.parse(raw);
 
-    DB.contractors =
-      Array.isArray(parsed.contractors)
-        ? parsed.contractors
-        : [];
+    DB.contractors = Array.isArray(parsed.contractors)
+      ? parsed.contractors
+      : [];
 
-    DB.customers =
-      Array.isArray(parsed.customers)
-        ? parsed.customers
-        : [];
+    DB.customers = Array.isArray(parsed.customers)
+      ? parsed.customers
+      : [];
 
-    DB.archive =
-      Array.isArray(parsed.archive)
-        ? parsed.archive
-        : [];
+    DB.archive = Array.isArray(parsed.archive)
+      ? parsed.archive
+      : [];
 
   } catch (error) {
-    console.warn(
-      'Не удалось загрузить базу:',
-      error
-    );
+    console.warn('Ошибка загрузки базы:', error);
   }
 }
 
@@ -388,9 +280,9 @@ function saveDB() {
       JSON.stringify(DB)
     );
   } catch (error) {
+    console.error(error);
     toast(
-      'Ошибка сохранения базы: ' +
-        error.message,
+      'Не удалось сохранить данные в браузере.',
       'err'
     );
   }
@@ -401,34 +293,31 @@ function saveDB() {
    ТОСТЫ
    ============================================================ */
 
-function toast(text, kind = '') {
-  const stack =
-    document.getElementById('toast-stack');
+function toast(text, kind) {
+  const stack = byId('toast-stack');
 
-  if (!stack) return;
+  if (!stack) {
+    return;
+  }
 
-  const element =
-    document.createElement('div');
+  const item = document.createElement('div');
 
-  element.className =
-    'toast ' + kind;
+  item.className = 'toast ' + (kind || '');
+  item.textContent = text;
 
-  element.textContent = text;
+  stack.appendChild(item);
 
-  stack.appendChild(element);
+  setTimeout(() => {
+    item.style.transition =
+      'opacity .25s ease, transform .25s ease';
 
-  window.setTimeout(() => {
-    element.style.transition =
-      'opacity .3s, transform .3s';
+    item.style.opacity = '0';
+    item.style.transform = 'translateX(16px)';
 
-    element.style.opacity = '0';
-    element.style.transform =
-      'translateX(20px)';
+    setTimeout(() => {
+      item.remove();
+    }, 280);
 
-    window.setTimeout(
-      () => element.remove(),
-      320
-    );
   }, 3200);
 }
 
@@ -438,74 +327,39 @@ function toast(text, kind = '') {
    ============================================================ */
 
 function openModal(id) {
-  const modal =
-    document.getElementById(id);
+  const el = byId(id);
 
-  if (!modal) return;
-
-  modal.classList.add('active');
+  if (el) {
+    el.classList.add('active');
+  }
 }
 
 
 function closeModal(id) {
-  const modal =
-    document.getElementById(id);
+  const el = byId(id);
 
-  if (!modal) return;
-
-  modal.classList.remove('active');
+  if (el) {
+    el.classList.remove('active');
+  }
 }
 
 
-function confirmDialog(
-  title,
-  text,
-  onOk
-) {
-  const titleEl =
-    document.getElementById(
-      'confirm-title'
-    );
+function confirmDialog(title, text, onOk) {
+  byId('confirm-title').textContent = title;
+  byId('confirm-text').textContent = text;
 
-  const textEl =
-    document.getElementById(
-      'confirm-text'
-    );
-
-  const oldButton =
-    document.getElementById(
-      'confirm-ok-btn'
-    );
-
-  if (
-    !titleEl ||
-    !textEl ||
-    !oldButton
-  ) {
-    return;
-  }
-
-  titleEl.textContent = title;
-  textEl.textContent = text;
-
-  const newButton =
-    oldButton.cloneNode(true);
+  const oldButton = byId('confirm-ok-btn');
+  const newButton = oldButton.cloneNode(true);
 
   oldButton.parentNode.replaceChild(
     newButton,
     oldButton
   );
 
-  newButton.addEventListener(
-    'click',
-    () => {
-      closeModal(
-        'modal-confirm'
-      );
-
-      onOk();
-    }
-  );
+  newButton.addEventListener('click', () => {
+    closeModal('modal-confirm');
+    onOk();
+  });
 
   openModal('modal-confirm');
 }
@@ -518,25 +372,14 @@ function confirmDialog(
 function switchTab(name) {
   document
     .querySelectorAll('.tab')
-    .forEach((tab) => {
-      tab.classList.remove('active');
-    });
+    .forEach(el => el.classList.remove('active'));
 
   document
     .querySelectorAll('.view')
-    .forEach((view) => {
-      view.classList.remove('active');
-    });
+    .forEach(el => el.classList.remove('active'));
 
-  const tab =
-    document.getElementById(
-      'tab-' + name
-    );
-
-  const view =
-    document.getElementById(
-      'view-' + name
-    );
+  const tab = byId('tab-' + name);
+  const view = byId('view-' + name);
 
   if (tab) {
     tab.classList.add('active');
@@ -565,62 +408,31 @@ function switchTab(name) {
    ============================================================ */
 
 function setDocType(type) {
-  if (
-    type !== 'ks2' &&
-    type !== 'ks3'
-  ) {
+  if (type !== 'ks2' && type !== 'ks3') {
     return;
   }
 
   currentDoc.type = type;
 
-  const ks2 =
-    document.getElementById(
-      'dtype-ks2'
-    );
+  byId('dtype-ks2').classList.toggle(
+    'active',
+    type === 'ks2'
+  );
 
-  const ks3 =
-    document.getElementById(
-      'dtype-ks3'
-    );
+  byId('dtype-ks3').classList.toggle(
+    'active',
+    type === 'ks3'
+  );
 
-  const works =
-    document.getElementById(
-      'section-works'
-    );
+  byId('section-works').classList.toggle(
+    'hidden',
+    type !== 'ks2'
+  );
 
-  const link =
-    document.getElementById(
-      'section-ks2-link'
-    );
-
-  if (ks2) {
-    ks2.classList.toggle(
-      'active',
-      type === 'ks2'
-    );
-  }
-
-  if (ks3) {
-    ks3.classList.toggle(
-      'active',
-      type === 'ks3'
-    );
-  }
-
-  if (works) {
-    works.classList.toggle(
-      'hidden',
-      type === 'ks3'
-    );
-  }
-
-  if (link) {
-    link.classList.toggle(
-      'hidden',
-      type === 'ks2'
-    );
-  }
+  byId('section-ks2-link').classList.toggle(
+    'hidden',
+    type !== 'ks3'
+  );
 
   if (type === 'ks3') {
     renderKs2PickList();
@@ -636,7 +448,7 @@ function setDocType(type) {
    ============================================================ */
 
 function openContractorModal(id) {
-  const fieldIds = [
+  const fields = [
     'name',
     'inn',
     'kpp',
@@ -653,238 +465,114 @@ function openContractorModal(id) {
     'ks'
   ];
 
-  fieldIds.forEach((field) => {
-    const input =
-      document.getElementById(
-        'mc-' + field
-      );
+  fields.forEach(field => {
+    const el = byId('mc-' + field);
 
-    if (input) {
-      input.value = '';
+    if (el) {
+      el.value = '';
     }
   });
 
-  document.getElementById(
-    'mc-id'
-  ).value = '';
-
-  document.getElementById(
-    'modal-contractor-title'
-  ).textContent =
+  byId('mc-id').value = '';
+  byId('modal-contractor-title').textContent =
     'Новый подрядчик';
 
   if (id) {
-    const c =
-      DB.contractors.find(
-        (item) => item.id === id
-      );
+    const c = DB.contractors.find(
+      item => item.id === id
+    );
 
     if (c) {
-      document.getElementById(
-        'mc-id'
-      ).value = c.id;
-
-      document.getElementById(
-        'mc-name'
-      ).value = c.name || '';
-
-      document.getElementById(
-        'mc-inn'
-      ).value = c.inn || '';
-
-      document.getElementById(
-        'mc-kpp'
-      ).value = c.kpp || '';
-
-      document.getElementById(
-        'mc-ogrn'
-      ).value = c.ogrn || '';
-
-      document.getElementById(
-        'mc-okpo'
-      ).value = c.okpo || '';
-
-      document.getElementById(
-        'mc-addr'
-      ).value = c.addr || '';
-
-      document.getElementById(
-        'mc-boss-pos'
-      ).value =
+      byId('mc-id').value = c.id;
+      byId('mc-name').value = c.name || '';
+      byId('mc-inn').value = c.inn || '';
+      byId('mc-kpp').value = c.kpp || '';
+      byId('mc-ogrn').value = c.ogrn || '';
+      byId('mc-okpo').value = c.okpo || '';
+      byId('mc-addr').value = c.addr || '';
+      byId('mc-boss-pos').value =
         c.bossPos || '';
-
-      document.getElementById(
-        'mc-boss-name'
-      ).value =
+      byId('mc-boss-name').value =
         c.bossName || '';
-
-      document.getElementById(
-        'mc-phone'
-      ).value =
+      byId('mc-phone').value =
         c.phone || '';
-
-      document.getElementById(
-        'mc-email'
-      ).value =
+      byId('mc-email').value =
         c.email || '';
+      byId('mc-rs').value = c.rs || '';
+      byId('mc-bank').value = c.bank || '';
+      byId('mc-bik').value = c.bik || '';
+      byId('mc-ks').value = c.ks || '';
 
-      document.getElementById(
-        'mc-rs'
-      ).value =
-        c.rs || '';
-
-      document.getElementById(
-        'mc-bank'
-      ).value =
-        c.bank || '';
-
-      document.getElementById(
-        'mc-bik'
-      ).value =
-        c.bik || '';
-
-      document.getElementById(
-        'mc-ks'
-      ).value =
-        c.ks || '';
-
-      document.getElementById(
+      byId(
         'modal-contractor-title'
       ).textContent =
-        'Редактирование: ' +
-        c.name;
+        'Редактирование: ' + c.name;
     }
   }
 
-  openModal(
-    'modal-contractor'
-  );
+  openModal('modal-contractor');
 }
 
 
 function saveContractor() {
-  const name =
-    document
-      .getElementById('mc-name')
-      .value
-      .trim();
-
-  const inn =
-    document
-      .getElementById('mc-inn')
-      .value
-      .trim();
+  const name = safeValue('mc-name').trim();
+  const inn = safeValue('mc-inn').trim();
 
   if (!name) {
-    return toast(
-      'Укажите наименование',
-      'err'
-    );
+    toast('Укажите наименование подрядчика.', 'err');
+    return;
   }
 
   if (!inn) {
-    return toast(
-      'Укажите ИНН',
-      'err'
-    );
+    toast('Укажите ИНН подрядчика.', 'err');
+    return;
   }
 
-  const id =
-    document.getElementById(
-      'mc-id'
-    ).value;
+  const existingId = safeValue('mc-id');
 
   const data = {
-    id: id || uid(),
+    id: existingId || uid(),
+
     name,
     inn,
 
-    kpp:
-      document
-        .getElementById('mc-kpp')
-        .value
-        .trim(),
-
-    ogrn:
-      document
-        .getElementById('mc-ogrn')
-        .value
-        .trim(),
-
-    okpo:
-      document
-        .getElementById('mc-okpo')
-        .value
-        .trim(),
-
-    addr:
-      document
-        .getElementById('mc-addr')
-        .value
-        .trim(),
+    kpp: safeValue('mc-kpp').trim(),
+    ogrn: safeValue('mc-ogrn').trim(),
+    okpo: safeValue('mc-okpo').trim(),
+    addr: safeValue('mc-addr').trim(),
 
     bossPos:
-      document
-        .getElementById(
-          'mc-boss-pos'
-        )
-        .value
-        .trim(),
+      safeValue('mc-boss-pos').trim(),
 
     bossName:
-      document
-        .getElementById(
-          'mc-boss-name'
-        )
-        .value
-        .trim(),
+      safeValue('mc-boss-name').trim(),
 
     phone:
-      document
-        .getElementById('mc-phone')
-        .value
-        .trim(),
+      safeValue('mc-phone').trim(),
 
     email:
-      document
-        .getElementById('mc-email')
-        .value
-        .trim(),
+      safeValue('mc-email').trim(),
 
     rs:
-      document
-        .getElementById('mc-rs')
-        .value
-        .trim(),
+      safeValue('mc-rs').trim(),
 
     bank:
-      document
-        .getElementById('mc-bank')
-        .value
-        .trim(),
+      safeValue('mc-bank').trim(),
 
     bik:
-      document
-        .getElementById('mc-bik')
-        .value
-        .trim(),
+      safeValue('mc-bik').trim(),
 
     ks:
-      document
-        .getElementById('mc-ks')
-        .value
-        .trim()
+      safeValue('mc-ks').trim()
   };
 
-  if (id) {
-    const index =
-      DB.contractors.findIndex(
-        (item) => item.id === id
-      );
+  if (existingId) {
+    const index = DB.contractors.findIndex(
+      item => item.id === existingId
+    );
 
     if (index >= 0) {
-      DB.contractors[index] =
-        data;
+      DB.contractors[index] = data;
     }
   } else {
     DB.contractors.push(data);
@@ -892,37 +580,32 @@ function saveContractor() {
 
   saveDB();
 
-  closeModal(
-    'modal-contractor'
-  );
+  closeModal('modal-contractor');
 
   renderContractors();
   refreshContractorSelect();
   renderPreview();
 
-  toast(
-    'Подрядчик сохранён',
-    'ok'
-  );
+  toast('Подрядчик сохранён.', 'ok');
 }
 
 
 function deleteContractor(id) {
-  const contractor =
-    DB.contractors.find(
-      (item) => item.id === id
-    );
+  const contractor = DB.contractors.find(
+    item => item.id === id
+  );
 
-  if (!contractor) return;
+  if (!contractor) {
+    return;
+  }
 
   confirmDialog(
     'Удалить подрядчика?',
-    `Подрядчик «${contractor.name}» будет удалён. Сохранённые документы останутся в архиве.`,
+    `Подрядчик «${contractor.name}» будет удалён. Документы архива останутся без изменений.`,
     () => {
       DB.contractors =
         DB.contractors.filter(
-          (item) =>
-            item.id !== id
+          item => item.id !== id
         );
 
       saveDB();
@@ -930,64 +613,46 @@ function deleteContractor(id) {
       refreshContractorSelect();
       renderPreview();
 
-      toast(
-        'Подрядчик удалён',
-        'ok'
-      );
+      toast('Подрядчик удалён.', 'ok');
     }
   );
 }
 
 
 function renderContractors() {
-  const search =
-    document.getElementById(
-      'search-contractors'
-    );
+  const input = byId('search-contractors');
 
-  const query =
-    normalizeSearch(
-      search ? search.value : ''
-    );
+  const query = normalizeText(
+    input ? input.value : ''
+  );
 
-  const list =
-    DB.contractors.filter(
-      (contractor) => {
-        if (!query) return true;
+  const list = DB.contractors.filter(c => {
+    if (!query) {
+      return true;
+    }
 
-        const blob =
-          normalizeSearch(
-            [
-              contractor.name,
-              contractor.inn,
-              contractor.kpp,
-              contractor.bossName,
-              contractor.addr
-            ].join(' ')
-          );
+    return normalizeText([
+      c.name,
+      c.inn,
+      c.kpp,
+      c.bossName,
+      c.phone,
+      c.email
+    ].join(' ')).includes(query);
+  });
 
-        return blob.includes(
-          query
-        );
-      }
-    );
-
-  const badge =
-    document.getElementById(
-      'badge-contractors'
-    );
+  const badge = byId('badge-contractors');
 
   if (badge) {
     badge.textContent =
-      DB.contractors.length;
+      String(DB.contractors.length);
   }
 
-  const tbody =
-    document.getElementById(
-      'contractors-tbody'
-    );
+  const tbody = byId('contractors-tbody');
 
-  if (!tbody) return;
+  if (!tbody) {
+    return;
+  }
 
   if (!list.length) {
     tbody.innerHTML = `
@@ -1005,8 +670,8 @@ function renderContractors() {
             <div class="empty-state-text">
               ${
                 query
-                  ? 'Попробуйте изменить поисковый запрос'
-                  : 'Добавьте первого подрядчика, чтобы формировать документы'
+                  ? 'Попробуйте изменить поисковый запрос.'
+                  : 'Добавьте первого подрядчика.'
               }
             </div>
 
@@ -1016,7 +681,6 @@ function renderContractors() {
                 : `
                   <button
                     class="btn btn-primary btn-sm"
-                    type="button"
                     onclick="openContractorModal()"
                   >
                     Добавить подрядчика
@@ -1031,115 +695,95 @@ function renderContractors() {
     return;
   }
 
-  tbody.innerHTML =
-    list
-      .map(
-        (c) => `
-          <tr>
-            <td class="cell-name">
-              ${escapeHtml(c.name)}
+  tbody.innerHTML = list.map(c => `
+    <tr>
 
-              <div class="cell-muted">
-                ${escapeHtml(c.addr || '')}
-              </div>
-            </td>
+      <td class="cell-name">
+        ${escapeHtml(c.name)}
 
-            <td>
-              ${escapeHtml(c.inn)}
-              ${
-                c.kpp
-                  ? ' / ' +
-                    escapeHtml(c.kpp)
-                  : ''
-              }
-            </td>
+        <div class="cell-muted">
+          ${escapeHtml(c.addr || '')}
+        </div>
+      </td>
 
-            <td>
-              ${
-                escapeHtml(
-                  c.bossName || '—'
-                )
-              }
+      <td>
+        ${escapeHtml(c.inn)}
+        ${
+          c.kpp
+            ? ' / ' + escapeHtml(c.kpp)
+            : ''
+        }
+      </td>
 
-              <div class="cell-muted">
-                ${escapeHtml(
-                  c.bossPos || ''
-                )}
-              </div>
-            </td>
+      <td>
+        ${escapeHtml(c.bossName || '—')}
 
-            <td>
-              ${escapeHtml(
-                c.phone || '—'
-              )}
+        <div class="cell-muted">
+          ${escapeHtml(c.bossPos || '')}
+        </div>
+      </td>
 
-              <div class="cell-muted">
-                ${escapeHtml(
-                  c.email || ''
-                )}
-              </div>
-            </td>
+      <td>
+        ${escapeHtml(c.phone || '—')}
 
-            <td class="cell-actions">
+        <div class="cell-muted">
+          ${escapeHtml(c.email || '')}
+        </div>
+      </td>
 
-              <button
-                class="btn btn-ghost btn-sm"
-                type="button"
-                onclick="openContractorModal('${c.id}')"
-                title="Редактировать"
-              >
-                <svg class="icon" viewBox="0 0 16 16">
-                  <path d="M11 2l3 3-8 8H3v-3l8-8z"/>
-                </svg>
-              </button>
+      <td class="cell-actions">
 
-              <button
-                class="btn btn-ghost btn-sm"
-                type="button"
-                onclick="deleteContractor('${c.id}')"
-                title="Удалить"
-              >
-                <svg class="icon" viewBox="0 0 16 16">
-                  <path d="M2 4h12M5 4V2h6v2M6 7v5M10 7v5M3 4l1 10h8l1-10"/>
-                </svg>
-              </button>
+        <button
+          class="btn btn-ghost btn-sm"
+          onclick="openContractorModal('${c.id}')"
+          title="Редактировать"
+        >
+          <svg class="icon" viewBox="0 0 16 16">
+            <path d="M11 2l3 3-8 8H3v-3l8-8z"/>
+          </svg>
+        </button>
 
-            </td>
-          </tr>
-        `
-      )
-      .join('');
+        <button
+          class="btn btn-ghost btn-sm"
+          onclick="deleteContractor('${c.id}')"
+          title="Удалить"
+        >
+          <svg class="icon" viewBox="0 0 16 16">
+            <path d="M2 4h12"/>
+            <path d="M5 4V2h6v2"/>
+            <path d="M6 7v5M10 7v5"/>
+            <path d="M3 4l1 10h8l1-10"/>
+          </svg>
+        </button>
+
+      </td>
+
+    </tr>
+  `).join('');
 }
 
 
 function refreshContractorSelect() {
-  const select =
-    document.getElementById(
-      'f-contractor'
-    );
+  const select = byId('f-contractor');
 
-  if (!select) return;
+  if (!select) {
+    return;
+  }
 
-  const previous =
-    select.value;
+  const previous = select.value;
 
   select.innerHTML =
     '<option value="">— выберите из базы —</option>' +
     DB.contractors
-      .map(
-        (c) =>
-          `<option value="${escapeHtml(c.id)}">${escapeHtml(c.name)} (ИНН ${escapeHtml(c.inn)})</option>`
-      )
+      .map(c => `
+        <option value="${escapeHtml(c.id)}">
+          ${escapeHtml(c.name)}
+          (ИНН ${escapeHtml(c.inn)})
+        </option>
+      `)
       .join('');
 
-  if (
-    DB.contractors.some(
-      (item) =>
-        item.id === previous
-    )
-  ) {
-    select.value = previous;
-  }
+  select.value = previous;
 }
 
 
@@ -1148,7 +792,7 @@ function refreshContractorSelect() {
    ============================================================ */
 
 function openCustomerModal(id) {
-  const fieldIds = [
+  const fields = [
     'name',
     'inn',
     'kpp',
@@ -1161,88 +805,48 @@ function openCustomerModal(id) {
     'email'
   ];
 
-  fieldIds.forEach(
-    (field) => {
-      const input =
-        document.getElementById(
-          'mcu-' + field
-        );
+  fields.forEach(field => {
+    const el = byId('mcu-' + field);
 
-      if (input) {
-        input.value = '';
-      }
+    if (el) {
+      el.value = '';
     }
-  );
+  });
 
-  document.getElementById(
-    'mcu-id'
-  ).value = '';
-
-  document.getElementById(
-    'modal-customer-title'
-  ).textContent =
+  byId('mcu-id').value = '';
+  byId('modal-customer-title').textContent =
     'Новый заказчик';
 
   if (id) {
-    const c =
-      DB.customers.find(
-        (item) => item.id === id
-      );
+    const c = DB.customers.find(
+      item => item.id === id
+    );
 
     if (c) {
-      document.getElementById(
-        'mcu-id'
-      ).value = c.id;
+      byId('mcu-id').value = c.id;
+      byId('mcu-name').value = c.name || '';
+      byId('mcu-inn').value = c.inn || '';
+      byId('mcu-kpp').value = c.kpp || '';
+      byId('mcu-ogrn').value = c.ogrn || '';
+      byId('mcu-okpo').value = c.okpo || '';
+      byId('mcu-addr').value = c.addr || '';
 
-      document.getElementById(
-        'mcu-name'
-      ).value = c.name || '';
-
-      document.getElementById(
-        'mcu-inn'
-      ).value = c.inn || '';
-
-      document.getElementById(
-        'mcu-kpp'
-      ).value = c.kpp || '';
-
-      document.getElementById(
-        'mcu-ogrn'
-      ).value = c.ogrn || '';
-
-      document.getElementById(
-        'mcu-okpo'
-      ).value = c.okpo || '';
-
-      document.getElementById(
-        'mcu-addr'
-      ).value = c.addr || '';
-
-      document.getElementById(
-        'mcu-boss-pos'
-      ).value =
+      byId('mcu-boss-pos').value =
         c.bossPos || '';
 
-      document.getElementById(
-        'mcu-boss-name'
-      ).value =
+      byId('mcu-boss-name').value =
         c.bossName || '';
 
-      document.getElementById(
-        'mcu-phone'
-      ).value =
+      byId('mcu-phone').value =
         c.phone || '';
 
-      document.getElementById(
-        'mcu-email'
-      ).value =
+      byId('mcu-email').value =
         c.email || '';
 
-      document.getElementById(
+      byId(
         'modal-customer-title'
       ).textContent =
-        'Редактирование: ' +
-        c.name;
+        'Редактирование: ' + c.name;
     }
   }
 
@@ -1252,108 +856,63 @@ function openCustomerModal(id) {
 
 function saveCustomer() {
   const name =
-    document
-      .getElementById('mcu-name')
-      .value
-      .trim();
+    safeValue('mcu-name').trim();
 
   const inn =
-    document
-      .getElementById('mcu-inn')
-      .value
-      .trim();
+    safeValue('mcu-inn').trim();
 
   if (!name) {
-    return toast(
-      'Укажите наименование',
-      'err'
-    );
+    toast('Укажите наименование заказчика.', 'err');
+    return;
   }
 
   if (!inn) {
-    return toast(
-      'Укажите ИНН',
-      'err'
-    );
+    toast('Укажите ИНН заказчика.', 'err');
+    return;
   }
 
-  const id =
-    document.getElementById(
-      'mcu-id'
-    ).value;
+  const existingId =
+    safeValue('mcu-id');
 
   const data = {
-    id: id || uid(),
+    id: existingId || uid(),
 
     name,
     inn,
 
     kpp:
-      document
-        .getElementById('mcu-kpp')
-        .value
-        .trim(),
+      safeValue('mcu-kpp').trim(),
 
     ogrn:
-      document
-        .getElementById('mcu-ogrn')
-        .value
-        .trim(),
+      safeValue('mcu-ogrn').trim(),
 
     okpo:
-      document
-        .getElementById('mcu-okpo')
-        .value
-        .trim(),
+      safeValue('mcu-okpo').trim(),
 
     addr:
-      document
-        .getElementById('mcu-addr')
-        .value
-        .trim(),
+      safeValue('mcu-addr').trim(),
 
     bossPos:
-      document
-        .getElementById(
-          'mcu-boss-pos'
-        )
-        .value
-        .trim(),
+      safeValue('mcu-boss-pos').trim(),
 
     bossName:
-      document
-        .getElementById(
-          'mcu-boss-name'
-        )
-        .value
-        .trim(),
+      safeValue('mcu-boss-name').trim(),
 
     phone:
-      document
-        .getElementById(
-          'mcu-phone'
-        )
-        .value
-        .trim(),
+      safeValue('mcu-phone').trim(),
 
     email:
-      document
-        .getElementById(
-          'mcu-email'
-        )
-        .value
-        .trim()
+      safeValue('mcu-email').trim()
   };
 
-  if (id) {
+  if (existingId) {
     const index =
       DB.customers.findIndex(
-        (item) => item.id === id
+        item => item.id === existingId
       );
 
     if (index >= 0) {
-      DB.customers[index] =
-        data;
+      DB.customers[index] = data;
     }
   } else {
     DB.customers.push(data);
@@ -1361,37 +920,33 @@ function saveCustomer() {
 
   saveDB();
 
-  closeModal(
-    'modal-customer'
-  );
+  closeModal('modal-customer');
 
   renderCustomers();
   refreshCustomerSelect();
   renderPreview();
 
-  toast(
-    'Заказчик сохранён',
-    'ok'
-  );
+  toast('Заказчик сохранён.', 'ok');
 }
 
 
 function deleteCustomer(id) {
   const customer =
     DB.customers.find(
-      (item) => item.id === id
+      item => item.id === id
     );
 
-  if (!customer) return;
+  if (!customer) {
+    return;
+  }
 
   confirmDialog(
     'Удалить заказчика?',
-    `Заказчик «${customer.name}» будет удалён. Сохранённые документы останутся в архиве.`,
+    `Заказчик «${customer.name}» будет удалён. Документы архива останутся без изменений.`,
     () => {
       DB.customers =
         DB.customers.filter(
-          (item) =>
-            item.id !== id
+          item => item.id !== id
         );
 
       saveDB();
@@ -1399,64 +954,46 @@ function deleteCustomer(id) {
       refreshCustomerSelect();
       renderPreview();
 
-      toast(
-        'Заказчик удалён',
-        'ok'
-      );
+      toast('Заказчик удалён.', 'ok');
     }
   );
 }
 
 
 function renderCustomers() {
-  const search =
-    document.getElementById(
-      'search-customers'
-    );
+  const input = byId('search-customers');
 
-  const query =
-    normalizeSearch(
-      search ? search.value : ''
-    );
+  const query = normalizeText(
+    input ? input.value : ''
+  );
 
-  const list =
-    DB.customers.filter(
-      (customer) => {
-        if (!query) return true;
+  const list = DB.customers.filter(c => {
+    if (!query) {
+      return true;
+    }
 
-        const blob =
-          normalizeSearch(
-            [
-              customer.name,
-              customer.inn,
-              customer.kpp,
-              customer.bossName,
-              customer.addr
-            ].join(' ')
-          );
+    return normalizeText([
+      c.name,
+      c.inn,
+      c.kpp,
+      c.bossName,
+      c.phone,
+      c.email
+    ].join(' ')).includes(query);
+  });
 
-        return blob.includes(
-          query
-        );
-      }
-    );
-
-  const badge =
-    document.getElementById(
-      'badge-customers'
-    );
+  const badge = byId('badge-customers');
 
   if (badge) {
     badge.textContent =
-      DB.customers.length;
+      String(DB.customers.length);
   }
 
-  const tbody =
-    document.getElementById(
-      'customers-tbody'
-    );
+  const tbody = byId('customers-tbody');
 
-  if (!tbody) return;
+  if (!tbody) {
+    return;
+  }
 
   if (!list.length) {
     tbody.innerHTML = `
@@ -1475,8 +1012,8 @@ function renderCustomers() {
             <div class="empty-state-text">
               ${
                 query
-                  ? 'Попробуйте изменить поисковый запрос'
-                  : 'Добавьте первого заказчика для формирования документов'
+                  ? 'Попробуйте изменить поисковый запрос.'
+                  : 'Добавьте первого заказчика.'
               }
             </div>
 
@@ -1486,7 +1023,6 @@ function renderCustomers() {
                 : `
                   <button
                     class="btn btn-primary btn-sm"
-                    type="button"
                     onclick="openCustomerModal()"
                   >
                     Добавить заказчика
@@ -1502,115 +1038,95 @@ function renderCustomers() {
     return;
   }
 
-  tbody.innerHTML =
-    list
-      .map(
-        (c) => `
-          <tr>
+  tbody.innerHTML = list.map(c => `
+    <tr>
 
-            <td class="cell-name">
-              ${escapeHtml(c.name)}
+      <td class="cell-name">
+        ${escapeHtml(c.name)}
 
-              <div class="cell-muted">
-                ${escapeHtml(c.addr || '')}
-              </div>
-            </td>
+        <div class="cell-muted">
+          ${escapeHtml(c.addr || '')}
+        </div>
+      </td>
 
-            <td>
-              ${escapeHtml(c.inn)}
-              ${
-                c.kpp
-                  ? ' / ' +
-                    escapeHtml(c.kpp)
-                  : ''
-              }
-            </td>
+      <td>
+        ${escapeHtml(c.inn)}
+        ${
+          c.kpp
+            ? ' / ' + escapeHtml(c.kpp)
+            : ''
+        }
+      </td>
 
-            <td>
-              ${escapeHtml(
-                c.bossName || '—'
-              )}
+      <td>
+        ${escapeHtml(c.bossName || '—')}
 
-              <div class="cell-muted">
-                ${escapeHtml(
-                  c.bossPos || ''
-                )}
-              </div>
-            </td>
+        <div class="cell-muted">
+          ${escapeHtml(c.bossPos || '')}
+        </div>
+      </td>
 
-            <td>
-              ${escapeHtml(
-                c.phone || '—'
-              )}
+      <td>
+        ${escapeHtml(c.phone || '—')}
 
-              <div class="cell-muted">
-                ${escapeHtml(
-                  c.email || ''
-                )}
-              </div>
-            </td>
+        <div class="cell-muted">
+          ${escapeHtml(c.email || '')}
+        </div>
+      </td>
 
-            <td class="cell-actions">
+      <td class="cell-actions">
 
-              <button
-                class="btn btn-ghost btn-sm"
-                type="button"
-                onclick="openCustomerModal('${c.id}')"
-                title="Редактировать"
-              >
-                <svg class="icon" viewBox="0 0 16 16">
-                  <path d="M11 2l3 3-8 8H3v-3l8-8z"/>
-                </svg>
-              </button>
+        <button
+          class="btn btn-ghost btn-sm"
+          onclick="openCustomerModal('${c.id}')"
+          title="Редактировать"
+        >
+          <svg class="icon" viewBox="0 0 16 16">
+            <path d="M11 2l3 3-8 8H3v-3l8-8z"/>
+          </svg>
+        </button>
 
-              <button
-                class="btn btn-ghost btn-sm"
-                type="button"
-                onclick="deleteCustomer('${c.id}')"
-                title="Удалить"
-              >
-                <svg class="icon" viewBox="0 0 16 16">
-                  <path d="M2 4h12M5 4V2h6v2M6 7v5M10 7v5M3 4l1 10h8l1-10"/>
-                </svg>
-              </button>
+        <button
+          class="btn btn-ghost btn-sm"
+          onclick="deleteCustomer('${c.id}')"
+          title="Удалить"
+        >
+          <svg class="icon" viewBox="0 0 16 16">
+            <path d="M2 4h12"/>
+            <path d="M5 4V2h6v2"/>
+            <path d="M6 7v5M10 7v5"/>
+            <path d="M3 4l1 10h8l1-10"/>
+          </svg>
+        </button>
 
-            </td>
+      </td>
 
-          </tr>
-        `
-      )
-      .join('');
+    </tr>
+  `).join('');
 }
 
 
 function refreshCustomerSelect() {
-  const select =
-    document.getElementById(
-      'f-customer'
-    );
+  const select = byId('f-customer');
 
-  if (!select) return;
+  if (!select) {
+    return;
+  }
 
-  const previous =
-    select.value;
+  const previous = select.value;
 
   select.innerHTML =
     '<option value="">— выберите из базы —</option>' +
     DB.customers
-      .map(
-        (c) =>
-          `<option value="${escapeHtml(c.id)}">${escapeHtml(c.name)} (ИНН ${escapeHtml(c.inn)})</option>`
-      )
+      .map(c => `
+        <option value="${escapeHtml(c.id)}">
+          ${escapeHtml(c.name)}
+          (ИНН ${escapeHtml(c.inn)})
+        </option>
+      `)
       .join('');
 
-  if (
-    DB.customers.some(
-      (item) =>
-        item.id === previous
-    )
-  ) {
-    select.value = previous;
-  }
+  select.value = previous;
 }
 
 
@@ -1629,16 +1145,36 @@ function onCustomerSelect() {
    ============================================================ */
 
 function addWorkRow(data) {
-  const row = {
+  const source = data || {
+    estimatePos: '',
     name: '',
+    unitRateNumber: '',
     unit: '',
     qty: '',
-    price: '',
-    ...(data || {}),
-    uid: uid()
+    price: ''
   };
 
-  currentDoc.rows.push(row);
+  currentDoc.rows.push({
+    uid: uid(),
+
+    estimatePos:
+      source.estimatePos || '',
+
+    name:
+      source.name || '',
+
+    unitRateNumber:
+      source.unitRateNumber || '',
+
+    unit:
+      source.unit || '',
+
+    qty:
+      source.qty ?? '',
+
+    price:
+      source.price ?? ''
+  });
 
   renderWorkRows();
   renderTotals();
@@ -1649,8 +1185,7 @@ function addWorkRow(data) {
 function deleteWorkRow(rowUid) {
   currentDoc.rows =
     currentDoc.rows.filter(
-      (row) =>
-        row.uid !== rowUid
+      row => row.uid !== rowUid
     );
 
   renderWorkRows();
@@ -1664,45 +1199,27 @@ function updateWorkRow(
   field,
   value
 ) {
-  const row =
-    currentDoc.rows.find(
-      (item) =>
-        item.uid === rowUid
-    );
+  const row = currentDoc.rows.find(
+    item => item.uid === rowUid
+  );
 
-  if (!row) return;
+  if (!row) {
+    return;
+  }
 
   row[field] = value;
 
   renderTotals();
   renderPreview();
-
-  /*
-    Сумму строки показываем сразу,
-    не перестраивая все input.
-  */
-  const amountCell =
-    document.querySelector(
-      `[data-work-sum="${CSS.escape(rowUid)}"]`
-    );
-
-  if (amountCell) {
-    amountCell.textContent =
-      fmtMoneyPlain(
-        num(row.qty) *
-        num(row.price)
-      );
-  }
 }
 
 
 function renderWorkRows() {
-  const tbody =
-    document.getElementById(
-      'works-tbody'
-    );
+  const tbody = byId('works-tbody');
 
-  if (!tbody) return;
+  if (!tbody) {
+    return;
+  }
 
   if (!currentDoc.rows.length) {
     tbody.innerHTML = `
@@ -1717,7 +1234,7 @@ function renderWorkRows() {
             font-style:italic;
           "
         >
-          Нет строк. Нажмите «Добавить строку»
+          Нет строк. Нажмите «Добавить строку».
         </td>
       </tr>
     `;
@@ -1727,119 +1244,137 @@ function renderWorkRows() {
 
   tbody.innerHTML =
     currentDoc.rows
-      .map(
-        (row, index) => {
-          const amount =
-            roundMoney(
-              num(row.qty) *
-              num(row.price)
-            );
+      .map((row, index) => {
+        const quantity = num(row.qty);
+        const price = num(row.price);
 
-          return `
-            <tr>
+        const sum =
+          round2(quantity * price);
 
-              <td class="col-num">
-                ${index + 1}
-              </td>
+        return `
+          <tr>
 
-              <td>
-                <input
-                  class="input"
-                  type="text"
-                  value="${escapeHtml(row.name)}"
-                  oninput="updateWorkRow('${row.uid}','name',this.value)"
-                  placeholder="Наименование работ"
-                >
-              </td>
+            <td class="col-num">
+              ${index + 1}
+            </td>
 
-              <td>
-                <input
-                  class="input"
-                  type="text"
-                  value="${escapeHtml(row.unit)}"
-                  oninput="updateWorkRow('${row.uid}','unit',this.value)"
-                  placeholder="м²"
-                >
-              </td>
-
-              <td>
-                <input
-                  class="input"
-                  type="number"
-                  step="0.001"
-                  value="${escapeHtml(row.qty)}"
-                  oninput="updateWorkRow('${row.uid}','qty',this.value)"
-                  placeholder="0"
-                >
-              </td>
-
-              <td>
-                <input
-                  class="input"
-                  type="number"
-                  step="0.01"
-                  value="${escapeHtml(row.price)}"
-                  oninput="updateWorkRow('${row.uid}','price',this.value)"
-                  placeholder="0,00"
-                >
-              </td>
-
-              <td
-                data-work-sum="${escapeHtml(row.uid)}"
-                style="
-                  text-align:right;
-                  padding-top:12px;
-                  font-size:12px;
-                  font-family:var(--mono);
+            <td>
+              <input
+                class="input"
+                type="text"
+                value="${escapeHtml(row.name)}"
+                placeholder="Наименование работ"
+                oninput="
+                  updateWorkRow(
+                    '${row.uid}',
+                    'name',
+                    this.value
+                  )
                 "
               >
-                ${fmtMoneyPlain(amount)}
-              </td>
+            </td>
 
-              <td class="col-del">
+            <td>
+              <input
+                class="input"
+                type="text"
+                value="${escapeHtml(row.unit)}"
+                placeholder="м²"
+                oninput="
+                  updateWorkRow(
+                    '${row.uid}',
+                    'unit',
+                    this.value
+                  )
+                "
+              >
+            </td>
 
-                <button
-                  class="row-del-btn"
-                  type="button"
-                  onclick="deleteWorkRow('${row.uid}')"
-                  title="Удалить строку"
-                >
-                  <svg class="icon" viewBox="0 0 16 16">
-                    <path d="M2 4h12M5 4V2h6v2M6 7v5M10 7v5M3 4l1 10h8l1-10"/>
-                  </svg>
-                </button>
+            <td>
+              <input
+                class="input"
+                type="number"
+                step="0.0001"
+                value="${escapeHtml(row.qty)}"
+                placeholder="0"
+                oninput="
+                  updateWorkRow(
+                    '${row.uid}',
+                    'qty',
+                    this.value
+                  )
+                "
+              >
+            </td>
 
-              </td>
+            <td>
+              <input
+                class="input"
+                type="number"
+                step="0.01"
+                value="${escapeHtml(row.price)}"
+                placeholder="0,00"
+                oninput="
+                  updateWorkRow(
+                    '${row.uid}',
+                    'price',
+                    this.value
+                  )
+                "
+              >
+            </td>
 
-            </tr>
-          `;
-        }
-      )
+            <td
+              style="
+                text-align:right;
+                padding-top:12px;
+                font-family:var(--mono);
+                font-size:12px;
+              "
+            >
+              ${fmtMoneyPlain(sum)}
+            </td>
+
+            <td class="col-del">
+
+              <button
+                class="row-del-btn"
+                onclick="
+                  deleteWorkRow('${row.uid}')
+                "
+                title="Удалить строку"
+              >
+                <svg class="icon" viewBox="0 0 16 16">
+                  <path d="M2 4h12"/>
+                  <path d="M5 4V2h6v2"/>
+                  <path d="M6 7v5M10 7v5"/>
+                  <path d="M3 4l1 10h8l1-10"/>
+                </svg>
+              </button>
+
+            </td>
+
+          </tr>
+        `;
+      })
       .join('');
 }
 
 
 /* ============================================================
-   НДС
+   НДС И ИТОГИ
    ============================================================ */
 
 function onVatRateChange() {
-  const select =
-    document.getElementById(
-      'f-vat-rate'
+  const value =
+    safeValue('f-vat-rate');
+
+  byId('vat-custom-field')
+    .classList
+    .toggle(
+      'hidden',
+      value !== 'custom'
     );
-
-  const custom =
-    document.getElementById(
-      'vat-custom-field'
-    );
-
-  if (!select || !custom) return;
-
-  custom.classList.toggle(
-    'hidden',
-    select.value !== 'custom'
-  );
 
   renderTotals();
   renderPreview();
@@ -1847,55 +1382,32 @@ function onVatRateChange() {
 
 
 function getVatRate() {
-  const select =
-    document.getElementById(
-      'f-vat-rate'
-    );
-
-  if (!select) {
-    return 20;
-  }
-
   const value =
-    select.value;
+    safeValue('f-vat-rate');
 
   if (value === 'none') {
     return null;
   }
 
   if (value === 'custom') {
-    const custom =
-      document.getElementById(
-        'f-vat-custom'
-      );
-
-    const rate =
-      custom
-        ? num(custom.value)
-        : 0;
-
-    return rate;
+    return num(
+      safeValue('f-vat-custom')
+    );
   }
 
   return num(value);
 }
 
 
-/* ============================================================
-   ИТОГИ
-   ============================================================ */
-
 function calcDocBase() {
-  if (
-    currentDoc.type === 'ks2'
-  ) {
-    return roundMoney(
+  if (currentDoc.type === 'ks2') {
+    return round2(
       currentDoc.rows.reduce(
         (total, row) => {
           return (
             total +
             num(row.qty) *
-              num(row.price)
+            num(row.price)
           );
         },
         0
@@ -1903,28 +1415,20 @@ function calcDocBase() {
     );
   }
 
-  /*
-    Для КС-3 используем стоимость БЕЗ НДС
-    связанных КС-2.
-  */
-  return roundMoney(
+  return round2(
     currentDoc.linkedKs2Ids.reduce(
       (total, id) => {
-        const doc =
-          DB.archive.find(
-            (item) =>
-              item.id === id
-          );
-
-        if (!doc) {
-          return total;
-        }
+        const doc = DB.archive.find(
+          item => item.id === id
+        );
 
         return (
           total +
-          num(
-            doc.totals &&
-              doc.totals.base
+          (
+            doc &&
+            doc.totals
+              ? num(doc.totals.base)
+              : 0
           )
         );
       },
@@ -1935,53 +1439,31 @@ function calcDocBase() {
 
 
 function calcTotals() {
-  const base =
-    calcDocBase();
-
-  const rate =
-    getVatRate();
+  const base = calcDocBase();
+  const vatRate = getVatRate();
 
   const vat =
-    rate === null
+    vatRate === null
       ? 0
-      : roundMoney(
-          base *
-            rate /
-            100
+      : round2(
+          base * vatRate / 100
         );
-
-  const gross =
-    roundMoney(
-      base + vat
-    );
 
   return {
     base,
-    vatRate: rate,
+    vatRate,
     vat,
-    gross
+    gross: round2(base + vat)
   };
 }
 
 
 function renderTotals() {
-  const totals =
-    calcTotals();
+  const totals = calcTotals();
 
-  const base =
-    document.getElementById(
-      'total-base'
-    );
-
-  const vat =
-    document.getElementById(
-      'total-vat'
-    );
-
-  const gross =
-    document.getElementById(
-      'total-gross'
-    );
+  const base = byId('total-base');
+  const vat = byId('total-vat');
+  const gross = byId('total-gross');
 
   if (base) {
     base.textContent =
@@ -2003,35 +1485,23 @@ function renderTotals() {
 
 
 /* ============================================================
-   КС-2 → КС-3
+   СВЯЗКА КС-2 → КС-3
    ============================================================ */
 
 function renderKs2PickList() {
-  const container =
-    document.getElementById(
-      'ks2-pick-list'
-    );
+  const box = byId('ks2-pick-list');
 
-  if (!container) return;
+  if (!box) {
+    return;
+  }
 
   const list =
-    DB.archive
-      .filter(
-        (doc) =>
-          doc.type === 'ks2'
-      )
-      .sort((a, b) =>
-        safeString(
-          b.createdAt
-        ).localeCompare(
-          safeString(
-            a.createdAt
-          )
-        )
-      );
+    DB.archive.filter(
+      doc => doc.type === 'ks2'
+    );
 
   if (!list.length) {
-    container.innerHTML = `
+    box.innerHTML = `
       <div class="ks2-pick-empty">
         Нет сохранённых актов КС-2.
         Сначала создайте и сохраните КС-2.
@@ -2041,88 +1511,78 @@ function renderKs2PickList() {
     return;
   }
 
-  container.innerHTML =
-    list
-      .map(
-        (doc) => {
-          const checked =
-            currentDoc
-              .linkedKs2Ids
-              .includes(doc.id);
+  box.innerHTML = list.map(doc => {
+    const checked =
+      currentDoc
+        .linkedKs2Ids
+        .includes(doc.id);
 
-          return `
-            <label
-              class="ks2-pick-item ${
-                checked
-                  ? 'checked'
-                  : ''
-              }"
-            >
+    return `
+      <label
+        class="
+          ks2-pick-item
+          ${checked ? 'checked' : ''}
+        "
+      >
 
-              <input
-                type="checkbox"
-                ${
-                  checked
-                    ? 'checked'
-                    : ''
-                }
-                onchange="toggleKs2Link('${doc.id}', this.checked)"
-              >
+        <input
+          type="checkbox"
+          ${checked ? 'checked' : ''}
+          onchange="
+            toggleKs2Link(
+              '${doc.id}',
+              this.checked
+            )
+          "
+        >
 
-              <div class="ks2-pick-info">
+        <div class="ks2-pick-info">
 
-                <div class="ks2-pick-title">
-                  КС-2 №
-                  ${escapeHtml(doc.num)}
-                  от
-                  ${fmtDate(doc.date)}
-                </div>
+          <div class="ks2-pick-title">
+            КС-2 №
+            ${escapeHtml(doc.num)}
+            от
+            ${fmtDate(doc.date)}
+          </div>
 
-                <div class="ks2-pick-meta">
-                  ${escapeHtml(
-                    doc.objectName ||
-                    '—'
-                  )}
-                </div>
+          <div class="ks2-pick-meta">
+            ${
+              escapeHtml(
+                doc.objectName || '—'
+              )
+            }
+          </div>
 
-              </div>
+        </div>
 
-              <div class="ks2-pick-sum">
-                ${fmtMoneyPlain(
-                  doc.totals
-                    ? doc.totals.gross
-                    : 0
-                )}
-              </div>
+        <div class="ks2-pick-sum">
+          ${
+            fmtMoneyPlain(
+              doc.totals?.gross || 0
+            )
+          }
+        </div>
 
-            </label>
-          `;
-        }
-      )
-      .join('');
+      </label>
+    `;
+  }).join('');
 }
 
 
-function toggleKs2Link(
-  id,
-  enabled
-) {
+function toggleKs2Link(id, enabled) {
   if (enabled) {
     if (
       !currentDoc
         .linkedKs2Ids
         .includes(id)
     ) {
-      currentDoc
-        .linkedKs2Ids
-        .push(id);
+      currentDoc.linkedKs2Ids.push(id);
     }
   } else {
     currentDoc.linkedKs2Ids =
-      currentDoc.linkedKs2Ids.filter(
-        (item) =>
-          item !== id
-      );
+      currentDoc
+        .linkedKs2Ids
+        .filter(item => item !== id);
   }
 
   renderKs2PickList();
@@ -2132,136 +1592,73 @@ function toggleKs2Link(
 
 
 /* ============================================================
-   SNAPSHOT
+   СНИМОК ФОРМЫ
    ============================================================ */
 
 function getFormSnapshot() {
-  const contractorId =
-    document.getElementById(
-      'f-contractor'
-    )?.value || '';
-
-  const customerId =
-    document.getElementById(
-      'f-customer'
-    )?.value || '';
-
   const contractor =
     DB.contractors.find(
-      (item) =>
-        item.id === contractorId
+      c =>
+        c.id ===
+        safeValue('f-contractor')
     ) || null;
 
   const customer =
     DB.customers.find(
-      (item) =>
-        item.id === customerId
+      c =>
+        c.id ===
+        safeValue('f-customer')
     ) || null;
 
   return {
-    type:
-      currentDoc.type,
+    type: currentDoc.type,
 
     num:
-      document
-        .getElementById(
-          'f-docnum'
-        )
-        ?.value
-        .trim() || '',
+      safeValue('f-docnum').trim(),
 
     date:
-      document.getElementById(
-        'f-docdate'
-      )?.value || '',
+      safeValue('f-docdate'),
 
     period:
-      document
-        .getElementById(
-          'f-period'
-        )
-        ?.value
-        .trim() || '',
+      safeValue('f-period').trim(),
 
     dateFrom:
-      document.getElementById(
-        'f-date-from'
-      )?.value || '',
+      safeValue('f-date-from'),
 
     dateTo:
-      document.getElementById(
-        'f-date-to'
-      )?.value || '',
+      safeValue('f-date-to'),
 
-    contractor:
-      contractor
-        ? deepClone(contractor)
-        : null,
-
-    customer:
-      customer
-        ? deepClone(customer)
-        : null,
+    contractor,
+    customer,
 
     investor:
-      document
-        .getElementById(
-          'f-investor'
-        )
-        ?.value
-        .trim() || '',
+      safeValue('f-investor').trim(),
 
     contractNum:
-      document
-        .getElementById(
-          'f-contract-num'
-        )
-        ?.value
-        .trim() || '',
+      safeValue(
+        'f-contract-num'
+      ).trim(),
 
     contractDate:
-      document.getElementById(
-        'f-contract-date'
-      )?.value || '',
+      safeValue('f-contract-date'),
 
     objectName:
-      document
-        .getElementById(
-          'f-object'
-        )
-        ?.value
-        .trim() || '',
+      safeValue('f-object').trim(),
 
     objectAddr:
-      document
-        .getElementById(
-          'f-object-addr'
-        )
-        ?.value
-        .trim() || '',
+      safeValue(
+        'f-object-addr'
+      ).trim(),
 
     rows:
       currentDoc.rows.map(
-        (row) => ({
-          name:
-            row.name || '',
-
-          unit:
-            row.unit || '',
-
-          qty:
-            row.qty || '',
-
-          price:
-            row.price || ''
-        })
+        row => ({ ...row })
       ),
 
     linkedKs2Ids:
-      [
-        ...currentDoc
-          .linkedKs2Ids
-      ],
+      currentDoc
+        .linkedKs2Ids
+        .slice(),
 
     totals:
       calcTotals()
@@ -2270,31 +1667,26 @@ function getFormSnapshot() {
 
 
 /* ============================================================
-   PREVIEW
+   ПРЕВЬЮ
    ============================================================ */
 
 function renderPreview() {
-  const container =
-    document.getElementById(
-      'preview-paper'
-    );
+  const box = byId('preview-paper');
 
-  if (!container) return;
+  if (!box) {
+    return;
+  }
 
-  const doc =
-    getFormSnapshot();
+  const data = getFormSnapshot();
 
-  container.innerHTML =
-    doc.type === 'ks2'
-      ? buildKs2Preview(doc)
-      : buildKs3Preview(doc);
+  box.innerHTML =
+    data.type === 'ks2'
+      ? buildKs2Preview(data)
+      : buildKs3Preview(data);
 }
 
 
-function buildPartyBlock(
-  label,
-  party
-) {
+function buildPartyBlock(label, party) {
   if (!party) {
     return `
       <div>
@@ -2318,23 +1710,16 @@ function buildPartyBlock(
 
       <div class="paper-value">
         <strong>
-          ${escapeHtml(
-            party.name
-          )}
+          ${escapeHtml(party.name)}
         </strong>
       </div>
 
       <div class="paper-value">
-        ИНН
-        ${escapeHtml(
-          party.inn
-        )}
+        ИНН ${escapeHtml(party.inn)}
         ${
           party.kpp
             ? ', КПП ' +
-              escapeHtml(
-                party.kpp
-              )
+              escapeHtml(party.kpp)
             : ''
         }
       </div>
@@ -2343,27 +1728,26 @@ function buildPartyBlock(
         party.addr
           ? `
             <div class="paper-value">
-              ${escapeHtml(
-                party.addr
-              )}
+              ${escapeHtml(party.addr)}
             </div>
           `
           : ''
       }
 
       ${
-        party.phone ||
-        party.email
+        party.phone || party.email
           ? `
             <div class="paper-value muted">
-              ${escapeHtml(
-                [
-                  party.phone,
-                  party.email
-                ]
-                  .filter(Boolean)
-                  .join(' • ')
-              )}
+              ${
+                escapeHtml(
+                  [
+                    party.phone,
+                    party.email
+                  ]
+                    .filter(Boolean)
+                    .join(' • ')
+                )
+              }
             </div>
           `
           : ''
@@ -2374,67 +1758,47 @@ function buildPartyBlock(
 }
 
 
-function buildKs2Preview(doc) {
+function buildKs2Preview(data) {
   const rows =
-    doc.rows
-      .map(
-        (row, index) => {
-          const qty =
-            num(row.qty);
+    data.rows.map((row, index) => {
+      const quantity = num(row.qty);
+      const price = num(row.price);
 
-          const price =
-            num(row.price);
+      return `
+        <tr>
+          <td>${index + 1}</td>
 
-          const amount =
-            roundMoney(
-              qty * price
-            );
+          <td>
+            ${escapeHtml(row.name || '—')}
+          </td>
 
-          return `
-            <tr>
-              <td>${index + 1}</td>
+          <td>
+            ${escapeHtml(row.unit || '—')}
+          </td>
 
-              <td>
-                ${escapeHtml(
-                  row.name || '—'
-                )}
-              </td>
+          <td style="text-align:right;">
+            ${fmtNumber(quantity)}
+          </td>
 
-              <td>
-                ${escapeHtml(
-                  row.unit || '—'
-                )}
-              </td>
+          <td style="text-align:right;">
+            ${fmtMoneyPlain(price)}
+          </td>
 
-              <td style="text-align:right;">
-                ${
-                  qty.toLocaleString(
-                    'ru-RU'
-                  )
-                }
-              </td>
-
-              <td style="text-align:right;">
-                ${fmtMoneyPlain(
-                  price
-                )}
-              </td>
-
-              <td style="text-align:right;">
-                <strong>
-                  ${fmtMoneyPlain(
-                    amount
-                  )}
-                </strong>
-              </td>
-            </tr>
-          `;
-        }
-      )
-      .join('');
+          <td style="text-align:right;">
+            <strong>
+              ${
+                fmtMoneyPlain(
+                  quantity * price
+                )
+              }
+            </strong>
+          </td>
+        </tr>
+      `;
+    }).join('');
 
   const vatLine =
-    doc.totals.vatRate === null
+    data.totals.vatRate === null
       ? `
         <tr>
           <td
@@ -2456,13 +1820,15 @@ function buildKs2Preview(doc) {
             style="text-align:right;"
           >
             НДС
-            (${doc.totals.vatRate} %):
+            (${data.totals.vatRate} %):
           </td>
 
           <td style="text-align:right;">
-            ${fmtMoneyPlain(
-              doc.totals.vat
-            )}
+            ${
+              fmtMoneyPlain(
+                data.totals.vat
+              )
+            }
           </td>
         </tr>
       `;
@@ -2472,7 +1838,6 @@ function buildKs2Preview(doc) {
 
       <div class="paper-stamp">
         Унифицированная форма № КС-2
-        · ОКУД 0322005
       </div>
 
       <h1 class="paper-title">
@@ -2480,42 +1845,38 @@ function buildKs2Preview(doc) {
       </h1>
 
       <div class="paper-subtitle">
-        №
-        ${escapeHtml(
-          doc.num || '___'
-        )}
-        от
-        ${fmtDate(doc.date)}
+        № ${escapeHtml(data.num || '___')}
+        от ${fmtDate(data.date)}
 
         ${
-          doc.period
+          data.period
             ? ' • Отчётный период: ' +
-              escapeHtml(
-                doc.period
-              )
+              escapeHtml(data.period)
             : ''
         }
       </div>
-
 
       <div
         class="paper-grid cols-2"
         style="margin-top:14px;"
       >
-        ${buildPartyBlock(
-          'Подрядчик (исполнитель)',
-          doc.contractor
-        )}
+        ${
+          buildPartyBlock(
+            'Подрядчик (исполнитель)',
+            data.contractor
+          )
+        }
 
-        ${buildPartyBlock(
-          'Заказчик',
-          doc.customer
-        )}
+        ${
+          buildPartyBlock(
+            'Заказчик',
+            data.customer
+          )
+        }
       </div>
 
-
       ${
-        doc.investor
+        data.investor
           ? `
             <div style="margin-top:10px;">
               <div class="paper-label">
@@ -2523,15 +1884,12 @@ function buildKs2Preview(doc) {
               </div>
 
               <div class="paper-value">
-                ${escapeHtml(
-                  doc.investor
-                )}
+                ${escapeHtml(data.investor)}
               </div>
             </div>
           `
           : ''
       }
-
 
       <div
         class="paper-grid cols-3"
@@ -2545,25 +1903,24 @@ function buildKs2Preview(doc) {
 
           <div class="paper-value">
             ${
-              doc.contractNum
+              data.contractNum
                 ? '№ ' +
                   escapeHtml(
-                    doc.contractNum
+                    data.contractNum
                   )
                 : '—'
             }
 
             ${
-              doc.contractDate
+              data.contractDate
                 ? ' от ' +
                   fmtDate(
-                    doc.contractDate
+                    data.contractDate
                   )
                 : ''
             }
           </div>
         </div>
-
 
         <div>
           <div class="paper-label">
@@ -2571,12 +1928,9 @@ function buildKs2Preview(doc) {
           </div>
 
           <div class="paper-value">
-            ${fmtDate(
-              doc.dateFrom
-            )}
+            ${fmtDate(data.dateFrom)}
           </div>
         </div>
-
 
         <div>
           <div class="paper-label">
@@ -2584,14 +1938,11 @@ function buildKs2Preview(doc) {
           </div>
 
           <div class="paper-value">
-            ${fmtDate(
-              doc.dateTo
-            )}
+            ${fmtDate(data.dateTo)}
           </div>
         </div>
 
       </div>
-
 
       <div style="margin-top:10px;">
 
@@ -2601,27 +1952,29 @@ function buildKs2Preview(doc) {
 
         <div class="paper-value">
           <strong>
-            ${escapeHtml(
-              doc.objectName ||
-              '—'
-            )}
+            ${
+              escapeHtml(
+                data.objectName || '—'
+              )
+            }
           </strong>
         </div>
 
         ${
-          doc.objectAddr
+          data.objectAddr
             ? `
               <div class="paper-value muted">
-                ${escapeHtml(
-                  doc.objectAddr
-                )}
+                ${
+                  escapeHtml(
+                    data.objectAddr
+                  )
+                }
               </div>
             `
             : ''
         }
 
       </div>
-
 
       <table
         class="paper-table"
@@ -2703,9 +2056,11 @@ function buildKs2Preview(doc) {
             </td>
 
             <td style="text-align:right;">
-              ${fmtMoneyPlain(
-                doc.totals.base
-              )}
+              ${
+                fmtMoneyPlain(
+                  data.totals.base
+                )
+              }
             </td>
           </tr>
 
@@ -2714,27 +2069,28 @@ function buildKs2Preview(doc) {
           <tr
             style="
               font-weight:700;
-              background:#f5f0e8;
+              background:#f5f5f5;
             "
           >
             <td
               colspan="5"
               style="text-align:right;"
             >
-              ВСЕГО к оплате:
+              ВСЕГО:
             </td>
 
             <td style="text-align:right;">
-              ${fmtMoneyPlain(
-                doc.totals.gross
-              )} ₽
+              ${
+                fmtMoneyPlain(
+                  data.totals.gross
+                )
+              } ₽
             </td>
           </tr>
 
         </tfoot>
 
       </table>
-
 
       <div class="paper-signs">
 
@@ -2747,19 +2103,22 @@ function buildKs2Preview(doc) {
           <div class="paper-sign-line"></div>
 
           <div class="paper-value">
-            ${escapeHtml(
-              doc.contractor?.bossPos ||
-              'Руководитель'
-            )}
+            ${
+              escapeHtml(
+                data.contractor?.bossPos ||
+                'Руководитель'
+              )
+            }
             /
-            ${escapeHtml(
-              doc.contractor?.bossName ||
-              '_________________'
-            )}
+            ${
+              escapeHtml(
+                data.contractor?.bossName ||
+                '________________'
+              )
+            }
           </div>
 
         </div>
-
 
         <div class="paper-sign">
 
@@ -2770,15 +2129,19 @@ function buildKs2Preview(doc) {
           <div class="paper-sign-line"></div>
 
           <div class="paper-value">
-            ${escapeHtml(
-              doc.customer?.bossPos ||
-              'Руководитель'
-            )}
+            ${
+              escapeHtml(
+                data.customer?.bossPos ||
+                'Руководитель'
+              )
+            }
             /
-            ${escapeHtml(
-              doc.customer?.bossName ||
-              '_________________'
-            )}
+            ${
+              escapeHtml(
+                data.customer?.bossName ||
+                '________________'
+              )
+            }
           </div>
 
         </div>
@@ -2790,79 +2153,72 @@ function buildKs2Preview(doc) {
 }
 
 
-function buildKs3Preview(doc) {
+function buildKs3Preview(data) {
   const linked =
-    doc.linkedKs2Ids
-      .map(
-        (id) =>
-          DB.archive.find(
-            (item) =>
-              item.id === id
-          )
+    data.linkedKs2Ids
+      .map(id =>
+        DB.archive.find(
+          doc => doc.id === id
+        )
       )
       .filter(Boolean);
 
   const rows =
     linked.length
-      ? linked
-          .map(
-            (source, index) => `
-              <tr>
+      ? linked.map(
+          (doc, index) => `
+            <tr>
 
-                <td>
-                  ${index + 1}
-                </td>
+              <td>
+                ${index + 1}
+              </td>
 
-                <td>
-                  КС-2 №
-                  ${escapeHtml(
-                    source.num
-                  )}
-                  от
-                  ${fmtDate(
-                    source.date
-                  )}
-                </td>
+              <td>
+                КС-2 №
+                ${escapeHtml(doc.num)}
+                от
+                ${fmtDate(doc.date)}
+              </td>
 
-                <td>
-                  ${escapeHtml(
-                    source.objectName ||
-                    '—'
-                  )}
-                </td>
+              <td>
+                ${
+                  escapeHtml(
+                    doc.objectName || '—'
+                  )
+                }
+              </td>
 
-                <td style="text-align:right;">
-                  ${fmtMoneyPlain(
-                    source.totals?.base ||
-                    0
-                  )}
-                </td>
+              <td style="text-align:right;">
+                ${
+                  fmtMoneyPlain(
+                    doc.totals?.base || 0
+                  )
+                }
+              </td>
 
-                <td style="text-align:right;">
+              <td style="text-align:right;">
+                ${
+                  doc.totals?.vatRate === null
+                    ? 'без НДС'
+                    : fmtMoneyPlain(
+                        doc.totals?.vat || 0
+                      )
+                }
+              </td>
+
+              <td style="text-align:right;">
+                <strong>
                   ${
-                    source.totals
-                      ?.vatRate === null
-                      ? 'без НДС'
-                      : fmtMoneyPlain(
-                          source.totals
-                            ?.vat || 0
-                        )
+                    fmtMoneyPlain(
+                      doc.totals?.gross || 0
+                    )
                   }
-                </td>
+                </strong>
+              </td>
 
-                <td style="text-align:right;">
-                  <strong>
-                    ${fmtMoneyPlain(
-                      source.totals
-                        ?.gross || 0
-                    )}
-                  </strong>
-                </td>
-
-              </tr>
-            `
-          )
-          .join('')
+            </tr>
+          `
+        ).join('')
       : `
         <tr>
           <td
@@ -2879,153 +2235,59 @@ function buildKs3Preview(doc) {
         </tr>
       `;
 
-  const vatLine =
-    doc.totals.vatRate === null
-      ? `
-        <tr>
-          <td
-            colspan="5"
-            style="text-align:right;"
-          >
-            НДС:
-          </td>
-
-          <td style="text-align:right;">
-            без НДС
-          </td>
-        </tr>
-      `
-      : `
-        <tr>
-          <td
-            colspan="5"
-            style="text-align:right;"
-          >
-            НДС
-            (${doc.totals.vatRate} %):
-          </td>
-
-          <td style="text-align:right;">
-            ${fmtMoneyPlain(
-              doc.totals.vat
-            )}
-          </td>
-        </tr>
-      `;
-
   return `
     <div class="paper">
 
       <div class="paper-stamp">
         Унифицированная форма № КС-3
-        · ОКУД 0322001
       </div>
 
       <h1 class="paper-title">
-        Справка о стоимости выполненных работ и затрат
+        Справка о стоимости
+        выполненных работ и затрат
       </h1>
 
       <div class="paper-subtitle">
-        №
-        ${escapeHtml(
-          doc.num || '___'
-        )}
-        от
-        ${fmtDate(doc.date)}
-
-        ${
-          doc.period
-            ? ' • Отчётный период: ' +
-              escapeHtml(
-                doc.period
-              )
-            : ''
-        }
+        № ${escapeHtml(data.num || '___')}
+        от ${fmtDate(data.date)}
       </div>
-
 
       <div
         class="paper-grid cols-2"
         style="margin-top:14px;"
       >
-        ${buildPartyBlock(
-          'Подрядчик (исполнитель)',
-          doc.contractor
-        )}
 
-        ${buildPartyBlock(
-          'Заказчик',
-          doc.customer
-        )}
-      </div>
+        ${
+          buildPartyBlock(
+            'Подрядчик (исполнитель)',
+            data.contractor
+          )
+        }
 
-
-      ${
-        doc.investor
-          ? `
-            <div style="margin-top:10px;">
-              <div class="paper-label">
-                Инвестор
-              </div>
-
-              <div class="paper-value">
-                ${escapeHtml(
-                  doc.investor
-                )}
-              </div>
-            </div>
-          `
-          : ''
-      }
-
-
-      <div
-        class="paper-grid cols-2"
-        style="margin-top:12px;"
-      >
-
-        <div>
-          <div class="paper-label">
-            Договор подряда
-          </div>
-
-          <div class="paper-value">
-            ${
-              doc.contractNum
-                ? '№ ' +
-                  escapeHtml(
-                    doc.contractNum
-                  )
-                : '—'
-            }
-
-            ${
-              doc.contractDate
-                ? ' от ' +
-                  fmtDate(
-                    doc.contractDate
-                  )
-                : ''
-            }
-          </div>
-        </div>
-
-
-        <div>
-          <div class="paper-label">
-            Объект
-          </div>
-
-          <div class="paper-value">
-            ${escapeHtml(
-              doc.objectName ||
-              '—'
-            )}
-          </div>
-        </div>
+        ${
+          buildPartyBlock(
+            'Заказчик',
+            data.customer
+          )
+        }
 
       </div>
 
+      <div style="margin-top:12px;">
+
+        <div class="paper-label">
+          Объект
+        </div>
+
+        <div class="paper-value">
+          ${
+            escapeHtml(
+              data.objectName || '—'
+            )
+          }
+        </div>
+
+      </div>
 
       <table
         class="paper-table"
@@ -3034,46 +2296,12 @@ function buildKs3Preview(doc) {
 
         <thead>
           <tr>
-
-            <th style="width:30px;">
-              №
-            </th>
-
-            <th>
-              Акт КС-2
-            </th>
-
-            <th>
-              Объект
-            </th>
-
-            <th
-              style="
-                width:100px;
-                text-align:right;
-              "
-            >
-              Без НДС, ₽
-            </th>
-
-            <th
-              style="
-                width:100px;
-                text-align:right;
-              "
-            >
-              НДС, ₽
-            </th>
-
-            <th
-              style="
-                width:110px;
-                text-align:right;
-              "
-            >
-              С НДС, ₽
-            </th>
-
+            <th>№</th>
+            <th>Акт КС-2</th>
+            <th>Объект</th>
+            <th>Без НДС</th>
+            <th>НДС</th>
+            <th>С НДС</th>
           </tr>
         </thead>
 
@@ -3081,98 +2309,7 @@ function buildKs3Preview(doc) {
           ${rows}
         </tbody>
 
-        <tfoot>
-
-          <tr>
-            <td
-              colspan="5"
-              style="text-align:right;"
-            >
-              Итого без НДС:
-            </td>
-
-            <td style="text-align:right;">
-              ${fmtMoneyPlain(
-                doc.totals.base
-              )}
-            </td>
-          </tr>
-
-          ${vatLine}
-
-          <tr
-            style="
-              font-weight:700;
-              background:#f5f0e8;
-            "
-          >
-            <td
-              colspan="5"
-              style="text-align:right;"
-            >
-              ВСЕГО к оплате:
-            </td>
-
-            <td style="text-align:right;">
-              ${fmtMoneyPlain(
-                doc.totals.gross
-              )} ₽
-            </td>
-          </tr>
-
-        </tfoot>
-
       </table>
-
-
-      <div class="paper-signs">
-
-        <div class="paper-sign">
-
-          <div class="paper-label">
-            Сдал (подрядчик)
-          </div>
-
-          <div class="paper-sign-line"></div>
-
-          <div class="paper-value">
-            ${escapeHtml(
-              doc.contractor?.bossPos ||
-              'Руководитель'
-            )}
-            /
-            ${escapeHtml(
-              doc.contractor?.bossName ||
-              '_________________'
-            )}
-          </div>
-
-        </div>
-
-
-        <div class="paper-sign">
-
-          <div class="paper-label">
-            Принял (заказчик)
-          </div>
-
-          <div class="paper-sign-line"></div>
-
-          <div class="paper-value">
-            ${escapeHtml(
-              doc.customer?.bossPos ||
-              'Руководитель'
-            )}
-            /
-            ${escapeHtml(
-              doc.customer?.bossName ||
-              '_________________'
-            )}
-          </div>
-
-        </div>
-
-      </div>
 
     </div>
   `;
@@ -3180,164 +2317,99 @@ function buildKs3Preview(doc) {
 
 
 /* ============================================================
-   ВАЛИДАЦИЯ ДОКУМЕНТА
+   СОХРАНЕНИЕ ДОКУМЕНТА
    ============================================================ */
 
-function validateDocument(
-  doc,
-  options = {}
-) {
-  const {
-    requireRows = true
-  } = options;
-
-  if (!doc.num) {
-    toast(
-      'Укажите номер документа',
-      'err'
-    );
-    return false;
+function validateDocument(data) {
+  if (!data.num) {
+    return 'Укажите номер документа.';
   }
 
-  if (!doc.date) {
-    toast(
-      'Укажите дату документа',
-      'err'
-    );
-    return false;
+  if (!data.date) {
+    return 'Укажите дату документа.';
   }
 
-  if (!doc.contractor) {
-    toast(
-      'Выберите подрядчика',
-      'err'
-    );
-    return false;
+  if (!data.contractor) {
+    return 'Выберите подрядчика.';
   }
 
-  if (!doc.customer) {
-    toast(
-      'Выберите заказчика',
-      'err'
-    );
-    return false;
+  if (!data.customer) {
+    return 'Выберите заказчика.';
   }
 
-  if (!doc.objectName) {
-    toast(
-      'Укажите наименование объекта',
-      'err'
-    );
-    return false;
+  if (!data.objectName) {
+    return 'Укажите наименование объекта.';
   }
 
   if (
-    requireRows &&
-    doc.type === 'ks2' &&
-    !doc.rows.length
+    data.type === 'ks2' &&
+    !data.rows.length
   ) {
-    toast(
-      'Добавьте хотя бы одну строку работ',
-      'err'
-    );
-    return false;
+    return 'Добавьте хотя бы одну строку работ.';
   }
 
   if (
-    requireRows &&
-    doc.type === 'ks3' &&
-    !doc.linkedKs2Ids.length
+    data.type === 'ks3' &&
+    !data.linkedKs2Ids.length
   ) {
-    toast(
-      'Выберите хотя бы один акт КС-2',
-      'err'
-    );
-    return false;
+    return 'Выберите хотя бы один акт КС-2.';
   }
 
-  return true;
+  return '';
 }
 
 
-/* ============================================================
-   СОХРАНЕНИЕ
-   ============================================================ */
-
 function saveDocument() {
-  const doc =
-    getFormSnapshot();
+  const data = getFormSnapshot();
 
-  if (
-    !validateDocument(doc)
-  ) {
+  const validation =
+    validateDocument(data);
+
+  if (validation) {
+    toast(validation, 'err');
     return;
   }
 
-  const existing =
-    currentDoc.id
-      ? DB.archive.find(
-          (item) =>
-            item.id ===
-            currentDoc.id
-        )
-      : null;
-
   const record = {
     id:
-      currentDoc.id ||
-      uid(),
+      currentDoc.id || uid(),
 
     createdAt:
-      existing?.createdAt ||
       new Date().toISOString(),
 
-    updatedAt:
-      new Date().toISOString(),
-
-    ...doc
+    ...data
   };
 
   if (currentDoc.id) {
     const index =
       DB.archive.findIndex(
-        (item) =>
-          item.id ===
-          currentDoc.id
+        doc =>
+          doc.id === currentDoc.id
       );
 
     if (index >= 0) {
-      DB.archive[index] =
-        record;
+      DB.archive[index] = record;
     } else {
-      DB.archive.push(
-        record
-      );
+      DB.archive.push(record);
     }
 
     toast(
-      'Документ обновлён',
+      'Документ обновлён.',
       'ok'
     );
+
   } else {
     DB.archive.push(record);
-
-    currentDoc.id =
-      record.id;
+    currentDoc.id = record.id;
 
     toast(
-      'Документ сохранён в архив',
+      'Документ сохранён в архив.',
       'ok'
     );
   }
 
   saveDB();
   renderArchive();
-
-  if (
-    currentDoc.type === 'ks3'
-  ) {
-    renderKs2PickList();
-  }
 }
 
 
@@ -3346,96 +2418,74 @@ function saveDocument() {
    ============================================================ */
 
 function renderArchive() {
-  const search =
-    document.getElementById(
-      'search-archive'
-    );
+  const searchEl =
+    byId('search-archive');
 
-  const filter =
-    document.getElementById(
-      'filter-archive-type'
-    );
+  const typeEl =
+    byId('filter-archive-type');
 
   const query =
-    normalizeSearch(
-      search ? search.value : ''
+    normalizeText(
+      searchEl ? searchEl.value : ''
     );
 
-  const filterType =
-    filter ? filter.value : '';
+  const type =
+    typeEl ? typeEl.value : '';
 
   let list =
     DB.archive
       .slice()
       .sort((a, b) =>
-        safeString(
-          b.updatedAt ||
-          b.createdAt
-        ).localeCompare(
-          safeString(
-            a.updatedAt ||
-            a.createdAt
+        String(b.createdAt || '')
+          .localeCompare(
+            String(a.createdAt || '')
           )
-        )
       );
 
-  if (filterType) {
+  if (type) {
     list =
       list.filter(
-        (doc) =>
-          doc.type === filterType
+        doc => doc.type === type
       );
   }
 
   if (query) {
     list =
-      list.filter(
-        (doc) => {
-          const blob =
-            normalizeSearch(
-              [
-                doc.num,
-                doc.objectName,
-                doc.objectAddr,
-                doc.contractor?.name,
-                doc.customer?.name
-              ].join(' ')
-            );
-
-          return blob.includes(
-            query
-          );
-        }
-      );
+      list.filter(doc => {
+        return normalizeText([
+          doc.num,
+          doc.objectName,
+          doc.objectAddr,
+          doc.contractor?.name,
+          doc.customer?.name
+        ].join(' ')).includes(query);
+      });
   }
 
-  const badge =
-    document.getElementById(
-      'badge-archive'
-    );
+  const badge = byId('badge-archive');
 
   if (badge) {
     badge.textContent =
-      DB.archive.length;
+      String(DB.archive.length);
   }
 
   const tbody =
-    document.getElementById(
-      'archive-tbody'
-    );
+    byId('archive-tbody');
 
-  if (!tbody) return;
+  if (!tbody) {
+    return;
+  }
 
   if (!list.length) {
     tbody.innerHTML = `
       <tr>
         <td colspan="8">
+
           <div class="empty-state">
 
             <div class="empty-state-title">
               ${
-                query ||
-                filterType
+                query || type
                   ? 'Ничего не найдено'
                   : 'Архив пуст'
               }
@@ -3443,14 +2493,14 @@ function renderArchive() {
 
             <div class="empty-state-text">
               ${
-                query ||
-                filterType
-                  ? 'Измените параметры поиска'
-                  : 'Сохранённые документы появятся здесь автоматически'
+                query || type
+                  ? 'Измените параметры поиска.'
+                  : 'Сохранённые документы появятся здесь.'
               }
             </div>
 
           </div>
+
         </td>
       </tr>
     `;
@@ -3459,236 +2509,202 @@ function renderArchive() {
   }
 
   tbody.innerHTML =
-    list
-      .map(
-        (doc) => `
-          <tr>
+    list.map(doc => `
+      <tr>
 
-            <td>
-              <span class="tag ${doc.type}">
-                ${doc.type.toUpperCase()}
-              </span>
-            </td>
+        <td>
+          <span class="tag ${doc.type}">
+            ${doc.type.toUpperCase()}
+          </span>
+        </td>
 
-            <td class="cell-name">
-              № ${escapeHtml(doc.num)}
-            </td>
+        <td class="cell-name">
+          № ${escapeHtml(doc.num)}
+        </td>
 
-            <td>
-              ${fmtDate(doc.date)}
-            </td>
+        <td>
+          ${fmtDate(doc.date)}
+        </td>
 
-            <td>
-              ${escapeHtml(
-                doc.contractor?.name ||
-                '—'
-              )}
-            </td>
+        <td>
+          ${
+            escapeHtml(
+              doc.contractor?.name || '—'
+            )
+          }
+        </td>
 
-            <td>
-              ${escapeHtml(
-                doc.customer?.name ||
-                '—'
-              )}
-            </td>
+        <td>
+          ${
+            escapeHtml(
+              doc.customer?.name || '—'
+            )
+          }
+        </td>
 
-            <td>
-              ${escapeHtml(
-                doc.objectName ||
-                '—'
-              )}
+        <td>
+          ${
+            escapeHtml(
+              doc.objectName || '—'
+            )
+          }
 
-              <div class="cell-muted">
-                ${escapeHtml(
-                  doc.objectAddr ||
-                  ''
-                )}
-              </div>
-            </td>
+          <div class="cell-muted">
+            ${
+              escapeHtml(
+                doc.objectAddr || ''
+              )
+            }
+          </div>
+        </td>
 
-            <td class="text-right mono">
-              ${fmtMoneyPlain(
-                doc.totals?.gross ||
-                0
-              )} ₽
-            </td>
+        <td class="text-right mono">
+          ${
+            fmtMoneyPlain(
+              doc.totals?.gross || 0
+            )
+          } ₽
+        </td>
 
-            <td class="cell-actions">
+        <td class="cell-actions">
 
-              <button
-                class="btn btn-ghost btn-sm"
-                type="button"
-                onclick="loadFromArchive('${doc.id}')"
-                title="Открыть"
-              >
-                <svg class="icon" viewBox="0 0 16 16">
-                  <path d="M2 8s2.5-5 6-5 6 5 6 5-2.5 5-6 5-6-5-6-5z"/>
-                  <circle cx="8" cy="8" r="2"/>
-                </svg>
-              </button>
+          <button
+            class="btn btn-ghost btn-sm"
+            onclick="
+              loadFromArchive('${doc.id}')
+            "
+            title="Открыть"
+          >
+            <svg class="icon" viewBox="0 0 16 16">
+              <path d="M2 8s2.5-5 6-5 6 5 6 5-2.5 5-6 5-6-5-6-5z"/>
+              <circle cx="8" cy="8" r="2"/>
+            </svg>
+          </button>
 
+          <button
+            class="btn btn-ghost btn-sm"
+            onclick="
+              exportXLSXById('${doc.id}')
+            "
+            title="Скачать Excel"
+          >
+            <svg class="icon" viewBox="0 0 16 16">
+              <path d="M2 10v4h12v-4"/>
+              <path d="M8 2v8"/>
+              <path d="M5 7l3 3 3-3"/>
+            </svg>
+          </button>
 
-              <button
-                class="btn btn-ghost btn-sm"
-                type="button"
-                onclick="exportXLSXById('${doc.id}')"
-                title="Скачать XLSX"
-              >
-                <svg class="icon" viewBox="0 0 16 16">
-                  <path d="M2 10v4h12v-4M8 2v8M5 7l3 3 3-3"/>
-                </svg>
-              </button>
+          <button
+            class="btn btn-ghost btn-sm"
+            onclick="
+              deleteArchive('${doc.id}')
+            "
+            title="Удалить"
+          >
+            <svg class="icon" viewBox="0 0 16 16">
+              <path d="M2 4h12"/>
+              <path d="M5 4V2h6v2"/>
+              <path d="M6 7v5M10 7v5"/>
+              <path d="M3 4l1 10h8l1-10"/>
+            </svg>
+          </button>
 
+        </td>
 
-              <button
-                class="btn btn-ghost btn-sm"
-                type="button"
-                onclick="deleteArchive('${doc.id}')"
-                title="Удалить"
-              >
-                <svg class="icon" viewBox="0 0 16 16">
-                  <path d="M2 4h12M5 4V2h6v2M6 7v5M10 7v5M3 4l1 10h8l1-10"/>
-                </svg>
-              </button>
-
-            </td>
-
-          </tr>
-        `
-      )
-      .join('');
+      </tr>
+    `).join('');
 }
 
 
 function loadFromArchive(id) {
   const doc =
     DB.archive.find(
-      (item) =>
-        item.id === id
+      item => item.id === id
     );
 
-  if (!doc) return;
+  if (!doc) {
+    return;
+  }
 
-  currentDoc.id =
-    doc.id;
-
-  currentDoc.type =
-    doc.type;
+  currentDoc.id = doc.id;
+  currentDoc.type = doc.type;
 
   currentDoc.rows =
-    (doc.rows || []).map(
-      (row) => ({
-        ...row,
-        uid: uid()
-      })
-    );
+    (doc.rows || []).map(row => ({
+      ...row,
+      uid: uid()
+    }));
 
   currentDoc.linkedKs2Ids =
-    [
-      ...(doc.linkedKs2Ids || [])
-    ];
+    (doc.linkedKs2Ids || []).slice();
 
   setDocType(doc.type);
 
-  setInputValue(
-    'f-docnum',
-    doc.num
-  );
+  byId('f-docnum').value =
+    doc.num || '';
 
-  setInputValue(
-    'f-docdate',
-    doc.date
-  );
+  byId('f-docdate').value =
+    doc.date || '';
 
-  setInputValue(
-    'f-period',
-    doc.period
-  );
+  byId('f-period').value =
+    doc.period || '';
 
-  setInputValue(
-    'f-date-from',
-    doc.dateFrom
-  );
+  byId('f-date-from').value =
+    doc.dateFrom || '';
 
-  setInputValue(
-    'f-date-to',
-    doc.dateTo
-  );
+  byId('f-date-to').value =
+    doc.dateTo || '';
 
-  setInputValue(
-    'f-investor',
-    doc.investor
-  );
+  byId('f-investor').value =
+    doc.investor || '';
 
-  setInputValue(
-    'f-contract-num',
-    doc.contractNum
-  );
+  byId('f-contract-num').value =
+    doc.contractNum || '';
 
-  setInputValue(
-    'f-contract-date',
-    doc.contractDate
-  );
+  byId('f-contract-date').value =
+    doc.contractDate || '';
 
-  setInputValue(
-    'f-object',
-    doc.objectName
-  );
+  byId('f-object').value =
+    doc.objectName || '';
 
-  setInputValue(
-    'f-object-addr',
-    doc.objectAddr
-  );
+  byId('f-object-addr').value =
+    doc.objectAddr || '';
 
-  setInputValue(
-    'f-contractor',
-    doc.contractor?.id || ''
-  );
+  byId('f-contractor').value =
+    doc.contractor?.id || '';
 
-  setInputValue(
-    'f-customer',
-    doc.customer?.id || ''
-  );
+  byId('f-customer').value =
+    doc.customer?.id || '';
 
-  const vatRate =
+  const rate =
     doc.totals?.vatRate;
 
-  const vatSelect =
-    document.getElementById(
-      'f-vat-rate'
-    );
+  if (rate === null) {
+    byId('f-vat-rate').value =
+      'none';
 
-  if (vatSelect) {
-    if (
-      vatRate === null
-    ) {
-      vatSelect.value =
-        'none';
-    } else if (
-      [5, 10, 20, 22].includes(
-        Number(vatRate)
-      )
-    ) {
-      vatSelect.value =
-        String(vatRate);
-    } else {
-      vatSelect.value =
-        'custom';
+  } else if (
+    [5, 10, 20, 22].includes(
+      Number(rate)
+    )
+  ) {
+    byId('f-vat-rate').value =
+      String(rate);
 
-      setInputValue(
-        'f-vat-custom',
-        vatRate ?? ''
-      );
-    }
+  } else {
+    byId('f-vat-rate').value =
+      'custom';
+
+    byId('f-vat-custom').value =
+      rate ?? '';
   }
 
   onVatRateChange();
 
   renderWorkRows();
 
-  if (
-    doc.type === 'ks3'
-  ) {
+  if (doc.type === 'ks3') {
     renderKs2PickList();
   }
 
@@ -3698,34 +2714,21 @@ function loadFromArchive(id) {
   switchTab('docs');
 
   toast(
-    'Документ загружен в форму',
+    'Документ загружен в форму.',
     'ok'
   );
-}
-
-
-function setInputValue(
-  id,
-  value
-) {
-  const element =
-    document.getElementById(id);
-
-  if (!element) return;
-
-  element.value =
-    value ?? '';
 }
 
 
 function deleteArchive(id) {
   const doc =
     DB.archive.find(
-      (item) =>
-        item.id === id
+      item => item.id === id
     );
 
-  if (!doc) return;
+  if (!doc) {
+    return;
+  }
 
   confirmDialog(
     'Удалить документ?',
@@ -3733,40 +2736,28 @@ function deleteArchive(id) {
     () => {
       DB.archive =
         DB.archive.filter(
-          (item) =>
-            item.id !== id
+          item => item.id !== id
         );
 
-      currentDoc
-        .linkedKs2Ids =
-        currentDoc
-          .linkedKs2Ids
-          .filter(
-            (linkedId) =>
-              linkedId !== id
-          );
-
-      if (
-        currentDoc.id === id
-      ) {
+      if (currentDoc.id === id) {
         currentDoc.id = null;
       }
 
+      currentDoc.linkedKs2Ids =
+        currentDoc
+          .linkedKs2Ids
+          .filter(linkedId => linkedId !== id);
+
       saveDB();
+
       renderArchive();
 
-      if (
-        currentDoc.type ===
-        'ks3'
-      ) {
+      if (currentDoc.type === 'ks3') {
         renderKs2PickList();
       }
 
-      renderTotals();
-      renderPreview();
-
       toast(
-        'Документ удалён',
+        'Документ удалён.',
         'ok'
       );
     }
@@ -3776,1795 +2767,35 @@ function deleteArchive(id) {
 
 function clearArchive() {
   if (!DB.archive.length) {
-    return toast(
-      'Архив и так пуст',
+    toast(
+      'Архив уже пуст.',
       'err'
     );
+
+    return;
   }
 
   confirmDialog(
     'Очистить весь архив?',
-    `Будут удалены все документы: ${DB.archive.length}. Действие необратимо.`,
+    `Будут удалены все документы: ${DB.archive.length}.`,
     () => {
       DB.archive = [];
-
       currentDoc.id = null;
       currentDoc.linkedKs2Ids = [];
 
       saveDB();
+
       renderArchive();
-      renderKs2PickList();
-      renderTotals();
-      renderPreview();
+
+      if (currentDoc.type === 'ks3') {
+        renderKs2PickList();
+      }
 
       toast(
-        'Архив очищен',
+        'Архив очищен.',
         'ok'
       );
     }
-  );
-}
-
-
-/* ============================================================
-   XML
-   ============================================================ */
-
-function buildDocXML(doc) {
-  const partyXml =
-    (label, party) => {
-      if (!party) {
-        return `<${label}/>`;
-      }
-
-      return `
-  <${label}>
-    <Name>${escapeXml(party.name)}</Name>
-    <INN>${escapeXml(party.inn)}</INN>
-    <KPP>${escapeXml(party.kpp || '')}</KPP>
-    <OGRN>${escapeXml(party.ogrn || '')}</OGRN>
-    <Address>${escapeXml(party.addr || '')}</Address>
-    <Boss position="${escapeXml(party.bossPos || '')}">${escapeXml(party.bossName || '')}</Boss>
-  </${label}>`;
-    };
-
-  let body = '';
-
-  if (doc.type === 'ks2') {
-    body = `
-  <Rows>
-${doc.rows
-  .map(
-    (row, index) => {
-      const qty =
-        num(row.qty);
-
-      const price =
-        num(row.price);
-
-      return `    <Row n="${index + 1}">
-      <Name>${escapeXml(row.name || '')}</Name>
-      <Unit>${escapeXml(row.unit || '')}</Unit>
-      <Qty>${qty}</Qty>
-      <Price>${price.toFixed(2)}</Price>
-      <Sum>${roundMoney(qty * price).toFixed(2)}</Sum>
-    </Row>`;
-    }
-  )
-  .join('\n')}
-  </Rows>`;
-  } else {
-    body = `
-  <LinkedKS2>
-${doc.linkedKs2Ids
-  .map(
-    (id) => {
-      const source =
-        DB.archive.find(
-          (item) =>
-            item.id === id
-        );
-
-      if (!source) {
-        return '';
-      }
-
-      return `    <Doc id="${escapeXml(source.id)}" num="${escapeXml(source.num)}" date="${escapeXml(source.date)}" gross="${roundMoney(source.totals?.gross || 0).toFixed(2)}"/>`;
-    }
-  )
-  .filter(Boolean)
-  .join('\n')}
-  </LinkedKS2>`;
-  }
-
-  return `<?xml version="1.0" encoding="UTF-8"?>
-<Document type="${doc.type.toUpperCase()}" number="${escapeXml(doc.num)}" date="${escapeXml(doc.date)}">
-  <Period>${escapeXml(doc.period || '')}</Period>
-  <WorkDates from="${escapeXml(doc.dateFrom || '')}" to="${escapeXml(doc.dateTo || '')}"/>
-  <Contract number="${escapeXml(doc.contractNum || '')}" date="${escapeXml(doc.contractDate || '')}"/>
-  <Object>
-    <Name>${escapeXml(doc.objectName || '')}</Name>
-    <Address>${escapeXml(doc.objectAddr || '')}</Address>
-  </Object>
-  <Investor>${escapeXml(doc.investor || '')}</Investor>
-${partyXml('Contractor', doc.contractor)}
-${partyXml('Customer', doc.customer)}
-${body}
-  <Totals>
-    <Base>${roundMoney(doc.totals.base).toFixed(2)}</Base>
-    <VATRate>${doc.totals.vatRate === null ? 'none' : doc.totals.vatRate}</VATRate>
-    <VAT>${roundMoney(doc.totals.vat).toFixed(2)}</VAT>
-    <Gross>${roundMoney(doc.totals.gross).toFixed(2)}</Gross>
-  </Totals>
-</Document>`;
-}
-
-
-function downloadXML() {
-  const doc =
-    getFormSnapshot();
-
-  if (!doc.num || !doc.date) {
-    return toast(
-      'Заполните номер и дату документа',
-      'err'
-    );
-  }
-
-  const xml =
-    buildDocXML(doc);
-
-  const filename =
-    `${doc.type.toUpperCase()}_${sanitizeFilename(doc.num)}_${doc.date}.xml`;
-
-  downloadBlob(
-    xml,
-    filename,
-    'application/xml;charset=utf-8'
-  );
-
-  toast(
-    'XML сформирован',
-    'ok'
-  );
-}
-
-
-/* ============================================================
-   XLSX — ПРОВЕРКИ
-   ============================================================ */
-
-function ensureXLSXAvailable() {
-  if (
-    typeof window.XLSX ===
-      'undefined' ||
-    !window.XLSX
-  ) {
-    toast(
-      'Библиотека Excel не загружена. Проверьте файл xlsx.full.min.js рядом с ks-generator.html.',
-      'err'
-    );
-
-    return false;
-  }
-
-  return true;
-}
-
-
-async function fetchTemplate(
-  type
-) {
-  const path =
-    TEMPLATE_PATHS[type];
-
-  if (!path) {
-    throw new Error(
-      'Неизвестный тип шаблона'
-    );
-  }
-
-  let response;
-
-  try {
-    response =
-      await fetch(
-        path,
-        {
-          cache: 'no-store'
-        }
-      );
-  } catch (error) {
-    throw new Error(
-      `Не удалось загрузить шаблон ${path}. Если страница открыта через file://, запускайте её через GitHub Pages или локальный HTTP-сервер.`
-    );
-  }
-
-  if (!response.ok) {
-    throw new Error(
-      `Шаблон не найден: ${path} (HTTP ${response.status})`
-    );
-  }
-
-  const buffer =
-    await response.arrayBuffer();
-
-  if (!buffer.byteLength) {
-    throw new Error(
-      `Шаблон ${path} пуст`
-    );
-  }
-
-  return buffer;
-}
-
-
-/* ============================================================
-   XLSX — ЯЧЕЙКИ
-   ============================================================ */
-
-function getWorksheet(
-  workbook,
-  type
-) {
-  const map =
-    TEMPLATE_MAP[type];
-
-  const sheetName =
-    workbook.SheetNames[
-      map.sheetIndex || 0
-    ];
-
-  if (!sheetName) {
-    throw new Error(
-      'В шаблоне не найден лист'
-    );
-  }
-
-  const worksheet =
-    workbook.Sheets[
-      sheetName
-    ];
-
-  if (!worksheet) {
-    throw new Error(
-      'Не удалось открыть лист шаблона'
-    );
-  }
-
-  return worksheet;
-}
-
-
-function isMergedCellSlave(
-  worksheet,
-  address
-) {
-  const range =
-    worksheet['!merges'];
-
-  if (!Array.isArray(range)) {
-    return false;
-  }
-
-  const cell =
-    XLSX.utils.decode_cell(
-      address
-    );
-
-  for (const merge of range) {
-    const inside =
-      cell.r >= merge.s.r &&
-      cell.r <= merge.e.r &&
-      cell.c >= merge.s.c &&
-      cell.c <= merge.e.c;
-
-    if (!inside) continue;
-
-    const isMaster =
-      cell.r === merge.s.r &&
-      cell.c === merge.s.c;
-
-    return !isMaster;
-  }
-
-  return false;
-}
-
-
-function mergedCellMaster(
-  worksheet,
-  address
-) {
-  const merges =
-    worksheet['!merges'];
-
-  if (!Array.isArray(merges)) {
-    return address;
-  }
-
-  const cell =
-    XLSX.utils.decode_cell(
-      address
-    );
-
-  for (const merge of merges) {
-    const inside =
-      cell.r >= merge.s.r &&
-      cell.r <= merge.e.r &&
-      cell.c >= merge.s.c &&
-      cell.c <= merge.e.c;
-
-    if (inside) {
-      return XLSX.utils.encode_cell(
-        merge.s
-      );
-    }
-  }
-
-  return address;
-}
-
-
-function writeCell(
-  worksheet,
-  address,
-  value,
-  options = {}
-) {
-  if (
-    !worksheet ||
-    !address
-  ) {
-    return;
-  }
-
-  const actualAddress =
-    mergedCellMaster(
-      worksheet,
-      address
-    );
-
-  const existing =
-    worksheet[
-      actualAddress
-    ] || {};
-
-  let cellType =
-    options.type;
-
-  let cellValue =
-    value;
-
-  if (
-    value instanceof Date
-  ) {
-    cellType = 'd';
-    cellValue = value;
-  } else if (
-    typeof value ===
-    'number'
-  ) {
-    cellType = 'n';
-  } else if (
-    typeof value ===
-    'boolean'
-  ) {
-    cellType = 'b';
-  } else {
-    cellType = 's';
-    cellValue =
-      safeString(value);
-  }
-
-  worksheet[
-    actualAddress
-  ] = {
-    ...existing,
-    t: cellType,
-    v: cellValue
-  };
-
-  if (
-    options.numberFormat
-  ) {
-    worksheet[
-      actualAddress
-    ].z =
-      options.numberFormat;
-  }
-
-  /*
-    Дата.
-  */
-  if (
-    value instanceof Date
-  ) {
-    worksheet[
-      actualAddress
-    ].z =
-      options.numberFormat ||
-      'dd.mm.yyyy';
-  }
-}
-
-
-function writeToFirstExistingCell(
-  worksheet,
-  addresses,
-  value,
-  options = {}
-) {
-  if (
-    !Array.isArray(addresses)
-  ) {
-    addresses = [addresses];
-  }
-
-  for (
-    const address of addresses
-  ) {
-    if (
-      worksheet[address] ||
-      mergedCellMaster(
-        worksheet,
-        address
-      ) !== address
-    ) {
-      writeCell(
-        worksheet,
-        address,
-        value,
-        options
-      );
-
-      return address;
-    }
-  }
-
-  /*
-    Если ни одной ячейки ещё нет, используем первый fallback.
-  */
-  if (addresses[0]) {
-    writeCell(
-      worksheet,
-      addresses[0],
-      value,
-      options
-    );
-
-    return addresses[0];
-  }
-
-  return null;
-}
-
-
-/* ============================================================
-   XLSX — ПОИСК ТЕКСТА В ШАБЛОНЕ
-   ============================================================ */
-
-function worksheetRange(
-  worksheet
-) {
-  const ref =
-    worksheet['!ref'];
-
-  if (!ref) return null;
-
-  return XLSX.utils.decode_range(
-    ref
-  );
-}
-
-
-function cellDisplayValue(cell) {
-  if (!cell) return '';
-
-  if (
-    cell.w !== undefined &&
-    cell.w !== null
-  ) {
-    return safeString(
-      cell.w
-    );
-  }
-
-  return safeString(
-    cell.v
-  );
-}
-
-
-function findCellsContaining(
-  worksheet,
-  searchTerms
-) {
-  const terms =
-    (
-      Array.isArray(
-        searchTerms
-      )
-        ? searchTerms
-        : [searchTerms]
-    )
-      .map(
-        normalizeSearch
-      )
-      .filter(Boolean);
-
-  if (!terms.length) {
-    return [];
-  }
-
-  const result = [];
-
-  const range =
-    worksheetRange(
-      worksheet
-    );
-
-  if (!range) {
-    return result;
-  }
-
-  for (
-    let row = range.s.r;
-    row <= range.e.r;
-    row++
-  ) {
-    for (
-      let column = range.s.c;
-      column <= range.e.c;
-      column++
-    ) {
-      const address =
-        XLSX.utils.encode_cell({
-          r: row,
-          c: column
-        });
-
-      const cell =
-        worksheet[address];
-
-      if (!cell) continue;
-
-      const text =
-        normalizeSearch(
-          cellDisplayValue(
-            cell
-          )
-        );
-
-      if (!text) continue;
-
-      const found =
-        terms.some(
-          (term) =>
-            text.includes(term)
-        );
-
-      if (found) {
-        result.push({
-          address,
-          row,
-          column,
-          text,
-          value:
-            cellDisplayValue(
-              cell
-            )
-        });
-      }
-    }
-  }
-
-  return result;
-}
-
-
-function findFirstCellContaining(
-  worksheet,
-  searchTerms
-) {
-  return (
-    findCellsContaining(
-      worksheet,
-      searchTerms
-    )[0] || null
-  );
-}
-
-
-function offsetAddress(
-  address,
-  columnOffset,
-  rowOffset = 0
-) {
-  const decoded =
-    XLSX.utils.decode_cell(
-      address
-    );
-
-  return XLSX.utils.encode_cell({
-    r:
-      decoded.r +
-      rowOffset,
-
-    c:
-      decoded.c +
-      columnOffset
-  });
-}
-
-
-function writeNextToLabel(
-  worksheet,
-  labels,
-  value,
-  options = {}
-) {
-  const found =
-    findFirstCellContaining(
-      worksheet,
-      labels
-    );
-
-  if (!found) {
-    return false;
-  }
-
-  const offsets =
-    options.offsets ||
-    [1, 2, 3, 4];
-
-  for (
-    const offset of offsets
-  ) {
-    const candidate =
-      offsetAddress(
-        found.address,
-        offset,
-        options.rowOffset || 0
-      );
-
-    const master =
-      mergedCellMaster(
-        worksheet,
-        candidate
-      );
-
-    /*
-      Не пишем поверх самой подписи,
-      если merge возвращает исходную ячейку.
-    */
-    if (
-      master ===
-      mergedCellMaster(
-        worksheet,
-        found.address
-      )
-    ) {
-      continue;
-    }
-
-    writeCell(
-      worksheet,
-      candidate,
-      value,
-      options
-    );
-
-    return true;
-  }
-
-  return false;
-}
-
-
-/* ============================================================
-   XLSX — СОСТАВНЫЕ СТРОКИ СТОРОН
-   ============================================================ */
-
-function partyExcelText(
-  party
-) {
-  if (!party) return '';
-
-  const pieces = [];
-
-  if (party.name) {
-    pieces.push(
-      party.name
-    );
-  }
-
-  const tax = [];
-
-  if (party.inn) {
-    tax.push(
-      'ИНН ' + party.inn
-    );
-  }
-
-  if (party.kpp) {
-    tax.push(
-      'КПП ' + party.kpp
-    );
-  }
-
-  if (tax.length) {
-    pieces.push(
-      tax.join(', ')
-    );
-  }
-
-  if (party.addr) {
-    pieces.push(
-      party.addr
-    );
-  }
-
-  return pieces.join(', ');
-}
-
-
-function objectExcelText(doc) {
-  return [
-    doc.objectName,
-    doc.objectAddr
-  ]
-    .filter(Boolean)
-    .join(', ');
-}
-
-
-/* ============================================================
-   XLSX — ОБЩИЕ РЕКВИЗИТЫ
-   ============================================================ */
-
-function fillCommonTemplateFields(
-  worksheet,
-  doc,
-  type
-) {
-  const map =
-    TEMPLATE_MAP[type];
-
-  /*
-    Номер.
-  */
-  const numberFound =
-    writeNextToLabel(
-      worksheet,
-      [
-        'номер документа',
-        'номер',
-        '№ документа'
-      ],
-      doc.num,
-      {
-        offsets: [1, 2, 3]
-      }
-    );
-
-  if (!numberFound) {
-    writeToFirstExistingCell(
-      worksheet,
-      map.cells.docNum,
-      doc.num
-    );
-  }
-
-  /*
-    Дата.
-  */
-  const excelDate =
-    isoDateToExcelDate(
-      doc.date
-    );
-
-  const dateFound =
-    writeNextToLabel(
-      worksheet,
-      [
-        'дата составления',
-        'дата документа'
-      ],
-      excelDate,
-      {
-        offsets: [1, 2, 3],
-        numberFormat:
-          'dd.mm.yyyy'
-      }
-    );
-
-  if (!dateFound) {
-    writeToFirstExistingCell(
-      worksheet,
-      map.cells.docDate,
-      excelDate,
-      {
-        numberFormat:
-          'dd.mm.yyyy'
-      }
-    );
-  }
-
-  /*
-    Инвестор.
-  */
-  if (doc.investor) {
-    const investorFound =
-      writeNextToLabel(
-        worksheet,
-        ['инвестор'],
-        doc.investor,
-        {
-          offsets:
-            [1, 2, 3, 4, 5]
-        }
-      );
-
-    if (!investorFound) {
-      writeToFirstExistingCell(
-        worksheet,
-        map.cells.investor,
-        doc.investor
-      );
-    }
-  }
-
-  /*
-    Заказчик.
-  */
-  const customerText =
-    partyExcelText(
-      doc.customer
-    );
-
-  const customerFound =
-    writeNextToLabel(
-      worksheet,
-      [
-        'заказчик',
-        'заказчик (генподрядчик)'
-      ],
-      customerText,
-      {
-        offsets:
-          [1, 2, 3, 4, 5]
-      }
-    );
-
-  if (!customerFound) {
-    writeToFirstExistingCell(
-      worksheet,
-      map.cells.customer,
-      customerText
-    );
-  }
-
-  /*
-    Подрядчик.
-  */
-  const contractorText =
-    partyExcelText(
-      doc.contractor
-    );
-
-  const contractorFound =
-    writeNextToLabel(
-      worksheet,
-      [
-        'подрядчик',
-        'подрядчик (субподрядчик)'
-      ],
-      contractorText,
-      {
-        offsets:
-          [1, 2, 3, 4, 5]
-      }
-    );
-
-  if (!contractorFound) {
-    writeToFirstExistingCell(
-      worksheet,
-      map.cells.contractor,
-      contractorText
-    );
-  }
-
-  /*
-    Объект.
-  */
-  const objectText =
-    objectExcelText(doc);
-
-  const objectFound =
-    writeNextToLabel(
-      worksheet,
-      [
-        'стройка',
-        'объект'
-      ],
-      objectText,
-      {
-        offsets:
-          [1, 2, 3, 4, 5]
-      }
-    );
-
-  if (!objectFound) {
-    writeToFirstExistingCell(
-      worksheet,
-      map.cells.object,
-      objectText
-    );
-  }
-
-  /*
-    Договор.
-  */
-  if (doc.contractNum) {
-    const contractNumberFound =
-      writeNextToLabel(
-        worksheet,
-        [
-          'номер договора',
-          'договор подряда'
-        ],
-        doc.contractNum,
-        {
-          offsets:
-            [1, 2, 3]
-        }
-      );
-
-    if (!contractNumberFound) {
-      writeToFirstExistingCell(
-        worksheet,
-        map.cells.contractNum,
-        doc.contractNum
-      );
-    }
-  }
-
-  if (doc.contractDate) {
-    writeToFirstExistingCell(
-      worksheet,
-      map.cells.contractDate,
-      isoDateToExcelDate(
-        doc.contractDate
-      ),
-      {
-        numberFormat:
-          'dd.mm.yyyy'
-      }
-    );
-  }
-
-  if (
-    type === 'ks2'
-  ) {
-    if (doc.dateFrom) {
-      writeToFirstExistingCell(
-        worksheet,
-        map.cells.dateFrom,
-        isoDateToExcelDate(
-          doc.dateFrom
-        ),
-        {
-          numberFormat:
-            'dd.mm.yyyy'
-        }
-      );
-    }
-
-    if (doc.dateTo) {
-      writeToFirstExistingCell(
-        worksheet,
-        map.cells.dateTo,
-        isoDateToExcelDate(
-          doc.dateTo
-        ),
-        {
-          numberFormat:
-            'dd.mm.yyyy'
-        }
-      );
-    }
-  }
-
-  if (
-    type === 'ks3' &&
-    doc.period
-  ) {
-    writeToFirstExistingCell(
-      worksheet,
-      map.cells.period,
-      doc.period
-    );
-  }
-}
-
-
-/* ============================================================
-   XLSX — КС-2
-   ============================================================ */
-
-function clearKs2WorkRows(
-  worksheet
-) {
-  const config =
-    TEMPLATE_MAP.ks2;
-
-  for (
-    const row of config.workRows
-  ) {
-    for (
-      const column of Object.values(
-        config.workColumns
-      )
-    ) {
-      const address =
-        `${column}${row}`;
-
-      /*
-        Не удаляем объект ячейки, потому что он может содержать
-        стиль. Только очищаем значение.
-      */
-      if (
-        worksheet[
-          mergedCellMaster(
-            worksheet,
-            address
-          )
-        ]
-      ) {
-        writeCell(
-          worksheet,
-          address,
-          ''
-        );
-      }
-    }
-  }
-}
-
-
-function fillKs2Template(
-  worksheet,
-  doc
-) {
-  fillCommonTemplateFields(
-    worksheet,
-    doc,
-    'ks2'
-  );
-
-  clearKs2WorkRows(
-    worksheet
-  );
-
-  const config =
-    TEMPLATE_MAP.ks2;
-
-  const availableRows =
-    config.workRows;
-
-  /*
-    Реальный шаблон имеет фиксированное число визуальных строк.
-    Если работ больше, чем строк в шаблоне, мы не должны молча
-    потерять данные.
-  */
-  if (
-    doc.rows.length >
-    availableRows.length
-  ) {
-    throw new Error(
-      `В шаблоне КС-2 сейчас настроено ${availableRows.length} строк работ, а в документе ${doc.rows.length}. Добавьте дополнительные строки в TEMPLATE_MAP.ks2.workRows.`
-    );
-  }
-
-  doc.rows.forEach(
-    (work, index) => {
-      const row =
-        availableRows[index];
-
-      const qty =
-        num(work.qty);
-
-      const price =
-        roundMoney(
-          num(work.price)
-        );
-
-      const amount =
-        roundMoney(
-          qty * price
-        );
-
-      writeCell(
-        worksheet,
-        `${config.workColumns.number}${row}`,
-        index + 1
-      );
-
-      writeCell(
-        worksheet,
-        `${config.workColumns.name}${row}`,
-        work.name || ''
-      );
-
-      writeCell(
-        worksheet,
-        `${config.workColumns.unit}${row}`,
-        work.unit || ''
-      );
-
-      writeCell(
-        worksheet,
-        `${config.workColumns.qty}${row}`,
-        qty,
-        {
-          numberFormat:
-            '0.###'
-        }
-      );
-
-      writeCell(
-        worksheet,
-        `${config.workColumns.price}${row}`,
-        price,
-        {
-          numberFormat:
-            '#,##0.00'
-        }
-      );
-
-      writeCell(
-        worksheet,
-        `${config.workColumns.sum}${row}`,
-        amount,
-        {
-          numberFormat:
-            '#,##0.00'
-        }
-      );
-    }
-  );
-
-  /*
-    Итоги.
-  */
-  writeToFirstExistingCell(
-    worksheet,
-    config.cells.totalBase,
-    roundMoney(
-      doc.totals.base
-    ),
-    {
-      numberFormat:
-        '#,##0.00'
-    }
-  );
-
-  if (
-    doc.totals.vatRate === null
-  ) {
-    writeToFirstExistingCell(
-      worksheet,
-      config.cells.vat,
-      'Без НДС'
-    );
-  } else {
-    writeToFirstExistingCell(
-      worksheet,
-      config.cells.vat,
-      roundMoney(
-        doc.totals.vat
-      ),
-      {
-        numberFormat:
-          '#,##0.00'
-      }
-    );
-  }
-
-  writeToFirstExistingCell(
-    worksheet,
-    config.cells.totalGross,
-    roundMoney(
-      doc.totals.gross
-    ),
-    {
-      numberFormat:
-        '#,##0.00'
-    }
-  );
-
-  /*
-    Дополнительно пробуем найти итоговые подписи,
-    если шаблон отличается по координатам.
-  */
-  writeAmountNearLabel(
-    worksheet,
-    [
-      'итого',
-      'всего'
-    ],
-    doc.totals.base
-  );
-}
-
-
-/* ============================================================
-   XLSX — КС-3
-   ============================================================ */
-
-function clearKs3Rows(
-  worksheet
-) {
-  const config =
-    TEMPLATE_MAP.ks3;
-
-  for (
-    const row of config.workRows
-  ) {
-    for (
-      const column of Object.values(
-        config.workColumns
-      )
-    ) {
-      const address =
-        `${column}${row}`;
-
-      if (
-        worksheet[
-          mergedCellMaster(
-            worksheet,
-            address
-          )
-        ]
-      ) {
-        writeCell(
-          worksheet,
-          address,
-          ''
-        );
-      }
-    }
-  }
-}
-
-
-function fillKs3Template(
-  worksheet,
-  doc
-) {
-  fillCommonTemplateFields(
-    worksheet,
-    doc,
-    'ks3'
-  );
-
-  clearKs3Rows(
-    worksheet
-  );
-
-  const config =
-    TEMPLATE_MAP.ks3;
-
-  const linked =
-    doc.linkedKs2Ids
-      .map(
-        (id) =>
-          DB.archive.find(
-            (item) =>
-              item.id === id
-          )
-      )
-      .filter(Boolean);
-
-  if (
-    linked.length >
-    config.workRows.length
-  ) {
-    throw new Error(
-      `В шаблоне КС-3 настроено ${config.workRows.length} строк, а выбрано ${linked.length} актов КС-2.`
-    );
-  }
-
-  linked.forEach(
-    (source, index) => {
-      const row =
-        config.workRows[
-          index
-        ];
-
-      /*
-        Строка КС-3.
-        В настоящей форме в ней логично показать
-        наименование объекта / акта.
-      */
-      const title = [
-        source.objectName ||
-          '',
-        `КС-2 № ${source.num || ''} от ${fmtDate(source.date)}`
-      ]
-        .filter(Boolean)
-        .join('. ');
-
-      writeCell(
-        worksheet,
-        `${config.workColumns.number}${row}`,
-        index + 1
-      );
-
-      writeCell(
-        worksheet,
-        `${config.workColumns.title}${row}`,
-        title
-      );
-
-      writeCell(
-        worksheet,
-        `${config.workColumns.base}${row}`,
-        roundMoney(
-          source.totals?.base ||
-          0
-        ),
-        {
-          numberFormat:
-            '#,##0.00'
-        }
-      );
-
-      writeCell(
-        worksheet,
-        `${config.workColumns.vat}${row}`,
-        roundMoney(
-          source.totals?.vat ||
-          0
-        ),
-        {
-          numberFormat:
-            '#,##0.00'
-        }
-      );
-
-      writeCell(
-        worksheet,
-        `${config.workColumns.gross}${row}`,
-        roundMoney(
-          source.totals?.gross ||
-          0
-        ),
-        {
-          numberFormat:
-            '#,##0.00'
-        }
-      );
-    }
-  );
-
-  writeToFirstExistingCell(
-    worksheet,
-    config.cells.totalBase,
-    roundMoney(
-      doc.totals.base
-    ),
-    {
-      numberFormat:
-        '#,##0.00'
-    }
-  );
-
-  if (
-    doc.totals.vatRate === null
-  ) {
-    writeToFirstExistingCell(
-      worksheet,
-      config.cells.vat,
-      'Без НДС'
-    );
-  } else {
-    writeToFirstExistingCell(
-      worksheet,
-      config.cells.vat,
-      roundMoney(
-        doc.totals.vat
-      ),
-      {
-        numberFormat:
-          '#,##0.00'
-      }
-    );
-  }
-
-  writeToFirstExistingCell(
-    worksheet,
-    config.cells.totalGross,
-    roundMoney(
-      doc.totals.gross
-    ),
-    {
-      numberFormat:
-        '#,##0.00'
-    }
-  );
-}
-
-
-/* ============================================================
-   XLSX — ПОИСК ИТОГОВ
-   ============================================================ */
-
-function writeAmountNearLabel(
-  worksheet,
-  labels,
-  amount
-) {
-  const matches =
-    findCellsContaining(
-      worksheet,
-      labels
-    );
-
-  if (!matches.length) {
-    return false;
-  }
-
-  /*
-    Используем последнюю найденную подпись "Итого"/"Всего":
-    в стандартных формах итог находится ниже таблицы.
-  */
-  const match =
-    matches[
-      matches.length - 1
-    ];
-
-  const candidates =
-    [1, 2, 3, 4, 5, 6]
-      .map(
-        (offset) =>
-          offsetAddress(
-            match.address,
-            offset
-          )
-      );
-
-  /*
-    Ищем максимально правую существующую ячейку.
-  */
-  let target = null;
-
-  for (
-    let i =
-      candidates.length - 1;
-    i >= 0;
-    i--
-  ) {
-    const candidate =
-      candidates[i];
-
-    if (
-      worksheet[
-        mergedCellMaster(
-          worksheet,
-          candidate
-        )
-      ]
-    ) {
-      target = candidate;
-      break;
-    }
-  }
-
-  if (!target) {
-    return false;
-  }
-
-  writeCell(
-    worksheet,
-    target,
-    roundMoney(amount),
-    {
-      numberFormat:
-        '#,##0.00'
-    }
-  );
-
-  return true;
-}
-
-
-/* ============================================================
-   XLSX — МЕТАДАННЫЕ
-   ============================================================ */
-
-function updateWorkbookMetadata(
-  workbook,
-  doc
-) {
-  workbook.Props = {
-    ...(workbook.Props || {}),
-
-    Title:
-      `${doc.type.toUpperCase()} № ${doc.num}`,
-
-    Subject:
-      doc.type === 'ks2'
-        ? 'Акт о приёмке выполненных работ'
-        : 'Справка о стоимости выполненных работ и затрат',
-
-    Author:
-      'ДжемБаланс',
-
-    Company:
-      doc.contractor?.name ||
-      'ДжемБаланс',
-
-    Comments:
-      'Сформировано приложением ДжемБаланс'
-  };
-}
-
-
-/* ============================================================
-   XLSX — ОСНОВНОЙ ЭКСПОРТ
-   ============================================================ */
-
-async function exportXLSX(
-  documentOverride = null
-) {
-  if (
-    !ensureXLSXAvailable()
-  ) {
-    return;
-  }
-
-  const doc =
-    documentOverride ||
-    getFormSnapshot();
-
-  if (
-    !validateDocument(doc)
-  ) {
-    return;
-  }
-
-  const buttonList =
-    document.querySelectorAll(
-      '[onclick^="exportXLSX"]'
-    );
-
-  const originalButtonTexts =
-    new Map();
-
-  buttonList.forEach(
-    (button) => {
-      originalButtonTexts.set(
-        button,
-        button.innerHTML
-      );
-
-      button.disabled = true;
-    }
-  );
-
-  try {
-    toast(
-      `Загружаю шаблон ${doc.type.toUpperCase()}…`
-    );
-
-    const buffer =
-      await fetchTemplate(
-        doc.type
-      );
-
-    /*
-      cellStyles:true и bookFiles:true помогают сохранить
-      максимум информации исходного шаблона при round-trip.
-    */
-    const workbook =
-      XLSX.read(
-        buffer,
-        {
-          type: 'array',
-          cellStyles: true,
-          cellDates: true,
-          cellNF: true,
-          cellText: true,
-          bookFiles: true,
-          bookVBA: true
-        }
-      );
-
-    const worksheet =
-      getWorksheet(
-        workbook,
-        doc.type
-      );
-
-    if (
-      doc.type === 'ks2'
-    ) {
-      fillKs2Template(
-        worksheet,
-        doc
-      );
-    } else {
-      fillKs3Template(
-        worksheet,
-        doc
-      );
-    }
-
-    updateWorkbookMetadata(
-      workbook,
-      doc
-    );
-
-    const prefix =
-      doc.type.toUpperCase();
-
-    const filename =
-      `${prefix}_${sanitizeFilename(doc.num)}_${doc.date}.xlsx`;
-
-    /*
-      ВАЖНО:
-      Используем writeFile по книге, загруженной из шаблона.
-      Не создаём book_new().
-    */
-    XLSX.writeFile(
-      workbook,
-      filename,
-      {
-        bookType: 'xlsx',
-        cellStyles: true,
-        compression: true
-      }
-    );
-
-    toast(
-      `${prefix} сформирован по шаблону`,
-      'ok'
-    );
-
-  } catch (error) {
-    console.error(
-      'Ошибка XLSX:',
-      error
-    );
-
-    toast(
-      error.message ||
-      'Не удалось сформировать XLSX',
-      'err'
-    );
-
-  } finally {
-    buttonList.forEach(
-      (button) => {
-        button.disabled = false;
-
-        if (
-          originalButtonTexts.has(
-            button
-          )
-        ) {
-          button.innerHTML =
-            originalButtonTexts.get(
-              button
-            );
-        }
-      }
-    );
-  }
-}
-
-
-async function exportXLSXById(id) {
-  const doc =
-    DB.archive.find(
-      (item) =>
-        item.id === id
-    );
-
-  if (!doc) {
-    return toast(
-      'Документ не найден',
-      'err'
-    );
-  }
-
-  await exportXLSX(
-    deepClone(doc)
-  );
-}
-
-
-/* ============================================================
-   ИМЯ ФАЙЛА
-   ============================================================ */
-
-function sanitizeFilename(
-  value
-) {
-  const sanitized =
-    safeString(value)
-      .replace(
-        /[\\/:*?"<>|]+/g,
-        '_'
-      )
-      .replace(
-        /\s+/g,
-        '_'
-      )
-      .replace(
-        /_+/g,
-        '_'
-      )
-      .replace(
-        /^_+|_+$/g,
-        ''
-      );
-
-  return sanitized ||
-    'document';
-}
-
-
-/* ============================================================
-   DOWNLOAD
-   ============================================================ */
-
-function downloadBlob(
-  content,
-  filename,
-  mime
-) {
-  const blob =
-    content instanceof Blob
-      ? content
-      : new Blob(
-          [content],
-          { type: mime }
-        );
-
-  const url =
-    URL.createObjectURL(
-      blob
-    );
-
-  const anchor =
-    document.createElement(
-      'a'
-    );
-
-  anchor.href = url;
-  anchor.download =
-    filename;
-
-  anchor.style.display =
-    'none';
-
-  document.body.appendChild(
-    anchor
-  );
-
-  anchor.click();
-  anchor.remove();
-
-  window.setTimeout(
-    () => {
-      URL.revokeObjectURL(
-        url
-      );
-    },
-    1000
   );
 }
 
@@ -5575,23 +2806,19 @@ function downloadBlob(
 
 function exportAllData() {
   const payload = {
-    app:
-      'ДжемБаланс КС',
-
-    version:
-      2,
-
+    version: 2,
     exportedAt:
       new Date().toISOString(),
 
-    data:
-      DB
+    data: DB
   };
 
   const filename =
-    `jembalance_ks_backup_${new Date()
+    'jembalance_backup_' +
+    new Date()
       .toISOString()
-      .slice(0, 10)}.json`;
+      .slice(0, 10) +
+    '.json';
 
   downloadBlob(
     JSON.stringify(
@@ -5604,7 +2831,7 @@ function exportAllData() {
   );
 
   toast(
-    'База экспортирована',
+    'База экспортирована.',
     'ok'
   );
 }
@@ -5612,135 +2839,100 @@ function exportAllData() {
 
 function importData() {
   const input =
-    document.createElement(
-      'input'
-    );
+    document.createElement('input');
 
   input.type = 'file';
-
   input.accept =
-    'application/json,.json';
+    '.json,application/json';
 
   input.addEventListener(
     'change',
-    (event) => {
+    event => {
       const file =
         event.target.files?.[0];
 
-      if (!file) return;
+      if (!file) {
+        return;
+      }
 
       const reader =
         new FileReader();
 
-      reader.onload =
-        (loadEvent) => {
-          try {
-            const parsed =
-              JSON.parse(
-                loadEvent
-                  .target
-                  .result
-              );
-
-            const incoming =
-              parsed.data ||
-              parsed;
-
-            const contractors =
-              Array.isArray(
-                incoming.contractors
-              )
-                ? incoming.contractors
-                : [];
-
-            const customers =
-              Array.isArray(
-                incoming.customers
-              )
-                ? incoming.customers
-                : [];
-
-            const archive =
-              Array.isArray(
-                incoming.archive
-              )
-                ? incoming.archive
-                : [];
-
-            if (
-              !(
-                'contractors' in
-                  incoming ||
-                'customers' in
-                  incoming ||
-                'archive' in
-                  incoming
-              )
-            ) {
-              return toast(
-                'Неподходящий формат файла',
-                'err'
-              );
-            }
-
-            confirmDialog(
-              'Импортировать данные?',
-              `Будут заменены: подрядчиков — ${contractors.length}, заказчиков — ${customers.length}, документов — ${archive.length}. Текущая база будет перезаписана.`,
-              () => {
-                DB.contractors =
-                  contractors;
-
-                DB.customers =
-                  customers;
-
-                DB.archive =
-                  archive;
-
-                currentDoc.id =
-                  null;
-
-                currentDoc
-                  .linkedKs2Ids =
-                  [];
-
-                saveDB();
-
-                refreshContractorSelect();
-                refreshCustomerSelect();
-
-                renderContractors();
-                renderCustomers();
-                renderArchive();
-
-                renderTotals();
-                renderPreview();
-
-                toast(
-                  'База импортирована',
-                  'ok'
-                );
-              }
+      reader.onload = ev => {
+        try {
+          const parsed =
+            JSON.parse(
+              ev.target.result
             );
 
-          } catch (error) {
+          const incoming =
+            parsed.data || parsed;
+
+          if (
+            !incoming.contractors &&
+            !incoming.customers &&
+            !incoming.archive
+          ) {
             toast(
-              'Ошибка чтения файла: ' +
-                error.message,
+              'Неподходящий формат файла.',
               'err'
             );
-          }
-        };
 
-      reader.onerror = () => {
-        toast(
-          'Не удалось прочитать файл',
-          'err'
-        );
+            return;
+          }
+
+          confirmDialog(
+            'Импортировать данные?',
+            `Будут заменены подрядчики, заказчики и архив текущей базы.`,
+            () => {
+              DB.contractors =
+                Array.isArray(
+                  incoming.contractors
+                )
+                  ? incoming.contractors
+                  : [];
+
+              DB.customers =
+                Array.isArray(
+                  incoming.customers
+                )
+                  ? incoming.customers
+                  : [];
+
+              DB.archive =
+                Array.isArray(
+                  incoming.archive
+                )
+                  ? incoming.archive
+                  : [];
+
+              saveDB();
+
+              refreshContractorSelect();
+              refreshCustomerSelect();
+
+              renderContractors();
+              renderCustomers();
+              renderArchive();
+              renderPreview();
+
+              toast(
+                'База импортирована.',
+                'ok'
+              );
+            }
+          );
+
+        } catch (error) {
+          toast(
+            'Ошибка чтения файла: ' +
+              error.message,
+            'err'
+          );
+        }
       };
 
-      reader.readAsText(
-        file
-      );
+      reader.readAsText(file);
     }
   );
 
@@ -5757,12 +2949,9 @@ function clearForm() {
     'Очистить форму?',
     'Все введённые данные документа будут сброшены. Архив и справочники не пострадают.',
     () => {
-      currentDoc = {
-        id: null,
-        type: 'ks2',
-        rows: [],
-        linkedKs2Ids: []
-      };
+      currentDoc.id = null;
+      currentDoc.rows = [];
+      currentDoc.linkedKs2Ids = [];
 
       [
         'f-docnum',
@@ -5775,44 +2964,31 @@ function clearForm() {
         'f-object',
         'f-object-addr',
         'f-vat-custom'
-      ].forEach(
-        (id) => {
-          setInputValue(
-            id,
-            ''
-          );
+      ].forEach(id => {
+        const el = byId(id);
+
+        if (el) {
+          el.value = '';
         }
-      );
+      });
 
-      setInputValue(
-        'f-docdate',
-        todayISO()
-      );
+      byId('f-docdate').value =
+        new Date()
+          .toISOString()
+          .slice(0, 10);
 
-      setInputValue(
-        'f-contractor',
-        ''
-      );
-
-      setInputValue(
-        'f-customer',
-        ''
-      );
-
-      setInputValue(
-        'f-vat-rate',
-        '20'
-      );
+      byId('f-contractor').value = '';
+      byId('f-customer').value = '';
+      byId('f-vat-rate').value = '20';
 
       setDocType('ks2');
 
-      onVatRateChange();
       renderWorkRows();
       renderTotals();
       renderPreview();
 
       toast(
-        'Форма очищена',
+        'Форма очищена.',
         'ok'
       );
     }
@@ -5821,90 +2997,2252 @@ function clearForm() {
 
 
 /* ============================================================
-   ДАТА
+   XLSX — ВСПОМОГАТЕЛЬНЫЕ ФУНКЦИИ
    ============================================================ */
 
-function todayISO() {
-  const now =
-    new Date();
+/*
+  SheetJS здесь используется ТОЛЬКО для чтения координат
+  ячеек и объединений исходной книги.
 
-  const year =
-    now.getFullYear();
+  Запись обратно выполняется через JSZip напрямую в XML.
+  Таким образом мы не пересобираем книгу SheetJS-ом.
+*/
 
-  const month =
-    String(
-      now.getMonth() + 1
-    ).padStart(
-      2,
-      '0'
+
+function assertExcelLibraries() {
+  if (
+    typeof JSZip === 'undefined'
+  ) {
+    throw new Error(
+      'Библиотека JSZip не загружена.'
+    );
+  }
+
+  if (
+    typeof XLSX === 'undefined'
+  ) {
+    throw new Error(
+      'Библиотека SheetJS не загружена.'
+    );
+  }
+}
+
+
+async function fetchTemplate(type) {
+  const path =
+    TEMPLATE_PATHS[type];
+
+  if (!path) {
+    throw new Error(
+      'Неизвестный тип шаблона.'
+    );
+  }
+
+  const response =
+    await fetch(
+      path,
+      {
+        cache: 'no-store'
+      }
     );
 
-  const day =
-    String(
-      now.getDate()
-    ).padStart(
-      2,
-      '0'
+  if (!response.ok) {
+    throw new Error(
+      `Не удалось загрузить шаблон ${path}. HTTP ${response.status}`
+    );
+  }
+
+  return await response.arrayBuffer();
+}
+
+
+function getFirstSheetInfo(arrayBuffer) {
+  const workbook =
+    XLSX.read(
+      arrayBuffer,
+      {
+        type: 'array',
+        cellStyles: true,
+        cellDates: false,
+        cellFormula: true
+      }
     );
 
-  return `${year}-${month}-${day}`;
+  const sheetName =
+    workbook.SheetNames[0];
+
+  if (!sheetName) {
+    throw new Error(
+      'В шаблоне не найден рабочий лист.'
+    );
+  }
+
+  const sheet =
+    workbook.Sheets[sheetName];
+
+  return {
+    workbook,
+    sheetName,
+    sheet
+  };
+}
+
+
+function cellAddress(row, col) {
+  return XLSX.utils.encode_cell({
+    r: row,
+    c: col
+  });
+}
+
+
+function decodeAddress(address) {
+  return XLSX.utils.decode_cell(
+    address
+  );
+}
+
+
+function getSheetCellText(
+  sheet,
+  address
+) {
+  const cell =
+    sheet[address];
+
+  if (!cell) {
+    return '';
+  }
+
+  if (
+    cell.w !== undefined &&
+    cell.w !== null
+  ) {
+    return String(cell.w);
+  }
+
+  if (
+    cell.v !== undefined &&
+    cell.v !== null
+  ) {
+    return String(cell.v);
+  }
+
+  return '';
+}
+
+
+function listSheetCells(sheet) {
+  const cells = [];
+
+  Object.keys(sheet).forEach(key => {
+    if (key.startsWith('!')) {
+      return;
+    }
+
+    const pos =
+      decodeAddress(key);
+
+    cells.push({
+      address: key,
+      row: pos.r,
+      col: pos.c,
+      text:
+        getSheetCellText(
+          sheet,
+          key
+        ),
+
+      normalized:
+        normalizeText(
+          getSheetCellText(
+            sheet,
+            key
+          )
+        )
+    });
+  });
+
+  return cells;
+}
+
+
+function findCellByText(
+  sheet,
+  patterns,
+  options = {}
+) {
+  const cells =
+    listSheetCells(sheet);
+
+  const normalizedPatterns =
+    (Array.isArray(patterns)
+      ? patterns
+      : [patterns]
+    ).map(normalizeText);
+
+  const exact =
+    options.exact === true;
+
+  const minRow =
+    options.minRow ?? -Infinity;
+
+  const maxRow =
+    options.maxRow ?? Infinity;
+
+  const minCol =
+    options.minCol ?? -Infinity;
+
+  const maxCol =
+    options.maxCol ?? Infinity;
+
+  const result =
+    cells.find(cell => {
+      if (
+        cell.row < minRow ||
+        cell.row > maxRow ||
+        cell.col < minCol ||
+        cell.col > maxCol
+      ) {
+        return false;
+      }
+
+      return normalizedPatterns.some(
+        pattern => {
+          if (exact) {
+            return (
+              cell.normalized === pattern
+            );
+          }
+
+          return (
+            cell.normalized.includes(
+              pattern
+            )
+          );
+        }
+      );
+    });
+
+  return result || null;
+}
+
+
+function findCellsByText(
+  sheet,
+  patterns,
+  options = {}
+) {
+  const cells =
+    listSheetCells(sheet);
+
+  const normalizedPatterns =
+    (Array.isArray(patterns)
+      ? patterns
+      : [patterns]
+    ).map(normalizeText);
+
+  return cells.filter(cell => {
+    if (
+      options.minRow !== undefined &&
+      cell.row < options.minRow
+    ) {
+      return false;
+    }
+
+    if (
+      options.maxRow !== undefined &&
+      cell.row > options.maxRow
+    ) {
+      return false;
+    }
+
+    if (
+      options.minCol !== undefined &&
+      cell.col < options.minCol
+    ) {
+      return false;
+    }
+
+    if (
+      options.maxCol !== undefined &&
+      cell.col > options.maxCol
+    ) {
+      return false;
+    }
+
+    return normalizedPatterns.some(
+      pattern => {
+        if (options.exact) {
+          return (
+            cell.normalized === pattern
+          );
+        }
+
+        return (
+          cell.normalized.includes(
+            pattern
+          )
+        );
+      }
+    );
+  });
+}
+
+
+function getMergedRangeForCell(
+  sheet,
+  row,
+  col
+) {
+  const merges =
+    sheet['!merges'] || [];
+
+  return (
+    merges.find(range => {
+      return (
+        row >= range.s.r &&
+        row <= range.e.r &&
+        col >= range.s.c &&
+        col <= range.e.c
+      );
+    }) || null
+  );
+}
+
+
+function topLeftOfMergedRange(
+  sheet,
+  row,
+  col
+) {
+  const merge =
+    getMergedRangeForCell(
+      sheet,
+      row,
+      col
+    );
+
+  if (!merge) {
+    return {
+      row,
+      col
+    };
+  }
+
+  return {
+    row: merge.s.r,
+    col: merge.s.c
+  };
+}
+
+
+function nextLogicalCellToRight(
+  sheet,
+  row,
+  col,
+  maxDistance = 40
+) {
+  const originMerge =
+    getMergedRangeForCell(
+      sheet,
+      row,
+      col
+    );
+
+  let startCol =
+    originMerge
+      ? originMerge.e.c + 1
+      : col + 1;
+
+  const merges =
+    sheet['!merges'] || [];
+
+  const candidateMerges =
+    merges
+      .filter(range => {
+        return (
+          row >= range.s.r &&
+          row <= range.e.r &&
+          range.s.c >= startCol
+        );
+      })
+      .sort(
+        (a, b) =>
+          a.s.c - b.s.c
+      );
+
+  if (candidateMerges.length) {
+    const first =
+      candidateMerges[0];
+
+    if (
+      first.s.c - startCol <=
+      maxDistance
+    ) {
+      return {
+        row: first.s.r,
+        col: first.s.c
+      };
+    }
+  }
+
+  return {
+    row,
+    col: startCol
+  };
+}
+
+
+function logicalCellBelow(
+  sheet,
+  row,
+  col,
+  rowOffset = 1
+) {
+  const targetRow =
+    row + rowOffset;
+
+  return topLeftOfMergedRange(
+    sheet,
+    targetRow,
+    col
+  );
+}
+
+
+function findNumberingRow(
+  sheet,
+  maxColumnNumber
+) {
+  const cells =
+    listSheetCells(sheet);
+
+  const grouped =
+    new Map();
+
+  cells.forEach(cell => {
+    const text =
+      String(cell.text).trim();
+
+    if (
+      !/^\d+$/.test(text)
+    ) {
+      return;
+    }
+
+    const value =
+      Number(text);
+
+    if (
+      value < 1 ||
+      value > maxColumnNumber
+    ) {
+      return;
+    }
+
+    if (
+      !grouped.has(cell.row)
+    ) {
+      grouped.set(
+        cell.row,
+        []
+      );
+    }
+
+    grouped
+      .get(cell.row)
+      .push({
+        value,
+        col: cell.col
+      });
+  });
+
+  let best = null;
+
+  for (
+    const [row, values]
+    of grouped.entries()
+  ) {
+    const unique =
+      new Map();
+
+    values.forEach(item => {
+      if (
+        !unique.has(item.value)
+      ) {
+        unique.set(
+          item.value,
+          item.col
+        );
+      }
+    });
+
+    let matched = 0;
+
+    for (
+      let i = 1;
+      i <= maxColumnNumber;
+      i++
+    ) {
+      if (unique.has(i)) {
+        matched++;
+      }
+    }
+
+    if (
+      matched >=
+      Math.min(
+        maxColumnNumber,
+        5
+      )
+    ) {
+      if (
+        !best ||
+        matched > best.matched
+      ) {
+        best = {
+          row,
+          matched,
+          columns: unique
+        };
+      }
+    }
+  }
+
+  return best;
+}
+
+
+function findLikelyTotalsRow(
+  sheet,
+  startRow
+) {
+  const candidates =
+    findCellsByText(
+      sheet,
+      [
+        'итого',
+        'всего',
+        'ндс'
+      ],
+      {
+        minRow: startRow
+      }
+    );
+
+  if (!candidates.length) {
+    return null;
+  }
+
+  candidates.sort(
+    (a, b) =>
+      a.row - b.row
+  );
+
+  return candidates[0].row;
+}
+
+
+function buildCompanyLine(company) {
+  if (!company) {
+    return '';
+  }
+
+  return [
+    company.name,
+    company.addr,
+    company.phone,
+    company.email
+  ]
+    .filter(Boolean)
+    .join(', ');
 }
 
 
 /* ============================================================
-   ПРОВЕРКА ШАБЛОНОВ
+   XLSX — РАБОТА С XML
    ============================================================ */
 
-async function checkTemplateFiles() {
-  const results = [];
+function xmlParse(text) {
+  return new DOMParser()
+    .parseFromString(
+      text,
+      'application/xml'
+    );
+}
 
-  for (
-    const type of
-    ['ks2', 'ks3']
-  ) {
-    try {
-      const response =
-        await fetch(
-          TEMPLATE_PATHS[type],
-          {
-            method: 'GET',
-            cache: 'no-store'
-          }
-        );
 
-      results.push({
-        type,
-        ok:
-          response.ok
-      });
+function xmlSerialize(doc) {
+  return new XMLSerializer()
+    .serializeToString(doc);
+}
 
-    } catch (_) {
-      results.push({
-        type,
-        ok: false
-      });
-    }
+
+function ensureWorksheetRow(
+  worksheetDoc,
+  rowNumber
+) {
+  const ns =
+    worksheetDoc
+      .documentElement
+      .namespaceURI;
+
+  const sheetData =
+    worksheetDoc
+      .getElementsByTagNameNS(
+        ns,
+        'sheetData'
+      )[0];
+
+  if (!sheetData) {
+    throw new Error(
+      'В XML листа отсутствует sheetData.'
+    );
   }
 
-  const broken =
-    results.filter(
-      (item) =>
-        !item.ok
+  let row =
+    Array.from(
+      sheetData
+        .getElementsByTagNameNS(
+          ns,
+          'row'
+        )
+    ).find(
+      element =>
+        Number(
+          element.getAttribute('r')
+        ) === rowNumber
+    );
+
+  if (row) {
+    return row;
+  }
+
+  row =
+    worksheetDoc.createElementNS(
+      ns,
+      'row'
+    );
+
+  row.setAttribute(
+    'r',
+    String(rowNumber)
+  );
+
+  const rows =
+    Array.from(
+      sheetData.children
+    );
+
+  const next =
+    rows.find(
+      element =>
+        Number(
+          element.getAttribute('r')
+        ) > rowNumber
+    );
+
+  if (next) {
+    sheetData.insertBefore(
+      row,
+      next
+    );
+  } else {
+    sheetData.appendChild(row);
+  }
+
+  return row;
+}
+
+
+function ensureWorksheetCell(
+  worksheetDoc,
+  address
+) {
+  const ns =
+    worksheetDoc
+      .documentElement
+      .namespaceURI;
+
+  const pos =
+    XLSX.utils.decode_cell(
+      address
+    );
+
+  const rowNumber =
+    pos.r + 1;
+
+  const row =
+    ensureWorksheetRow(
+      worksheetDoc,
+      rowNumber
+    );
+
+  let cell =
+    Array.from(
+      row.getElementsByTagNameNS(
+        ns,
+        'c'
+      )
+    ).find(
+      el =>
+        el.getAttribute('r') ===
+        address
+    );
+
+  if (cell) {
+    return cell;
+  }
+
+  cell =
+    worksheetDoc.createElementNS(
+      ns,
+      'c'
+    );
+
+  cell.setAttribute(
+    'r',
+    address
+  );
+
+  const targetCol =
+    pos.c;
+
+  const cells =
+    Array.from(
+      row.children
+    );
+
+  const next =
+    cells.find(el => {
+      if (
+        el.localName !== 'c'
+      ) {
+        return false;
+      }
+
+      const ref =
+        el.getAttribute('r');
+
+      if (!ref) {
+        return false;
+      }
+
+      return (
+        XLSX.utils
+          .decode_cell(ref)
+          .c >
+        targetCol
+      );
+    });
+
+  if (next) {
+    row.insertBefore(
+      cell,
+      next
+    );
+  } else {
+    row.appendChild(cell);
+  }
+
+  return cell;
+}
+
+
+function clearCellValue(cell) {
+  Array.from(
+    cell.childNodes
+  ).forEach(node => {
+    if (
+      node.nodeType === 1 &&
+      (
+        node.localName === 'v' ||
+        node.localName === 'is' ||
+        node.localName === 'f'
+      )
+    ) {
+      cell.removeChild(node);
+    }
+  });
+
+  cell.removeAttribute('t');
+}
+
+
+function setInlineStringCell(
+  worksheetDoc,
+  address,
+  value
+) {
+  const ns =
+    worksheetDoc
+      .documentElement
+      .namespaceURI;
+
+  const cell =
+    ensureWorksheetCell(
+      worksheetDoc,
+      address
     );
 
   /*
-    Не показываем ошибку при file://,
-    потому что fetch в таком режиме всё равно не работает.
-    Пользователь увидит точное сообщение при попытке экспорта.
+    ВАЖНО:
+    атрибут стиля "s" не трогаем.
+  */
+  clearCellValue(cell);
+
+  cell.setAttribute(
+    't',
+    'inlineStr'
+  );
+
+  const is =
+    worksheetDoc.createElementNS(
+      ns,
+      'is'
+    );
+
+  const t =
+    worksheetDoc.createElementNS(
+      ns,
+      't'
+    );
+
+  const stringValue =
+    String(
+      value ?? ''
+    );
+
+  if (
+    /^\s|\s$/.test(
+      stringValue
+    )
+  ) {
+    t.setAttributeNS(
+      'http://www.w3.org/XML/1998/namespace',
+      'xml:space',
+      'preserve'
+    );
+  }
+
+  t.textContent =
+    stringValue;
+
+  is.appendChild(t);
+  cell.appendChild(is);
+}
+
+
+function setNumberCell(
+  worksheetDoc,
+  address,
+  value
+) {
+  const ns =
+    worksheetDoc
+      .documentElement
+      .namespaceURI;
+
+  const cell =
+    ensureWorksheetCell(
+      worksheetDoc,
+      address
+    );
+
+  clearCellValue(cell);
+
+  const v =
+    worksheetDoc.createElementNS(
+      ns,
+      'v'
+    );
+
+  v.textContent =
+    String(num(value));
+
+  cell.appendChild(v);
+}
+
+
+function setDateCell(
+  worksheetDoc,
+  address,
+  iso
+) {
+  const serial =
+    excelSerialFromISO(iso);
+
+  if (serial === null) {
+    setInlineStringCell(
+      worksheetDoc,
+      address,
+      ''
+    );
+
+    return;
+  }
+
+  setNumberCell(
+    worksheetDoc,
+    address,
+    serial
+  );
+}
+
+
+/* ============================================================
+   XLSX — ПОИСК ПЕРВОГО ЛИСТА В ZIP
+   ============================================================ */
+
+async function getFirstWorksheetZipPath(
+  zip
+) {
+  const workbookXml =
+    await zip
+      .file(
+        'xl/workbook.xml'
+      )
+      ?.async('string');
+
+  const relsXml =
+    await zip
+      .file(
+        'xl/_rels/workbook.xml.rels'
+      )
+      ?.async('string');
+
+  if (
+    !workbookXml ||
+    !relsXml
+  ) {
+    throw new Error(
+      'Повреждённая структура XLSX.'
+    );
+  }
+
+  const workbookDoc =
+    xmlParse(workbookXml);
+
+  const relsDoc =
+    xmlParse(relsXml);
+
+  const sheet =
+    Array.from(
+      workbookDoc
+        .getElementsByTagName('*')
+    ).find(
+      el =>
+        el.localName === 'sheet'
+    );
+
+  if (!sheet) {
+    throw new Error(
+      'Не найден лист книги.'
+    );
+  }
+
+  const relId =
+    sheet.getAttribute(
+      'r:id'
+    ) ||
+    sheet.getAttributeNS(
+      'http://schemas.openxmlformats.org/officeDocument/2006/relationships',
+      'id'
+    );
+
+  const relationship =
+    Array.from(
+      relsDoc
+        .getElementsByTagName('*')
+    ).find(el => {
+      return (
+        el.localName ===
+          'Relationship' &&
+        el.getAttribute('Id') ===
+          relId
+      );
+    });
+
+  if (!relationship) {
+    throw new Error(
+      'Не удалось определить XML листа.'
+    );
+  }
+
+  let target =
+    relationship
+      .getAttribute('Target');
+
+  target =
+    target.replace(
+      /^\/+/,
+      ''
+    );
+
+  if (
+    !target.startsWith('xl/')
+  ) {
+    target =
+      'xl/' + target;
+  }
+
+  target =
+    target.replace(
+      /\\/g,
+      '/'
+    );
+
+  return target;
+}
+
+
+/* ============================================================
+   XLSX — ПОИСК ЦЕЛЕВОЙ ЯЧЕЙКИ ПО ПОДПИСИ
+   ============================================================ */
+
+function getTargetRightOfLabel(
+  sheet,
+  patterns,
+  options = {}
+) {
+  const label =
+    findCellByText(
+      sheet,
+      patterns,
+      options
+    );
+
+  if (!label) {
+    return null;
+  }
+
+  const target =
+    nextLogicalCellToRight(
+      sheet,
+      label.row,
+      label.col,
+      options.maxDistance || 60
+    );
+
+  return cellAddress(
+    target.row,
+    target.col
+  );
+}
+
+
+function getTargetBelowLabel(
+  sheet,
+  patterns,
+  rowOffset = 1,
+  options = {}
+) {
+  const label =
+    findCellByText(
+      sheet,
+      patterns,
+      options
+    );
+
+  if (!label) {
+    return null;
+  }
+
+  const target =
+    logicalCellBelow(
+      sheet,
+      label.row,
+      label.col,
+      rowOffset
+    );
+
+  return cellAddress(
+    target.row,
+    target.col
+  );
+}
+
+
+function writeIfAddress(
+  worksheetDoc,
+  address,
+  value,
+  type = 'text'
+) {
+  if (!address) {
+    return false;
+  }
+
+  if (type === 'number') {
+    setNumberCell(
+      worksheetDoc,
+      address,
+      value
+    );
+
+  } else if (type === 'date') {
+    setDateCell(
+      worksheetDoc,
+      address,
+      value
+    );
+
+  } else {
+    setInlineStringCell(
+      worksheetDoc,
+      address,
+      value ?? ''
+    );
+  }
+
+  return true;
+}
+
+
+/* ============================================================
+   XLSX — ОБЩИЕ РЕКВИЗИТЫ
+   ============================================================ */
+
+function patchCommonFields(
+  sheet,
+  worksheetDoc,
+  data
+) {
+  /*
+    Инвестор
+  */
+  writeIfAddress(
+    worksheetDoc,
+    getTargetRightOfLabel(
+      sheet,
+      ['инвестор']
+    ),
+    data.investor || ''
+  );
+
+
+  /*
+    Заказчик
+  */
+  writeIfAddress(
+    worksheetDoc,
+    getTargetRightOfLabel(
+      sheet,
+      [
+        'заказчик (генподрядчик)',
+        'заказчик'
+      ]
+    ),
+    buildCompanyLine(
+      data.customer
+    )
+  );
+
+
+  /*
+    Подрядчик
+  */
+  writeIfAddress(
+    worksheetDoc,
+    getTargetRightOfLabel(
+      sheet,
+      [
+        'подрядчик (субподрядчик)',
+        'подрядчик'
+      ]
+    ),
+    buildCompanyLine(
+      data.contractor
+    )
+  );
+
+
+  /*
+    Стройка — указываем объект + адрес
+  */
+  writeIfAddress(
+    worksheetDoc,
+    getTargetRightOfLabel(
+      sheet,
+      ['стройка']
+    ),
+    [
+      data.objectName,
+      data.objectAddr
+    ]
+      .filter(Boolean)
+      .join(', ')
+  );
+
+
+  /*
+    Объект
+  */
+  writeIfAddress(
+    worksheetDoc,
+    getTargetRightOfLabel(
+      sheet,
+      ['объект']
+    ),
+    data.objectName || ''
+  );
+
+
+  /*
+    Номер документа
+  */
+  writeIfAddress(
+    worksheetDoc,
+    getTargetBelowLabel(
+      sheet,
+      [
+        'номер документа'
+      ]
+    ),
+    data.num || ''
+  );
+
+
+  /*
+    Дата составления
+  */
+  writeIfAddress(
+    worksheetDoc,
+    getTargetBelowLabel(
+      sheet,
+      [
+        'дата составления'
+      ]
+    ),
+    data.date,
+    'date'
+  );
+
+
+  /*
+    Договор
+  */
+  const contractLabel =
+    findCellByText(
+      sheet,
+      [
+        'договор подряда (контракт)',
+        'договор подряда'
+      ]
+    );
+
+  if (contractLabel) {
+    const numberLabel =
+      findCellByText(
+        sheet,
+        ['номер'],
+        {
+          exact: true,
+          minRow:
+            contractLabel.row - 1,
+          maxRow:
+            contractLabel.row + 2,
+          minCol:
+            contractLabel.col,
+          maxCol:
+            contractLabel.col + 40
+        }
+      );
+
+    if (numberLabel) {
+      const target =
+        nextLogicalCellToRight(
+          sheet,
+          numberLabel.row,
+          numberLabel.col
+        );
+
+      writeIfAddress(
+        worksheetDoc,
+        cellAddress(
+          target.row,
+          target.col
+        ),
+        data.contractNum || ''
+      );
+    }
+
+    const dateLabel =
+      findCellByText(
+        sheet,
+        ['дата'],
+        {
+          exact: true,
+          minRow:
+            contractLabel.row - 1,
+          maxRow:
+            contractLabel.row + 4,
+          minCol:
+            contractLabel.col,
+          maxCol:
+            contractLabel.col + 40
+        }
+      );
+
+    if (dateLabel) {
+      const target =
+        nextLogicalCellToRight(
+          sheet,
+          dateLabel.row,
+          dateLabel.col
+        );
+
+      writeIfAddress(
+        worksheetDoc,
+        cellAddress(
+          target.row,
+          target.col
+        ),
+        data.contractDate,
+        'date'
+      );
+    }
+  }
+
+
+  /*
+    Отчётный период.
+    Ищем подписи "с" и "по" рядом с блоком.
+  */
+  const periodLabel =
+    findCellByText(
+      sheet,
+      [
+        'отчетный период',
+        'отчётный период'
+      ]
+    );
+
+  if (periodLabel) {
+    const fromLabel =
+      findCellByText(
+        sheet,
+        ['с'],
+        {
+          exact: true,
+          minRow:
+            periodLabel.row,
+          maxRow:
+            periodLabel.row + 4,
+          minCol:
+            periodLabel.col - 2,
+          maxCol:
+            periodLabel.col + 30
+        }
+      );
+
+    const toLabel =
+      findCellByText(
+        sheet,
+        ['по'],
+        {
+          exact: true,
+          minRow:
+            periodLabel.row,
+          maxRow:
+            periodLabel.row + 4,
+          minCol:
+            periodLabel.col - 2,
+          maxCol:
+            periodLabel.col + 30
+        }
+      );
+
+    if (fromLabel) {
+      const target =
+        logicalCellBelow(
+          sheet,
+          fromLabel.row,
+          fromLabel.col
+        );
+
+      writeIfAddress(
+        worksheetDoc,
+        cellAddress(
+          target.row,
+          target.col
+        ),
+        data.dateFrom,
+        'date'
+      );
+    }
+
+    if (toLabel) {
+      const target =
+        logicalCellBelow(
+          sheet,
+          toLabel.row,
+          toLabel.col
+        );
+
+      writeIfAddress(
+        worksheetDoc,
+        cellAddress(
+          target.row,
+          target.col
+        ),
+        data.dateTo,
+        'date'
+      );
+    }
+  }
+}
+
+
+/* ============================================================
+   XLSX — КС-2
+   ============================================================ */
+
+function patchKs2(
+  sheet,
+  worksheetDoc,
+  data
+) {
+  patchCommonFields(
+    sheet,
+    worksheetDoc,
+    data
+  );
+
+  /*
+    В официальной КС-2 логические колонки
+    подписаны цифрами 1–8.
+
+    1 — № п/п
+    2 — позиция по смете
+    3 — наименование работ
+    4 — номер единичной расценки
+    5 — единица измерения
+    6 — количество
+    7 — цена за единицу
+    8 — стоимость
+  */
+
+  const numbering =
+    findNumberingRow(
+      sheet,
+      8
+    );
+
+  if (!numbering) {
+    throw new Error(
+      'В шаблоне КС-2 не удалось определить строку с номерами колонок 1–8.'
+    );
+  }
+
+  const startRow =
+    numbering.row + 1;
+
+  let totalsRow =
+    findLikelyTotalsRow(
+      sheet,
+      startRow
+    );
+
+  /*
+    Если подпись "Итого" не найдена,
+    используем разумный запас строк.
   */
   if (
-    broken.length &&
-    location.protocol !==
-      'file:'
+    totalsRow === null ||
+    totalsRow <= startRow
   ) {
-    console.warn(
-      'Не найдены XLSX-шаблоны:',
-      broken
+    totalsRow =
+      startRow + 40;
+  }
+
+  const availableRows =
+    totalsRow - startRow;
+
+  if (
+    data.rows.length >
+    availableRows
+  ) {
+    throw new Error(
+      `В шаблоне КС-2 доступно строк работ: ${availableRows}, а заполнено: ${data.rows.length}.`
+    );
+  }
+
+  const col = n => {
+    const c =
+      numbering
+        .columns
+        .get(n);
+
+    if (
+      c === undefined
+    ) {
+      throw new Error(
+        `В шаблоне КС-2 не найдена колонка № ${n}.`
+      );
+    }
+
+    return c;
+  };
+
+
+  /*
+    Очищаем доступную область работ,
+    чтобы старые значения шаблона не оставались.
+  */
+  for (
+    let r = startRow;
+    r < totalsRow;
+    r++
+  ) {
+    for (
+      let logical = 1;
+      logical <= 8;
+      logical++
+    ) {
+      const c =
+        col(logical);
+
+      const target =
+        topLeftOfMergedRange(
+          sheet,
+          r,
+          c
+        );
+
+      setInlineStringCell(
+        worksheetDoc,
+        cellAddress(
+          target.row,
+          target.col
+        ),
+        ''
+      );
+    }
+  }
+
+
+  /*
+    Заполняем работы.
+  */
+  data.rows.forEach(
+    (row, index) => {
+      const targetRow =
+        startRow + index;
+
+      const values = {
+        1: index + 1,
+
+        2:
+          row.estimatePos || '',
+
+        3:
+          row.name || '',
+
+        4:
+          row.unitRateNumber || '',
+
+        5:
+          row.unit || '',
+
+        6:
+          num(row.qty),
+
+        7:
+          round2(row.price),
+
+        8:
+          round2(
+            num(row.qty) *
+            num(row.price)
+          )
+      };
+
+      Object.entries(values)
+        .forEach(
+          ([logicalString, value]) => {
+            const logical =
+              Number(logicalString);
+
+            const target =
+              topLeftOfMergedRange(
+                sheet,
+                targetRow,
+                col(logical)
+              );
+
+            const address =
+              cellAddress(
+                target.row,
+                target.col
+              );
+
+            if (
+              [1, 6, 7, 8]
+                .includes(logical)
+            ) {
+              setNumberCell(
+                worksheetDoc,
+                address,
+                value
+              );
+            } else {
+              setInlineStringCell(
+                worksheetDoc,
+                address,
+                value
+              );
+            }
+          }
+        );
+    }
+  );
+
+
+  patchTotals(
+    sheet,
+    worksheetDoc,
+    data.totals,
+    startRow
+  );
+}
+
+
+/* ============================================================
+   XLSX — КС-3
+   ============================================================ */
+
+function patchKs3(
+  sheet,
+  worksheetDoc,
+  data
+) {
+  patchCommonFields(
+    sheet,
+    worksheetDoc,
+    data
+  );
+
+  /*
+    В КС-3 ищем логические колонки 1–6.
+  */
+  const numbering =
+    findNumberingRow(
+      sheet,
+      6
+    );
+
+  if (!numbering) {
+    throw new Error(
+      'В шаблоне КС-3 не удалось определить строку с номерами колонок.'
+    );
+  }
+
+  const startRow =
+    numbering.row + 1;
+
+  let totalsRow =
+    findLikelyTotalsRow(
+      sheet,
+      startRow
+    );
+
+  if (
+    totalsRow === null ||
+    totalsRow <= startRow
+  ) {
+    totalsRow =
+      startRow + 25;
+  }
+
+  const linked =
+    data.linkedKs2Ids
+      .map(id =>
+        DB.archive.find(
+          doc => doc.id === id
+        )
+      )
+      .filter(Boolean);
+
+  const availableRows =
+    totalsRow - startRow;
+
+  if (
+    linked.length >
+    availableRows
+  ) {
+    throw new Error(
+      `В шаблоне КС-3 доступно строк: ${availableRows}, выбрано актов КС-2: ${linked.length}.`
+    );
+  }
+
+  const col = n => {
+    const c =
+      numbering.columns.get(n);
+
+    if (
+      c === undefined
+    ) {
+      return null;
+    }
+
+    return c;
+  };
+
+
+  /*
+    Очищаем рабочую область.
+  */
+  for (
+    let r = startRow;
+    r < totalsRow;
+    r++
+  ) {
+    for (
+      let logical = 1;
+      logical <= 6;
+      logical++
+    ) {
+      const c = col(logical);
+
+      if (c === null) {
+        continue;
+      }
+
+      const target =
+        topLeftOfMergedRange(
+          sheet,
+          r,
+          c
+        );
+
+      setInlineStringCell(
+        worksheetDoc,
+        cellAddress(
+          target.row,
+          target.col
+        ),
+        ''
+      );
+    }
+  }
+
+
+  /*
+    Типовая КС-3:
+
+    1 — №
+    2 — наименование
+    3 — код
+    4 — с начала проведения работ
+    5 — с начала года
+    6 — за отчётный период
+
+    Для текущей логики генератора:
+    каждый связанный КС-2 становится отдельной строкой.
+  */
+  linked.forEach(
+    (doc, index) => {
+      const targetRow =
+        startRow + index;
+
+      const name =
+        [
+          `КС-2 № ${doc.num} от ${fmtDate(doc.date)}`,
+          doc.objectName
+        ]
+          .filter(Boolean)
+          .join(' — ');
+
+      const base =
+        round2(
+          doc.totals?.base || 0
+        );
+
+      const values = {
+        1: index + 1,
+        2: name,
+        3: '',
+        4: base,
+        5: base,
+        6: base
+      };
+
+      Object.entries(values)
+        .forEach(
+          ([logicalString, value]) => {
+            const logical =
+              Number(logicalString);
+
+            const c =
+              col(logical);
+
+            if (c === null) {
+              return;
+            }
+
+            const target =
+              topLeftOfMergedRange(
+                sheet,
+                targetRow,
+                c
+              );
+
+            const address =
+              cellAddress(
+                target.row,
+                target.col
+              );
+
+            if (
+              logical === 1 ||
+              logical >= 4
+            ) {
+              setNumberCell(
+                worksheetDoc,
+                address,
+                value
+              );
+            } else {
+              setInlineStringCell(
+                worksheetDoc,
+                address,
+                value
+              );
+            }
+          }
+        );
+    }
+  );
+
+
+  patchTotals(
+    sheet,
+    worksheetDoc,
+    data.totals,
+    startRow
+  );
+}
+
+
+/* ============================================================
+   XLSX — ИТОГИ
+   ============================================================ */
+
+function findRightmostCellOnRow(
+  sheet,
+  row
+) {
+  const cells =
+    listSheetCells(sheet)
+      .filter(
+        cell => cell.row === row
+      );
+
+  if (!cells.length) {
+    const range =
+      sheet['!ref']
+        ? XLSX.utils
+            .decode_range(
+              sheet['!ref']
+            )
+        : null;
+
+    return range
+      ? range.e.c
+      : 10;
+  }
+
+  return Math.max(
+    ...cells.map(
+      cell => cell.col
+    )
+  );
+}
+
+
+function getValueCellRightOfText(
+  sheet,
+  cell
+) {
+  const target =
+    nextLogicalCellToRight(
+      sheet,
+      cell.row,
+      cell.col,
+      80
+    );
+
+  return cellAddress(
+    target.row,
+    target.col
+  );
+}
+
+
+function patchTotals(
+  sheet,
+  worksheetDoc,
+  totals,
+  minRow
+) {
+  const totalCandidates =
+    findCellsByText(
+      sheet,
+      [
+        'итого',
+        'всего'
+      ],
+      {
+        minRow
+      }
+    );
+
+  /*
+    Итого без НДС:
+    берём первую подходящую строку "Итого".
+  */
+  if (totalCandidates.length) {
+    totalCandidates.sort(
+      (a, b) =>
+        a.row - b.row
+    );
+
+    const first =
+      totalCandidates[0];
+
+    const address =
+      getValueCellRightOfText(
+        sheet,
+        first
+      );
+
+    writeIfAddress(
+      worksheetDoc,
+      address,
+      totals.base,
+      'number'
+    );
+  }
+
+
+  /*
+    НДС.
+  */
+  const vatCells =
+    findCellsByText(
+      sheet,
+      ['ндс'],
+      {
+        minRow
+      }
+    );
+
+  if (vatCells.length) {
+    vatCells.sort(
+      (a, b) =>
+        a.row - b.row
+    );
+
+    const vatCell =
+      vatCells[0];
+
+    const address =
+      getValueCellRightOfText(
+        sheet,
+        vatCell
+      );
+
+    if (
+      totals.vatRate === null
+    ) {
+      writeIfAddress(
+        worksheetDoc,
+        address,
+        'Без НДС'
+      );
+    } else {
+      writeIfAddress(
+        worksheetDoc,
+        address,
+        totals.vat,
+        'number'
+      );
+    }
+  }
+
+
+  /*
+    Последняя строка "Всего" —
+    сумма с НДС.
+  */
+  if (totalCandidates.length) {
+    const last =
+      totalCandidates[
+        totalCandidates.length - 1
+      ];
+
+    const address =
+      getValueCellRightOfText(
+        sheet,
+        last
+      );
+
+    writeIfAddress(
+      worksheetDoc,
+      address,
+      totals.gross,
+      'number'
+    );
+  }
+}
+
+
+/* ============================================================
+   XLSX — ОСНОВНАЯ ГЕНЕРАЦИЯ
+   ============================================================ */
+
+async function generateXlsxFromTemplate(data) {
+  assertExcelLibraries();
+
+  /*
+    Получаем настоящий исходный шаблон.
+  */
+  const templateBuffer =
+    await fetchTemplate(
+      data.type
+    );
+
+
+  /*
+    SheetJS читает координаты ячеек.
+    Сам XLSX им НЕ записываем.
+  */
+  const {
+    sheet
+  } =
+    getFirstSheetInfo(
+      templateBuffer
+    );
+
+
+  /*
+    JSZip открывает исходный XLSX.
+  */
+  const zip =
+    await JSZip.loadAsync(
+      templateBuffer
+    );
+
+
+  const worksheetPath =
+    await getFirstWorksheetZipPath(
+      zip
+    );
+
+
+  const worksheetFile =
+    zip.file(
+      worksheetPath
+    );
+
+  if (!worksheetFile) {
+    throw new Error(
+      `В шаблоне не найден ${worksheetPath}.`
+    );
+  }
+
+
+  const worksheetXml =
+    await worksheetFile.async(
+      'string'
+    );
+
+
+  const worksheetDoc =
+    xmlParse(
+      worksheetXml
+    );
+
+
+  /*
+    Подставляем данные.
+  */
+  if (data.type === 'ks2') {
+    patchKs2(
+      sheet,
+      worksheetDoc,
+      data
+    );
+
+  } else {
+    patchKs3(
+      sheet,
+      worksheetDoc,
+      data
+    );
+  }
+
+
+  /*
+    Возвращаем изменённый XML листа
+    обратно в исходную книгу.
+  */
+  zip.file(
+    worksheetPath,
+    xmlSerialize(
+      worksheetDoc
+    )
+  );
+
+
+  /*
+    XLSX собирается тем же ZIP-пакетом.
+    Все остальные файлы книги остаются нетронутыми:
+    styles.xml,
+    merged cells,
+    relationships,
+    drawings,
+    pageSetup,
+    printArea и т.д.
+  */
+  return await zip.generateAsync({
+    type: 'blob',
+
+    mimeType:
+      'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+
+    compression:
+      'DEFLATE',
+
+    compressionOptions: {
+      level: 6
+    }
+  });
+}
+
+
+/* ============================================================
+   XLSX — ЭКСПОРТ ТЕКУЩЕГО ДОКУМЕНТА
+   ============================================================ */
+
+async function exportXLSX() {
+  try {
+    const data =
+      getFormSnapshot();
+
+    const validation =
+      validateDocument(data);
+
+    if (validation) {
+      toast(
+        validation,
+        'err'
+      );
+
+      return;
+    }
+
+    toast(
+      'Формирую Excel по оригинальному шаблону…'
+    );
+
+    const blob =
+      await generateXlsxFromTemplate(
+        data
+      );
+
+    const cleanNumber =
+      String(data.num)
+        .replace(
+          /[\\/:*?"<>|]+/g,
+          '-'
+        );
+
+    const filename =
+      `${data.type.toUpperCase()}_${cleanNumber}_${data.date}.xlsx`;
+
+    downloadBlob(
+      blob,
+      filename,
+      'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+    );
+
+    toast(
+      'Excel сформирован по шаблону.',
+      'ok'
+    );
+
+  } catch (error) {
+    console.error(
+      'Ошибка XLSX:',
+      error
+    );
+
+    toast(
+      'Ошибка Excel: ' +
+        error.message,
+      'err'
+    );
+  }
+}
+
+
+/* ============================================================
+   XLSX — ЭКСПОРТ ИЗ АРХИВА
+   ============================================================ */
+
+async function exportXLSXById(id) {
+  try {
+    const data =
+      DB.archive.find(
+        doc => doc.id === id
+      );
+
+    if (!data) {
+      throw new Error(
+        'Документ не найден.'
+      );
+    }
+
+    toast(
+      'Формирую Excel по оригинальному шаблону…'
+    );
+
+    const blob =
+      await generateXlsxFromTemplate(
+        data
+      );
+
+    const cleanNumber =
+      String(data.num)
+        .replace(
+          /[\\/:*?"<>|]+/g,
+          '-'
+        );
+
+    const filename =
+      `${data.type.toUpperCase()}_${cleanNumber}_${data.date}.xlsx`;
+
+    downloadBlob(
+      blob,
+      filename,
+      'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+    );
+
+    toast(
+      'Excel сформирован по шаблону.',
+      'ok'
+    );
+
+  } catch (error) {
+    console.error(error);
+
+    toast(
+      'Ошибка Excel: ' +
+        error.message,
+      'err'
     );
   }
 }
@@ -5917,91 +5255,94 @@ async function checkTemplateFiles() {
 function init() {
   loadDB();
 
-  const docDate =
-    document.getElementById(
-      'f-docdate'
-    );
+  const today =
+    new Date()
+      .toISOString()
+      .slice(0, 10);
 
   if (
-    docDate &&
-    !docDate.value
+    byId('f-docdate') &&
+    !byId('f-docdate').value
   ) {
-    docDate.value =
-      todayISO();
+    byId('f-docdate').value =
+      today;
   }
 
   refreshContractorSelect();
   refreshCustomerSelect();
 
-  const contractorsBadge =
-    document.getElementById(
+  if (byId('badge-contractors')) {
+    byId(
       'badge-contractors'
-    );
+    ).textContent =
+      String(
+        DB.contractors.length
+      );
+  }
 
-  const customersBadge =
-    document.getElementById(
+  if (byId('badge-customers')) {
+    byId(
       'badge-customers'
-    );
+    ).textContent =
+      String(
+        DB.customers.length
+      );
+  }
 
-  const archiveBadge =
-    document.getElementById(
+  if (byId('badge-archive')) {
+    byId(
       'badge-archive'
-    );
-
-  if (contractorsBadge) {
-    contractorsBadge.textContent =
-      DB.contractors.length;
-  }
-
-  if (customersBadge) {
-    customersBadge.textContent =
-      DB.customers.length;
-  }
-
-  if (archiveBadge) {
-    archiveBadge.textContent =
-      DB.archive.length;
+    ).textContent =
+      String(
+        DB.archive.length
+      );
   }
 
   renderWorkRows();
   renderTotals();
   renderPreview();
 
+
+  /*
+    Закрытие модалки по клику
+    на затемнённый фон.
+  */
   document
     .querySelectorAll(
       '.modal-backdrop'
     )
-    .forEach(
-      (backdrop) => {
-        backdrop.addEventListener(
-          'click',
-          (event) => {
-            if (
-              event.target ===
-              backdrop
-            ) {
-              backdrop
-                .classList
-                .remove('active');
-            }
+    .forEach(backdrop => {
+      backdrop.addEventListener(
+        'click',
+        event => {
+          if (
+            event.target ===
+            backdrop
+          ) {
+            backdrop
+              .classList
+              .remove('active');
           }
-        );
-      }
-    );
+        }
+      );
+    });
 
+
+  /*
+    Escape.
+  */
   document.addEventListener(
     'keydown',
-    (event) => {
+    event => {
       if (
-        event.key ===
-        'Escape'
+        event.key === 'Escape'
       ) {
         document
           .querySelectorAll(
             '.modal-backdrop.active'
           )
           .forEach(
-            (backdrop) =>
+            backdrop =>
               backdrop
                 .classList
                 .remove('active')
@@ -6010,19 +5351,27 @@ function init() {
     }
   );
 
+
   /*
-    Проверка локального SheetJS.
+    Проверяем наличие библиотек.
+    Не блокируем приложение,
+    если Excel пока не нужен.
   */
   if (
-    typeof window.XLSX ===
-    'undefined'
+    typeof JSZip === 'undefined'
   ) {
     console.warn(
-      'XLSX пока не найден. Проверьте xlsx.full.min.js.'
+      'JSZip не загружен.'
     );
   }
 
-  checkTemplateFiles();
+  if (
+    typeof XLSX === 'undefined'
+  ) {
+    console.warn(
+      'SheetJS не загружен.'
+    );
+  }
 }
 
 
