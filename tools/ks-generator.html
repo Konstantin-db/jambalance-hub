@@ -1,0 +1,3081 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <meta
+    name="viewport"
+    content="width=device-width, initial-scale=1, viewport-fit=cover"
+  >
+
+  <title>ДжемБаланс — КС-2 / КС-3</title>
+
+  <style>
+    :root {
+      --bg: #f3eee7;
+      --bg-elev: #faf7f2;
+      --surface: #ffffff;
+      --surface-soft: #f8f3ed;
+
+      --ink: #2e2926;
+      --ink-soft: #675f5a;
+      --ink-mute: #948b84;
+
+      --line: #ddd3ca;
+      --line-strong: #c8bbb0;
+
+      --brand: #8d3d42;
+      --brand-hover: #783338;
+      --brand-soft: #f2e4e4;
+      --brand-dark: #56282b;
+
+      --accent: #b7875c;
+      --accent-soft: #f2e7da;
+
+      --success: #55725e;
+      --success-soft: #eaf1ec;
+
+      --danger: #a94242;
+      --danger-soft: #f8e8e8;
+
+      --warning: #a97338;
+      --warning-soft: #f8eddd;
+
+      --shadow:
+        0 1px 2px rgba(49, 38, 31, .05),
+        0 8px 30px rgba(49, 38, 31, .08);
+
+      --radius: 14px;
+      --radius-sm: 9px;
+      --radius-xs: 6px;
+
+      --sans:
+        Inter,
+        -apple-system,
+        BlinkMacSystemFont,
+        "Segoe UI",
+        Roboto,
+        Helvetica,
+        Arial,
+        sans-serif;
+
+      --mono:
+        "SFMono-Regular",
+        Consolas,
+        "Liberation Mono",
+        monospace;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    html {
+      min-height: 100%;
+      background: var(--bg);
+    }
+
+    body {
+      margin: 0;
+      min-height: 100vh;
+      color: var(--ink);
+      background:
+        radial-gradient(
+          circle at 100% 0,
+          rgba(141, 61, 66, .06),
+          transparent 26rem
+        ),
+        var(--bg);
+      font-family: var(--sans);
+      font-size: 14px;
+      line-height: 1.45;
+    }
+
+    button,
+    input,
+    select,
+    textarea {
+      font: inherit;
+    }
+
+    button {
+      color: inherit;
+    }
+
+    .hidden {
+      display: none !important;
+    }
+
+    .muted {
+      color: var(--ink-mute);
+    }
+
+    .mono {
+      font-family: var(--mono);
+      font-variant-numeric: tabular-nums;
+    }
+
+    .text-right {
+      text-align: right;
+    }
+
+    .icon {
+      width: 16px;
+      height: 16px;
+      display: block;
+      fill: none;
+      stroke: currentColor;
+      stroke-width: 1.6;
+      stroke-linecap: round;
+      stroke-linejoin: round;
+      flex: 0 0 auto;
+    }
+
+    /* =========================================================
+       APP / TOPBAR
+       ========================================================= */
+
+    .app {
+      min-height: 100vh;
+    }
+
+    .topbar {
+      height: 70px;
+      padding: 0 24px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 20px;
+      background: rgba(255, 255, 255, .91);
+      border-bottom: 1px solid var(--line);
+      backdrop-filter: blur(16px);
+      position: sticky;
+      top: 0;
+      z-index: 50;
+    }
+
+    .topbar-left,
+    .topbar-right {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .brand-mark {
+      width: 40px;
+      height: 40px;
+      border-radius: 12px;
+      display: grid;
+      place-items: center;
+      color: #fff;
+      background:
+        linear-gradient(
+          135deg,
+          var(--brand),
+          #b15f64
+        );
+      box-shadow:
+        inset 0 0 0 1px rgba(255,255,255,.16),
+        0 5px 15px rgba(86,40,43,.18);
+    }
+
+    .brand-mark svg {
+      width: 23px;
+      height: 23px;
+    }
+
+    .brand {
+      display: flex;
+      flex-direction: column;
+      line-height: 1.1;
+    }
+
+    .brand-name {
+      font-size: 17px;
+      font-weight: 800;
+      letter-spacing: -.02em;
+      color: var(--brand-dark);
+    }
+
+    .brand-sub {
+      margin-top: 4px;
+      font-size: 11px;
+      color: var(--ink-mute);
+    }
+
+    /* =========================================================
+       BUTTONS
+       ========================================================= */
+
+    .btn {
+      min-height: 38px;
+      padding: 0 15px;
+      border-radius: 9px;
+      border: 1px solid transparent;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      white-space: nowrap;
+      cursor: pointer;
+      transition:
+        background .15s,
+        border-color .15s,
+        color .15s,
+        transform .08s;
+      font-weight: 650;
+      user-select: none;
+    }
+
+    .btn:hover {
+      transform: translateY(-1px);
+    }
+
+    .btn:active {
+      transform: translateY(0);
+    }
+
+    .btn-primary {
+      color: #fff;
+      background: var(--brand);
+      border-color: var(--brand);
+    }
+
+    .btn-primary:hover {
+      background: var(--brand-hover);
+      border-color: var(--brand-hover);
+    }
+
+    .btn-secondary {
+      color: var(--brand-dark);
+      background: var(--surface);
+      border-color: var(--line-strong);
+    }
+
+    .btn-secondary:hover {
+      background: var(--surface-soft);
+      border-color: #bca99c;
+    }
+
+    .btn-ghost {
+      color: var(--ink-soft);
+      background: transparent;
+      border-color: transparent;
+    }
+
+    .btn-ghost:hover {
+      color: var(--brand);
+      background: var(--brand-soft);
+    }
+
+    .btn-sm {
+      min-height: 32px;
+      padding: 0 11px;
+      font-size: 12px;
+      border-radius: 8px;
+    }
+
+    /* =========================================================
+       TABS
+       ========================================================= */
+
+    .tabs {
+      height: 52px;
+      padding: 0 24px;
+      display: flex;
+      align-items: end;
+      gap: 6px;
+      background: rgba(250, 247, 242, .94);
+      border-bottom: 1px solid var(--line);
+      position: sticky;
+      top: 70px;
+      z-index: 40;
+    }
+
+    .tab {
+      height: 42px;
+      padding: 0 15px;
+      border: 0;
+      border-radius: 10px 10px 0 0;
+      display: flex;
+      align-items: center;
+      gap: 7px;
+      color: var(--ink-soft);
+      background: transparent;
+      cursor: pointer;
+      position: relative;
+    }
+
+    .tab:hover {
+      color: var(--brand);
+      background: rgba(141,61,66,.05);
+    }
+
+    .tab.active {
+      color: var(--brand);
+      background: var(--surface);
+      font-weight: 700;
+    }
+
+    .tab.active::after {
+      content: "";
+      position: absolute;
+      left: 12px;
+      right: 12px;
+      bottom: 0;
+      height: 3px;
+      border-radius: 4px 4px 0 0;
+      background: var(--brand);
+    }
+
+    .tab-icon {
+      width: 17px;
+      height: 17px;
+    }
+
+    .tab-badge {
+      min-width: 20px;
+      height: 20px;
+      padding: 0 6px;
+      border-radius: 999px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 10px;
+      font-weight: 700;
+      color: var(--ink-soft);
+      background: var(--accent-soft);
+    }
+
+    /* =========================================================
+       MAIN / VIEWS
+       ========================================================= */
+
+    .main {
+      width: 100%;
+    }
+
+    .view {
+      display: none;
+    }
+
+    .view.active {
+      display: block;
+    }
+
+    .doc-layout {
+      display: grid;
+      grid-template-columns: minmax(520px, 680px) minmax(520px, 1fr);
+      align-items: start;
+    }
+
+    .doc-form-pane {
+      min-width: 0;
+      padding: 24px;
+      background: var(--bg);
+      border-right: 1px solid var(--line);
+    }
+
+    .doc-preview-pane {
+      min-width: 0;
+      min-height: calc(100vh - 122px);
+      padding: 0 24px 34px;
+      background: #d9d3cc;
+    }
+
+    /* =========================================================
+       FORM SECTIONS
+       ========================================================= */
+
+    .form-section {
+      margin-bottom: 17px;
+      padding: 18px;
+      background: var(--surface);
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      box-shadow: 0 1px 2px rgba(49,38,31,.03);
+    }
+
+    .form-section-title {
+      margin-bottom: 15px;
+      display: flex;
+      align-items: center;
+      gap: 9px;
+      font-size: 13px;
+      font-weight: 750;
+      color: var(--brand-dark);
+    }
+
+    .form-section-title-num {
+      width: 24px;
+      height: 24px;
+      border-radius: 8px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      color: #fff;
+      background: var(--brand);
+      font-size: 11px;
+      font-weight: 800;
+    }
+
+    .field {
+      min-width: 0;
+      margin-bottom: 13px;
+    }
+
+    .field:last-child {
+      margin-bottom: 0;
+    }
+
+    .field-row {
+      display: grid;
+      gap: 12px;
+      margin-bottom: 13px;
+    }
+
+    .field-row:last-child {
+      margin-bottom: 0;
+    }
+
+    .field-row.cols-2 {
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+
+    .field-row.cols-3 {
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+    }
+
+    .field-label {
+      margin-bottom: 6px;
+      display: block;
+      color: var(--ink-soft);
+      font-size: 10px;
+      line-height: 1.25;
+      text-transform: uppercase;
+      letter-spacing: .06em;
+      font-weight: 750;
+    }
+
+    .req {
+      color: var(--brand);
+    }
+
+    .input,
+    .select,
+    .search-input {
+      width: 100%;
+      min-height: 39px;
+      padding: 8px 10px;
+      color: var(--ink);
+      background: #fff;
+      border: 1px solid var(--line-strong);
+      border-radius: 8px;
+      outline: none;
+      transition:
+        border-color .15s,
+        box-shadow .15s,
+        background .15s;
+    }
+
+    .input:hover,
+    .select:hover,
+    .search-input:hover {
+      border-color: #b8a69b;
+    }
+
+    .input:focus,
+    .select:focus,
+    .search-input:focus {
+      border-color: var(--brand);
+      box-shadow: 0 0 0 3px rgba(141, 61, 66, .11);
+    }
+
+    .input::placeholder,
+    .search-input::placeholder {
+      color: #aaa19a;
+    }
+
+    .input-with-action {
+      display: flex;
+      gap: 7px;
+    }
+
+    .input-with-action .select {
+      flex: 1 1 auto;
+      min-width: 0;
+    }
+
+    /* =========================================================
+       DOCUMENT TYPE
+       ========================================================= */
+
+    .doc-type-card {
+      padding: 1px;
+      border: 1px solid var(--line);
+      border-radius: 11px;
+      background: var(--surface);
+      cursor: pointer;
+      transition:
+        border-color .15s,
+        box-shadow .15s,
+        background .15s;
+    }
+
+    .doc-type-card:hover {
+      border-color: #b9a59a;
+    }
+
+    .doc-type-card.active {
+      border-color: var(--brand);
+      box-shadow: 0 0 0 3px rgba(141,61,66,.09);
+      background: var(--brand-soft);
+    }
+
+    .doc-type-inner {
+      min-height: 75px;
+      padding: 13px;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: flex-start;
+      gap: 8px;
+    }
+
+    .doc-type-name {
+      color: var(--ink-soft);
+      font-size: 12px;
+    }
+
+    .tag {
+      min-width: 46px;
+      height: 23px;
+      padding: 0 8px;
+      border-radius: 6px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 10px;
+      font-weight: 850;
+      letter-spacing: .04em;
+    }
+
+    .tag.ks2 {
+      color: #6c3236;
+      background: #f2dddd;
+    }
+
+    .tag.ks3 {
+      color: #72502f;
+      background: #f0e3d2;
+    }
+
+    /* =========================================================
+       WORK ROWS
+       ========================================================= */
+
+    .rows-table {
+      width: 100%;
+      border-collapse: separate;
+      border-spacing: 0;
+      font-size: 12px;
+    }
+
+    .rows-table th {
+      padding: 0 5px 7px;
+      color: var(--ink-mute);
+      text-align: left;
+      font-size: 9px;
+      line-height: 1.2;
+      font-weight: 800;
+      text-transform: uppercase;
+      letter-spacing: .045em;
+    }
+
+    .rows-table td {
+      padding: 4px;
+      vertical-align: top;
+      border-top: 1px solid #eee6df;
+    }
+
+    .rows-table .input {
+      min-height: 34px;
+      padding: 6px 7px;
+      font-size: 12px;
+    }
+
+    .col-num {
+      width: 30px;
+      text-align: center !important;
+    }
+
+    .col-del {
+      width: 34px;
+    }
+
+    .row-del-btn {
+      width: 30px;
+      height: 30px;
+      border: 0;
+      border-radius: 7px;
+      display: grid;
+      place-items: center;
+      color: var(--ink-mute);
+      background: transparent;
+      cursor: pointer;
+    }
+
+    .row-del-btn:hover {
+      color: var(--danger);
+      background: var(--danger-soft);
+    }
+
+    .rows-add {
+      padding-top: 10px;
+    }
+
+    /* =========================================================
+       KS2 PICK
+       ========================================================= */
+
+    .ks2-pick-list {
+      display: flex;
+      flex-direction: column;
+      gap: 7px;
+    }
+
+    .ks2-pick-empty {
+      padding: 18px;
+      color: var(--ink-mute);
+      background: var(--surface-soft);
+      border: 1px dashed var(--line-strong);
+      border-radius: 9px;
+      text-align: center;
+      font-size: 12px;
+    }
+
+    .ks2-pick-item {
+      padding: 10px 11px;
+      border: 1px solid var(--line);
+      border-radius: 9px;
+      display: grid;
+      grid-template-columns: auto minmax(0, 1fr) auto;
+      align-items: center;
+      gap: 10px;
+      cursor: pointer;
+      background: var(--surface);
+    }
+
+    .ks2-pick-item:hover {
+      border-color: #baa79b;
+    }
+
+    .ks2-pick-item.checked {
+      border-color: var(--brand);
+      background: var(--brand-soft);
+    }
+
+    .ks2-pick-title {
+      font-size: 12px;
+      font-weight: 700;
+    }
+
+    .ks2-pick-meta {
+      margin-top: 2px;
+      color: var(--ink-mute);
+      font-size: 11px;
+    }
+
+    .ks2-pick-sum {
+      font-family: var(--mono);
+      font-size: 11px;
+      font-weight: 700;
+    }
+
+    /* =========================================================
+       PREVIEW
+       ========================================================= */
+
+    .doc-preview-toolbar {
+      min-height: 62px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+    }
+
+    .preview-status {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      color: #665e58;
+      font-size: 12px;
+      font-weight: 700;
+    }
+
+    .preview-status-dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: var(--brand);
+      box-shadow: 0 0 0 4px rgba(141,61,66,.12);
+    }
+
+    .preview-actions {
+      display: flex;
+      gap: 7px;
+    }
+
+    #preview-paper {
+      width: 100%;
+      max-width: 920px;
+      margin: 0 auto;
+    }
+
+    .paper {
+      min-height: 1120px;
+      padding: 34px 38px 45px;
+      color: #24201e;
+      background: #fff;
+      box-shadow:
+        0 3px 7px rgba(38, 29, 24, .12),
+        0 20px 55px rgba(38, 29, 24, .12);
+      font-family: Arial, Helvetica, sans-serif;
+      font-size: 11px;
+    }
+
+    .paper-stamp {
+      margin-bottom: 8px;
+      text-align: right;
+      color: #666;
+      font-size: 9px;
+    }
+
+    .paper-title {
+      margin: 2px 0 4px;
+      text-align: center;
+      font-size: 18px;
+      line-height: 1.2;
+      text-transform: uppercase;
+    }
+
+    .paper-subtitle {
+      text-align: center;
+      color: #555;
+      font-size: 10px;
+    }
+
+    .paper-grid {
+      display: grid;
+      gap: 15px;
+    }
+
+    .paper-grid.cols-2 {
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+
+    .paper-grid.cols-3 {
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+    }
+
+    .paper-label {
+      color: #777;
+      font-size: 8px;
+      text-transform: uppercase;
+      letter-spacing: .04em;
+    }
+
+    .paper-value {
+      margin-top: 2px;
+      line-height: 1.35;
+    }
+
+    .paper-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 9px;
+    }
+
+    .paper-table th,
+    .paper-table td {
+      padding: 5px 5px;
+      border: 1px solid #777;
+      vertical-align: top;
+    }
+
+    .paper-table th {
+      background: #f1eee9;
+      font-weight: 700;
+    }
+
+    .paper-table tfoot td {
+      font-size: 9px;
+    }
+
+    .paper-signs {
+      margin-top: 42px;
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 42px;
+    }
+
+    .paper-sign-line {
+      height: 25px;
+      border-bottom: 1px solid #333;
+    }
+
+    /* =========================================================
+       JOURNALS
+       ========================================================= */
+
+    .journal-layout {
+      padding: 28px;
+    }
+
+    .journal-head {
+      margin-bottom: 18px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 20px;
+    }
+
+    .journal-title {
+      font-size: 23px;
+      line-height: 1.1;
+      font-weight: 800;
+      color: var(--brand-dark);
+      letter-spacing: -.03em;
+    }
+
+    .journal-subtitle {
+      margin-top: 5px;
+      color: var(--ink-mute);
+      font-size: 12px;
+    }
+
+    .journal-toolbar {
+      margin-bottom: 12px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .search-input {
+      max-width: 400px;
+    }
+
+    .journal-table-wrap {
+      overflow: auto;
+      background: var(--surface);
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      box-shadow: var(--shadow);
+    }
+
+    .journal-table {
+      width: 100%;
+      min-width: 850px;
+      border-collapse: collapse;
+      font-size: 12px;
+    }
+
+    .journal-table th {
+      padding: 11px 13px;
+      color: var(--ink-mute);
+      background: #f7f2ec;
+      border-bottom: 1px solid var(--line);
+      text-align: left;
+      font-size: 9px;
+      text-transform: uppercase;
+      letter-spacing: .055em;
+    }
+
+    .journal-table td {
+      padding: 12px 13px;
+      border-bottom: 1px solid #eee7e1;
+      vertical-align: middle;
+    }
+
+    .journal-table tbody tr:last-child td {
+      border-bottom: 0;
+    }
+
+    .journal-table tbody tr:hover {
+      background: #fcf9f6;
+    }
+
+    .cell-name {
+      font-weight: 700;
+    }
+
+    .cell-muted {
+      margin-top: 3px;
+      color: var(--ink-mute);
+      font-size: 10px;
+      font-weight: 400;
+    }
+
+    .cell-actions {
+      white-space: nowrap;
+      text-align: right;
+    }
+
+    .empty-state {
+      padding: 46px 20px;
+      text-align: center;
+    }
+
+    .empty-state-title {
+      font-weight: 750;
+      color: var(--ink);
+    }
+
+    .empty-state-text {
+      max-width: 460px;
+      margin: 6px auto 14px;
+      color: var(--ink-mute);
+      font-size: 12px;
+    }
+
+    /* =========================================================
+       MODALS
+       ========================================================= */
+
+    .modal-backdrop {
+      position: fixed;
+      inset: 0;
+      padding: 30px 20px;
+      display: none;
+      align-items: center;
+      justify-content: center;
+      background: rgba(35, 28, 24, .42);
+      backdrop-filter: blur(3px);
+      z-index: 100;
+    }
+
+    .modal-backdrop.active {
+      display: flex;
+    }
+
+    .modal {
+      width: 100%;
+      max-width: 650px;
+      max-height: calc(100vh - 60px);
+      display: flex;
+      flex-direction: column;
+      background: var(--surface);
+      border: 1px solid var(--line);
+      border-radius: 16px;
+      box-shadow: 0 30px 90px rgba(30,22,18,.23);
+      overflow: hidden;
+    }
+
+    .modal-head {
+      min-height: 58px;
+      padding: 0 18px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      border-bottom: 1px solid var(--line);
+    }
+
+    .modal-title {
+      font-weight: 750;
+      color: var(--brand-dark);
+    }
+
+    .modal-close {
+      width: 34px;
+      height: 34px;
+      display: grid;
+      place-items: center;
+      color: var(--ink-mute);
+      background: transparent;
+      border: 0;
+      border-radius: 8px;
+      cursor: pointer;
+    }
+
+    .modal-close:hover {
+      color: var(--brand);
+      background: var(--brand-soft);
+    }
+
+    .modal-body {
+      padding: 18px;
+      overflow-y: auto;
+    }
+
+    .modal-foot {
+      padding: 13px 18px;
+      display: flex;
+      justify-content: flex-end;
+      gap: 8px;
+      background: #faf7f3;
+      border-top: 1px solid var(--line);
+    }
+
+    /* =========================================================
+       TOAST
+       ========================================================= */
+
+    .toast-stack {
+      position: fixed;
+      right: 20px;
+      bottom: 20px;
+      z-index: 200;
+      display: flex;
+      flex-direction: column;
+      align-items: flex-end;
+      gap: 8px;
+      pointer-events: none;
+    }
+
+    .toast {
+      max-width: 440px;
+      padding: 12px 15px;
+      color: #fff;
+      background: #554d48;
+      border-radius: 9px;
+      box-shadow: 0 12px 35px rgba(30,20,18,.2);
+      font-size: 12px;
+      line-height: 1.4;
+      pointer-events: auto;
+    }
+
+    .toast.ok {
+      background: var(--success);
+    }
+
+    .toast.err {
+      background: var(--danger);
+    }
+
+    /* =========================================================
+       RESPONSIVE
+       ========================================================= */
+
+    @media (max-width: 1180px) {
+      .doc-layout {
+        grid-template-columns: 1fr;
+      }
+
+      .doc-form-pane {
+        border-right: 0;
+      }
+
+      .doc-preview-pane {
+        border-top: 1px solid var(--line);
+      }
+    }
+
+    @media (max-width: 720px) {
+      .topbar {
+        height: auto;
+        min-height: 68px;
+        padding: 10px 14px;
+        align-items: flex-start;
+      }
+
+      .topbar-right {
+        flex-wrap: wrap;
+        justify-content: flex-end;
+      }
+
+      .brand-sub {
+        display: none;
+      }
+
+      .tabs {
+        top: 68px;
+        padding: 0 8px;
+        overflow-x: auto;
+      }
+
+      .tab {
+        flex: 0 0 auto;
+      }
+
+      .doc-form-pane,
+      .journal-layout {
+        padding: 14px;
+      }
+
+      .doc-preview-pane {
+        padding: 0 10px 20px;
+      }
+
+      .field-row.cols-2,
+      .field-row.cols-3 {
+        grid-template-columns: 1fr;
+      }
+
+      .paper {
+        padding: 24px 18px 34px;
+      }
+
+      .paper-grid.cols-2,
+      .paper-grid.cols-3,
+      .paper-signs {
+        grid-template-columns: 1fr;
+      }
+
+      .journal-head {
+        align-items: flex-start;
+        flex-direction: column;
+      }
+    }
+
+    /* =========================================================
+       PRINT
+       ========================================================= */
+
+    @media print {
+      body {
+        background: #fff;
+      }
+
+      .topbar,
+      .tabs,
+      .doc-form-pane,
+      .doc-preview-toolbar,
+      .toast-stack,
+      .modal-backdrop {
+        display: none !important;
+      }
+
+      .view {
+        display: none !important;
+      }
+
+      #view-docs {
+        display: block !important;
+      }
+
+      .doc-layout {
+        display: block;
+      }
+
+      .doc-preview-pane {
+        padding: 0;
+        min-height: 0;
+        background: #fff;
+      }
+
+      #preview-paper {
+        max-width: none;
+      }
+
+      .paper {
+        min-height: 0;
+        padding: 0;
+        box-shadow: none;
+      }
+
+      @page {
+        size: A4 landscape;
+        margin: 10mm;
+      }
+    }
+  </style>
+
+  <!--
+    ВАЖНО:
+    SheetJS лежит локально рядом с HTML.
+    Никаких CDN.
+  -->
+  <script defer src="./xlsx.full.min.js"></script>
+  <script defer src="./ks-generator.js"></script>
+</head>
+
+<body>
+<div class="app">
+
+  <!-- =========================================================
+       ВЕРХНЯЯ ПАНЕЛЬ
+       ========================================================= -->
+
+  <header class="topbar">
+
+    <div class="topbar-left">
+
+      <div class="brand-mark" aria-hidden="true">
+        <svg
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          stroke-width="1.8"
+          stroke-linecap="round"
+          stroke-linejoin="round"
+        >
+          <path d="M4 7.5h16"/>
+          <path d="M5.5 7.5 7 20h10l1.5-12.5"/>
+          <path d="M8 4.5h8"/>
+          <path d="M9.5 2.5h5"/>
+          <path d="M9 12h6"/>
+          <path d="M9.7 16h4.6"/>
+        </svg>
+      </div>
+
+      <div class="brand">
+        <span class="brand-name">ДжемБаланс</span>
+        <span class="brand-sub">
+          Формирование КС-2 и КС-3
+        </span>
+      </div>
+
+    </div>
+
+    <div class="topbar-right">
+
+      <button
+        class="btn btn-secondary btn-sm"
+        type="button"
+        onclick="exportAllData()"
+      >
+        <svg class="icon" viewBox="0 0 16 16">
+          <path d="M2 10v4h12v-4"/>
+          <path d="M8 2v8"/>
+          <path d="M5 7l3 3 3-3"/>
+        </svg>
+        Экспорт базы
+      </button>
+
+      <button
+        class="btn btn-ghost btn-sm"
+        type="button"
+        onclick="importData()"
+      >
+        <svg class="icon" viewBox="0 0 16 16">
+          <path d="M2 10v4h12v-4"/>
+          <path d="M8 10V2"/>
+          <path d="M5 5l3-3 3 3"/>
+        </svg>
+        Импорт
+      </button>
+
+    </div>
+
+  </header>
+
+
+  <!-- =========================================================
+       НАВИГАЦИЯ
+       ========================================================= -->
+
+  <nav class="tabs">
+
+    <button
+      class="tab active"
+      type="button"
+      onclick="switchTab('docs')"
+      id="tab-docs"
+    >
+      <svg class="icon tab-icon" viewBox="0 0 16 16">
+        <rect x="2" y="1" width="9" height="12" rx="1.5"/>
+        <path d="M5 4h5M5 7h5M5 10h3"/>
+        <path d="M11 8l3 3-3 3"/>
+      </svg>
+      Документы
+    </button>
+
+    <button
+      class="tab"
+      type="button"
+      onclick="switchTab('contractors')"
+      id="tab-contractors"
+    >
+      <svg class="icon tab-icon" viewBox="0 0 16 16">
+        <circle cx="7" cy="5" r="3"/>
+        <path d="M2 14c0-3 2-4.5 5-4.5s5 1.5 5 4.5"/>
+      </svg>
+      Подрядчики
+      <span class="tab-badge" id="badge-contractors">0</span>
+    </button>
+
+    <button
+      class="tab"
+      type="button"
+      onclick="switchTab('customers')"
+      id="tab-customers"
+    >
+      <svg class="icon tab-icon" viewBox="0 0 16 16">
+        <rect x="2" y="8" width="12" height="6" rx="1.5"/>
+        <path d="M5 8V5a3 3 0 0 1 6 0v3"/>
+      </svg>
+      Заказчики
+      <span class="tab-badge" id="badge-customers">0</span>
+    </button>
+
+    <button
+      class="tab"
+      type="button"
+      onclick="switchTab('archive')"
+      id="tab-archive"
+    >
+      <svg class="icon tab-icon" viewBox="0 0 16 16">
+        <rect x="1" y="3" width="14" height="3" rx="1"/>
+        <path d="M2 6v7a1 1 0 0 0 1 1h10a1 1 0 0 0 1-1V6"/>
+        <path d="M6 9h4"/>
+      </svg>
+      Архив
+      <span class="tab-badge" id="badge-archive">0</span>
+    </button>
+
+  </nav>
+
+
+  <!-- =========================================================
+       ОСНОВНОЕ СОДЕРЖИМОЕ
+       ========================================================= -->
+
+  <main class="main">
+
+    <!-- =======================================================
+         ДОКУМЕНТЫ
+         ======================================================= -->
+
+    <div class="view active" id="view-docs">
+
+      <div class="doc-layout">
+
+        <!-- ===================================================
+             ЛЕВАЯ ПАНЕЛЬ
+             =================================================== -->
+
+        <div class="doc-form-pane">
+
+          <!-- Тип документа -->
+
+          <section class="form-section">
+
+            <div class="form-section-title">
+              <span class="form-section-title-num">1</span>
+              Тип документа
+            </div>
+
+            <div class="field-row cols-2">
+
+              <div
+                class="doc-type-card active"
+                id="dtype-ks2"
+                onclick="setDocType('ks2')"
+              >
+                <div class="doc-type-inner">
+                  <span class="tag ks2">КС-2</span>
+                  <span class="doc-type-name">
+                    Акт о приёмке выполненных работ
+                  </span>
+                </div>
+              </div>
+
+              <div
+                class="doc-type-card"
+                id="dtype-ks3"
+                onclick="setDocType('ks3')"
+              >
+                <div class="doc-type-inner">
+                  <span class="tag ks3">КС-3</span>
+                  <span class="doc-type-name">
+                    Справка о стоимости работ и затрат
+                  </span>
+                </div>
+              </div>
+
+            </div>
+
+          </section>
+
+
+          <!-- Реквизиты -->
+
+          <section class="form-section">
+
+            <div class="form-section-title">
+              <span class="form-section-title-num">2</span>
+              Реквизиты документа
+            </div>
+
+            <div class="field-row cols-3">
+
+              <div class="field">
+                <label class="field-label" for="f-docnum">
+                  Номер
+                  <span class="req">*</span>
+                </label>
+
+                <input
+                  class="input"
+                  id="f-docnum"
+                  type="text"
+                  placeholder="1"
+                  oninput="renderPreview()"
+                >
+              </div>
+
+              <div class="field">
+                <label class="field-label" for="f-docdate">
+                  Дата
+                  <span class="req">*</span>
+                </label>
+
+                <input
+                  class="input"
+                  id="f-docdate"
+                  type="date"
+                  oninput="renderPreview()"
+                >
+              </div>
+
+              <div class="field">
+                <label class="field-label" for="f-period">
+                  Период
+                </label>
+
+                <input
+                  class="input"
+                  id="f-period"
+                  type="text"
+                  placeholder="май 2025"
+                  oninput="renderPreview()"
+                >
+              </div>
+
+            </div>
+
+
+            <div class="field-row cols-2">
+
+              <div class="field">
+                <label class="field-label" for="f-date-from">
+                  Дата начала работ
+                </label>
+
+                <input
+                  class="input"
+                  id="f-date-from"
+                  type="date"
+                  oninput="renderPreview()"
+                >
+              </div>
+
+              <div class="field">
+                <label class="field-label" for="f-date-to">
+                  Дата окончания работ
+                </label>
+
+                <input
+                  class="input"
+                  id="f-date-to"
+                  type="date"
+                  oninput="renderPreview()"
+                >
+              </div>
+
+            </div>
+
+          </section>
+
+
+          <!-- Стороны -->
+
+          <section class="form-section">
+
+            <div class="form-section-title">
+              <span class="form-section-title-num">3</span>
+              Стороны договора
+            </div>
+
+
+            <div class="field">
+
+              <label class="field-label" for="f-contractor">
+                Подрядчик
+                <span class="req">*</span>
+              </label>
+
+              <div class="input-with-action">
+
+                <select
+                  class="select"
+                  id="f-contractor"
+                  onchange="onContractorSelect()"
+                >
+                  <option value="">
+                    — выберите из базы —
+                  </option>
+                </select>
+
+                <button
+                  class="btn btn-secondary btn-sm"
+                  type="button"
+                  onclick="switchTab('contractors')"
+                  title="Управление подрядчиками"
+                >
+                  <svg class="icon" viewBox="0 0 16 16">
+                    <path d="M8 3v10M3 8h10"/>
+                  </svg>
+                </button>
+
+              </div>
+
+            </div>
+
+
+            <div class="field">
+
+              <label class="field-label" for="f-customer">
+                Заказчик
+                <span class="req">*</span>
+              </label>
+
+              <div class="input-with-action">
+
+                <select
+                  class="select"
+                  id="f-customer"
+                  onchange="onCustomerSelect()"
+                >
+                  <option value="">
+                    — выберите из базы —
+                  </option>
+                </select>
+
+                <button
+                  class="btn btn-secondary btn-sm"
+                  type="button"
+                  onclick="switchTab('customers')"
+                  title="Управление заказчиками"
+                >
+                  <svg class="icon" viewBox="0 0 16 16">
+                    <path d="M8 3v10M3 8h10"/>
+                  </svg>
+                </button>
+
+              </div>
+
+            </div>
+
+
+            <div class="field">
+
+              <label class="field-label" for="f-investor">
+                Инвестор
+                <span
+                  class="muted"
+                  style="
+                    font-weight:400;
+                    text-transform:none;
+                    letter-spacing:0;
+                    font-size:11px;
+                    margin-left:4px;
+                  "
+                >
+                  (необязательно)
+                </span>
+              </label>
+
+              <input
+                class="input"
+                id="f-investor"
+                type="text"
+                placeholder="Наименование инвестора"
+                oninput="renderPreview()"
+              >
+
+            </div>
+
+
+            <div class="field-row cols-2">
+
+              <div class="field">
+                <label
+                  class="field-label"
+                  for="f-contract-num"
+                >
+                  Договор подряда №
+                </label>
+
+                <input
+                  class="input"
+                  id="f-contract-num"
+                  type="text"
+                  placeholder="123"
+                  oninput="renderPreview()"
+                >
+              </div>
+
+
+              <div class="field">
+                <label
+                  class="field-label"
+                  for="f-contract-date"
+                >
+                  Дата договора
+                </label>
+
+                <input
+                  class="input"
+                  id="f-contract-date"
+                  type="date"
+                  oninput="renderPreview()"
+                >
+              </div>
+
+            </div>
+
+          </section>
+
+
+          <!-- Объект -->
+
+          <section class="form-section">
+
+            <div class="form-section-title">
+              <span class="form-section-title-num">4</span>
+              Объект строительства
+            </div>
+
+
+            <div class="field">
+
+              <label class="field-label" for="f-object">
+                Наименование объекта
+                <span class="req">*</span>
+              </label>
+
+              <input
+                class="input"
+                id="f-object"
+                type="text"
+                placeholder="Жилой дом по адресу…"
+                oninput="renderPreview()"
+              >
+
+            </div>
+
+
+            <div class="field">
+
+              <label
+                class="field-label"
+                for="f-object-addr"
+              >
+                Адрес объекта
+              </label>
+
+              <input
+                class="input"
+                id="f-object-addr"
+                type="text"
+                placeholder="г. Москва, ул. …"
+                oninput="renderPreview()"
+              >
+
+            </div>
+
+          </section>
+
+
+          <!-- Работы КС-2 -->
+
+          <section
+            class="form-section"
+            id="section-works"
+          >
+
+            <div class="form-section-title">
+              <span class="form-section-title-num">5</span>
+              Выполненные работы
+            </div>
+
+            <div style="overflow-x:auto;">
+
+              <table
+                class="rows-table"
+                id="works-table"
+              >
+                <thead>
+                  <tr>
+                    <th class="col-num">№</th>
+                    <th>Наименование работ</th>
+                    <th style="width:60px">Ед.</th>
+                    <th style="width:72px">Кол-во</th>
+                    <th style="width:90px">Цена, ₽</th>
+                    <th style="width:90px">Сумма, ₽</th>
+                    <th class="col-del"></th>
+                  </tr>
+                </thead>
+
+                <tbody id="works-tbody"></tbody>
+              </table>
+
+            </div>
+
+            <div class="rows-add">
+
+              <button
+                class="btn btn-ghost btn-sm"
+                type="button"
+                onclick="addWorkRow()"
+              >
+                <svg class="icon" viewBox="0 0 16 16">
+                  <path d="M8 3v10M3 8h10"/>
+                </svg>
+                Добавить строку
+              </button>
+
+            </div>
+
+          </section>
+
+
+          <!-- Связанные КС-2 -->
+
+          <section
+            class="form-section hidden"
+            id="section-ks2-link"
+          >
+
+            <div class="form-section-title">
+              <span class="form-section-title-num">5</span>
+              Связанные акты КС-2
+            </div>
+
+            <p
+              style="
+                font-size:12px;
+                color:var(--ink-soft);
+                margin:0 0 10px;
+              "
+            >
+              Выберите один или несколько ранее сохранённых
+              актов КС-2. Их данные будут использованы при
+              формировании КС-3.
+            </p>
+
+            <div
+              class="ks2-pick-list"
+              id="ks2-pick-list"
+            >
+              <div class="ks2-pick-empty">
+                Нет сохранённых актов КС-2
+              </div>
+            </div>
+
+          </section>
+
+
+          <!-- НДС -->
+
+          <section class="form-section">
+
+            <div class="form-section-title">
+              <span class="form-section-title-num">6</span>
+              НДС и итоги
+            </div>
+
+
+            <div class="field-row cols-2">
+
+              <div class="field">
+
+                <label
+                  class="field-label"
+                  for="f-vat-rate"
+                >
+                  Ставка НДС
+                </label>
+
+                <select
+                  class="select"
+                  id="f-vat-rate"
+                  onchange="onVatRateChange()"
+                >
+                  <option value="none">
+                    Без НДС
+                  </option>
+
+                  <option value="5">
+                    5 %
+                  </option>
+
+                  <option value="10">
+                    10 %
+                  </option>
+
+                  <option value="20" selected>
+                    20 %
+                  </option>
+
+                  <option value="22">
+                    22 %
+                  </option>
+
+                  <option value="custom">
+                    Ввести вручную…
+                  </option>
+                </select>
+
+              </div>
+
+
+              <div
+                class="field hidden"
+                id="vat-custom-field"
+              >
+
+                <label
+                  class="field-label"
+                  for="f-vat-custom"
+                >
+                  Ставка НДС, %
+                </label>
+
+                <input
+                  class="input"
+                  id="f-vat-custom"
+                  type="number"
+                  min="0"
+                  max="100"
+                  step="0.01"
+                  placeholder="0,00"
+                  oninput="
+                    renderTotals();
+                    renderPreview();
+                  "
+                >
+
+              </div>
+
+            </div>
+
+
+            <div
+              style="
+                background:var(--bg-elev);
+                border:1px solid var(--line);
+                border-radius:var(--radius-sm);
+                padding:12px 14px;
+                font-size:13px;
+              "
+            >
+
+              <div
+                style="
+                  display:flex;
+                  justify-content:space-between;
+                  margin-bottom:6px;
+                "
+              >
+                <span style="color:var(--ink-soft);">
+                  Итого без НДС:
+                </span>
+                <span
+                  class="mono"
+                  id="total-base"
+                >
+                  0,00 ₽
+                </span>
+              </div>
+
+
+              <div
+                style="
+                  display:flex;
+                  justify-content:space-between;
+                  margin-bottom:6px;
+                "
+              >
+                <span style="color:var(--ink-soft);">
+                  НДС:
+                </span>
+                <span
+                  class="mono"
+                  id="total-vat"
+                >
+                  0,00 ₽
+                </span>
+              </div>
+
+
+              <div
+                style="
+                  display:flex;
+                  justify-content:space-between;
+                  font-weight:700;
+                  font-size:14px;
+                  padding-top:8px;
+                  border-top:1px solid var(--line);
+                "
+              >
+                <span>
+                  Итого с НДС:
+                </span>
+
+                <span
+                  class="mono"
+                  id="total-gross"
+                >
+                  0,00 ₽
+                </span>
+              </div>
+
+            </div>
+
+          </section>
+
+
+          <!-- Действия -->
+
+          <div
+            style="
+              display:flex;
+              gap:10px;
+              margin-top:6px;
+              flex-wrap:wrap;
+            "
+          >
+
+            <button
+              class="btn btn-primary"
+              type="button"
+              onclick="saveDocument()"
+            >
+              <svg class="icon" viewBox="0 0 16 16">
+                <path d="M2 2h9l3 3v9H2V2z"/>
+                <rect x="5" y="9" width="6" height="5"/>
+                <rect x="4" y="2" width="6" height="4"/>
+              </svg>
+
+              Сохранить в архив
+            </button>
+
+
+            <button
+              class="btn btn-secondary"
+              type="button"
+              onclick="exportXLSX()"
+            >
+              <svg class="icon" viewBox="0 0 16 16">
+                <path d="M2 10v4h12v-4"/>
+                <path d="M8 2v8"/>
+                <path d="M5 7l3 3 3-3"/>
+              </svg>
+
+              Скачать XLSX
+            </button>
+
+
+            <button
+              class="btn btn-secondary"
+              type="button"
+              onclick="downloadXML()"
+            >
+              <svg class="icon" viewBox="0 0 16 16">
+                <path d="M3 2h7l3 3v9H3z"/>
+                <path d="M10 2v4h4"/>
+              </svg>
+
+              XML
+            </button>
+
+
+            <button
+              class="btn btn-ghost"
+              type="button"
+              onclick="window.print()"
+            >
+              <svg class="icon" viewBox="0 0 16 16">
+                <path d="M4 5V2h8v3"/>
+                <rect
+                  x="2"
+                  y="5"
+                  width="12"
+                  height="7"
+                  rx="1"
+                />
+                <path d="M4 9h8M4 12h8"/>
+              </svg>
+
+              Печать
+            </button>
+
+
+            <button
+              class="btn btn-ghost"
+              type="button"
+              onclick="clearForm()"
+            >
+              <svg class="icon" viewBox="0 0 16 16">
+                <path d="M3 3l10 10M13 3L3 13"/>
+              </svg>
+
+              Очистить
+            </button>
+
+          </div>
+
+        </div>
+
+
+        <!-- ===================================================
+             ПРЕВЬЮ
+             =================================================== -->
+
+        <div class="doc-preview-pane">
+
+          <div class="doc-preview-toolbar">
+
+            <div class="preview-status">
+              <span class="preview-status-dot"></span>
+              Предварительный просмотр
+            </div>
+
+
+            <div class="preview-actions">
+
+              <button
+                class="btn btn-secondary btn-sm"
+                type="button"
+                onclick="exportXLSX()"
+              >
+                <svg class="icon" viewBox="0 0 16 16">
+                  <path d="M2 10v4h12v-4"/>
+                  <path d="M8 2v8"/>
+                  <path d="M5 7l3 3 3-3"/>
+                </svg>
+                XLSX
+              </button>
+
+
+              <button
+                class="btn btn-secondary btn-sm"
+                type="button"
+                onclick="window.print()"
+              >
+                <svg class="icon" viewBox="0 0 16 16">
+                  <path d="M4 5V2h8v3"/>
+                  <rect
+                    x="2"
+                    y="5"
+                    width="12"
+                    height="7"
+                    rx="1"
+                  />
+                  <path d="M4 9h8M4 12h8"/>
+                </svg>
+                Печать
+              </button>
+
+            </div>
+
+          </div>
+
+          <div id="preview-paper"></div>
+
+        </div>
+
+      </div>
+
+    </div>
+
+
+    <!-- =======================================================
+         ПОДРЯДЧИКИ
+         ======================================================= -->
+
+    <div
+      class="view"
+      id="view-contractors"
+    >
+
+      <div class="journal-layout">
+
+        <div class="journal-head">
+
+          <div>
+            <div class="journal-title">
+              Подрядчики
+            </div>
+
+            <div class="journal-subtitle">
+              Клиенты-строители — выбираются при формировании документов
+            </div>
+          </div>
+
+
+          <button
+            class="btn btn-primary"
+            type="button"
+            onclick="openContractorModal()"
+          >
+            <svg class="icon" viewBox="0 0 16 16">
+              <path d="M8 3v10M3 8h10"/>
+            </svg>
+
+            Добавить подрядчика
+          </button>
+
+        </div>
+
+
+        <div class="journal-toolbar">
+
+          <input
+            class="search-input"
+            type="text"
+            placeholder="Поиск по названию, ИНН…"
+            id="search-contractors"
+            oninput="renderContractors()"
+          >
+
+        </div>
+
+
+        <div class="journal-table-wrap">
+
+          <table class="journal-table">
+
+            <thead>
+              <tr>
+                <th>Наименование</th>
+                <th>ИНН / КПП</th>
+                <th>Руководитель</th>
+                <th>Контакты</th>
+                <th></th>
+              </tr>
+            </thead>
+
+            <tbody id="contractors-tbody"></tbody>
+
+          </table>
+
+        </div>
+
+      </div>
+
+    </div>
+
+
+    <!-- =======================================================
+         ЗАКАЗЧИКИ
+         ======================================================= -->
+
+    <div
+      class="view"
+      id="view-customers"
+    >
+
+      <div class="journal-layout">
+
+        <div class="journal-head">
+
+          <div>
+
+            <div class="journal-title">
+              Заказчики
+            </div>
+
+            <div class="journal-subtitle">
+              Организации, для которых выполняются строительные работы
+            </div>
+
+          </div>
+
+
+          <button
+            class="btn btn-primary"
+            type="button"
+            onclick="openCustomerModal()"
+          >
+            <svg class="icon" viewBox="0 0 16 16">
+              <path d="M8 3v10M3 8h10"/>
+            </svg>
+
+            Добавить заказчика
+          </button>
+
+        </div>
+
+
+        <div class="journal-toolbar">
+
+          <input
+            class="search-input"
+            type="text"
+            placeholder="Поиск по названию, ИНН…"
+            id="search-customers"
+            oninput="renderCustomers()"
+          >
+
+        </div>
+
+
+        <div class="journal-table-wrap">
+
+          <table class="journal-table">
+
+            <thead>
+              <tr>
+                <th>Наименование</th>
+                <th>ИНН / КПП</th>
+                <th>Руководитель</th>
+                <th>Контакты</th>
+                <th></th>
+              </tr>
+            </thead>
+
+            <tbody id="customers-tbody"></tbody>
+
+          </table>
+
+        </div>
+
+      </div>
+
+    </div>
+
+
+    <!-- =======================================================
+         АРХИВ
+         ======================================================= -->
+
+    <div
+      class="view"
+      id="view-archive"
+    >
+
+      <div class="journal-layout">
+
+        <div class="journal-head">
+
+          <div>
+
+            <div class="journal-title">
+              Архив документов
+            </div>
+
+            <div class="journal-subtitle">
+              Сохранённые КС-2 и КС-3
+            </div>
+
+          </div>
+
+
+          <button
+            class="btn btn-secondary"
+            type="button"
+            onclick="clearArchive()"
+          >
+            <svg class="icon" viewBox="0 0 16 16">
+              <path d="M2 4h12"/>
+              <path d="M5 4V2h6v2"/>
+              <path d="M6 7v5M10 7v5"/>
+              <path d="M3 4l1 10h8l1-10"/>
+            </svg>
+
+            Очистить архив
+          </button>
+
+        </div>
+
+
+        <div class="journal-toolbar">
+
+          <input
+            class="search-input"
+            type="text"
+            placeholder="Поиск по номеру, объекту, подрядчику…"
+            id="search-archive"
+            oninput="renderArchive()"
+          >
+
+          <select
+            class="select"
+            id="filter-archive-type"
+            onchange="renderArchive()"
+            style="width:160px;"
+          >
+            <option value="">
+              Все типы
+            </option>
+
+            <option value="ks2">
+              Только КС-2
+            </option>
+
+            <option value="ks3">
+              Только КС-3
+            </option>
+          </select>
+
+        </div>
+
+
+        <div class="journal-table-wrap">
+
+          <table class="journal-table">
+
+            <thead>
+              <tr>
+                <th>Тип</th>
+                <th>Номер</th>
+                <th>Дата</th>
+                <th>Подрядчик</th>
+                <th>Заказчик</th>
+                <th>Объект</th>
+                <th class="text-right">
+                  Сумма с НДС
+                </th>
+                <th></th>
+              </tr>
+            </thead>
+
+            <tbody id="archive-tbody"></tbody>
+
+          </table>
+
+        </div>
+
+      </div>
+
+    </div>
+
+  </main>
+
+</div>
+
+
+<!-- ===========================================================
+     МОДАЛКА ПОДРЯДЧИКА
+     =========================================================== -->
+
+<div
+  class="modal-backdrop"
+  id="modal-contractor"
+>
+
+  <div class="modal">
+
+    <div class="modal-head">
+
+      <span
+        class="modal-title"
+        id="modal-contractor-title"
+      >
+        Новый подрядчик
+      </span>
+
+      <button
+        class="modal-close"
+        type="button"
+        onclick="closeModal('modal-contractor')"
+      >
+        <svg class="icon" viewBox="0 0 16 16">
+          <path d="M3 3l10 10M13 3L3 13"/>
+        </svg>
+      </button>
+
+    </div>
+
+
+    <div class="modal-body">
+
+      <input
+        type="hidden"
+        id="mc-id"
+      >
+
+
+      <div class="field">
+
+        <label
+          class="field-label"
+          for="mc-name"
+        >
+          Полное наименование
+          <span class="req">*</span>
+        </label>
+
+        <input
+          class="input"
+          id="mc-name"
+          type="text"
+          placeholder="ООО «Строй-Мастер»"
+        >
+
+      </div>
+
+
+      <div class="field-row cols-2">
+
+        <div class="field">
+
+          <label
+            class="field-label"
+            for="mc-inn"
+          >
+            ИНН
+            <span class="req">*</span>
+          </label>
+
+          <input
+            class="input"
+            id="mc-inn"
+            type="text"
+            placeholder="7712345678"
+            maxlength="12"
+          >
+
+        </div>
+
+
+        <div class="field">
+
+          <label
+            class="field-label"
+            for="mc-kpp"
+          >
+            КПП
+          </label>
+
+          <input
+            class="input"
+            id="mc-kpp"
+            type="text"
+            placeholder="771201001"
+            maxlength="9"
+          >
+
+        </div>
+
+      </div>
+
+
+      <div class="field-row cols-2">
+
+        <div class="field">
+
+          <label
+            class="field-label"
+            for="mc-ogrn"
+          >
+            ОГРН
+          </label>
+
+          <input
+            class="input"
+            id="mc-ogrn"
+            type="text"
+            placeholder="1027700132195"
+            maxlength="15"
+          >
+
+        </div>
+
+
+        <div class="field">
+
+          <label
+            class="field-label"
+            for="mc-okpo"
+          >
+            ОКПО
+          </label>
+
+          <input
+            class="input"
+            id="mc-okpo"
+            type="text"
+            placeholder="12345678"
+            maxlength="10"
+          >
+
+        </div>
+
+      </div>
+
+
+      <div class="field">
+
+        <label
+          class="field-label"
+          for="mc-addr"
+        >
+          Юридический адрес
+        </label>
+
+        <input
+          class="input"
+          id="mc-addr"
+          type="text"
+          placeholder="125009, г. Москва, ул. …"
+        >
+
+      </div>
+
+
+      <div class="field-row cols-2">
+
+        <div class="field">
+
+          <label
+            class="field-label"
+            for="mc-boss-pos"
+          >
+            Должность руководителя
+          </label>
+
+          <input
+            class="input"
+            id="mc-boss-pos"
+            type="text"
+            placeholder="Генеральный директор"
+          >
+
+        </div>
+
+
+        <div class="field">
+
+          <label
+            class="field-label"
+            for="mc-boss-name"
+          >
+            ФИО руководителя
+          </label>
+
+          <input
+            class="input"
+            id="mc-boss-name"
+            type="text"
+            placeholder="Иванов И.И."
+          >
+
+        </div>
+
+      </div>
+
+
+      <div class="field-row cols-2">
+
+        <div class="field">
+
+          <label
+            class="field-label"
+            for="mc-phone"
+          >
+            Телефон
+          </label>
+
+          <input
+            class="input"
+            id="mc-phone"
+            type="text"
+            placeholder="+7 (495) 000-00-00"
+          >
+
+        </div>
+
+
+        <div class="field">
+
+          <label
+            class="field-label"
+            for="mc-email"
+          >
+            E-mail
+          </label>
+
+          <input
+            class="input"
+            id="mc-email"
+            type="email"
+            placeholder="info@company.ru"
+          >
+
+        </div>
+
+      </div>
+
+
+      <div class="field">
+
+        <label
+          class="field-label"
+          for="mc-rs"
+        >
+          Расчётный счёт
+        </label>
+
+        <input
+          class="input"
+          id="mc-rs"
+          type="text"
+          placeholder="40702810000000000000"
+          maxlength="20"
+        >
+
+      </div>
+
+
+      <div class="field-row cols-2">
+
+        <div class="field">
+
+          <label
+            class="field-label"
+            for="mc-bank"
+          >
+            Банк
+          </label>
+
+          <input
+            class="input"
+            id="mc-bank"
+            type="text"
+            placeholder="ПАО «Сбербанк»"
+          >
+
+        </div>
+
+
+        <div class="field">
+
+          <label
+            class="field-label"
+            for="mc-bik"
+          >
+            БИК
+          </label>
+
+          <input
+            class="input"
+            id="mc-bik"
+            type="text"
+            placeholder="044525225"
+            maxlength="9"
+          >
+
+        </div>
+
+      </div>
+
+
+      <div class="field">
+
+        <label
+          class="field-label"
+          for="mc-ks"
+        >
+          Корр. счёт
+        </label>
+
+        <input
+          class="input"
+          id="mc-ks"
+          type="text"
+          placeholder="30101810400000000225"
+          maxlength="20"
+        >
+
+      </div>
+
+    </div>
+
+
+    <div class="modal-foot">
+
+      <button
+        class="btn btn-ghost"
+        type="button"
+        onclick="closeModal('modal-contractor')"
+      >
+        Отмена
+      </button>
+
+      <button
+        class="btn btn-primary"
+        type="button"
+        onclick="saveContractor()"
+      >
+        Сохранить
+      </button>
+
+    </div>
+
+  </div>
+
+</div>
+
+
+<!-- ===========================================================
+     МОДАЛКА ЗАКАЗЧИКА
+     =========================================================== -->
+
+<div
+  class="modal-backdrop"
+  id="modal-customer"
+>
+
+  <div class="modal">
+
+    <div class="modal-head">
+
+      <span
+        class="modal-title"
+        id="modal-customer-title"
+      >
+        Новый заказчик
+      </span>
+
+      <button
+        class="modal-close"
+        type="button"
+        onclick="closeModal('modal-customer')"
+      >
+        <svg class="icon" viewBox="0 0 16 16">
+          <path d="M3 3l10 10M13 3L3 13"/>
+        </svg>
+      </button>
+
+    </div>
+
+
+    <div class="modal-body">
+
+      <input
+        type="hidden"
+        id="mcu-id"
+      >
+
+
+      <div class="field">
+
+        <label
+          class="field-label"
+          for="mcu-name"
+        >
+          Полное наименование
+          <span class="req">*</span>
+        </label>
+
+        <input
+          class="input"
+          id="mcu-name"
+          type="text"
+          placeholder="ООО «Заказчик»"
+        >
+
+      </div>
+
+
+      <div class="field-row cols-2">
+
+        <div class="field">
+
+          <label
+            class="field-label"
+            for="mcu-inn"
+          >
+            ИНН
+            <span class="req">*</span>
+          </label>
+
+          <input
+            class="input"
+            id="mcu-inn"
+            type="text"
+            placeholder="7712345678"
+            maxlength="12"
+          >
+
+        </div>
+
+
+        <div class="field">
+
+          <label
+            class="field-label"
+            for="mcu-kpp"
+          >
+            КПП
+          </label>
+
+          <input
+            class="input"
+            id="mcu-kpp"
+            type="text"
+            placeholder="771201001"
+            maxlength="9"
+          >
+
+        </div>
+
+      </div>
+
+
+      <div class="field-row cols-2">
+
+        <div class="field">
+
+          <label
+            class="field-label"
+            for="mcu-ogrn"
+          >
+            ОГРН
+          </label>
+
+          <input
+            class="input"
+            id="mcu-ogrn"
+            type="text"
+            placeholder="1027700132195"
+            maxlength="15"
+          >
+
+        </div>
+
+
+        <div class="field">
+
+          <label
+            class="field-label"
+            for="mcu-okpo"
+          >
+            ОКПО
+          </label>
+
+          <input
+            class="input"
+            id="mcu-okpo"
+            type="text"
+            placeholder="12345678"
+            maxlength="10"
+          >
+
+        </div>
+
+      </div>
+
+
+      <div class="field">
+
+        <label
+          class="field-label"
+          for="mcu-addr"
+        >
+          Юридический адрес
+        </label>
+
+        <input
+          class="input"
+          id="mcu-addr"
+          type="text"
+          placeholder="125009, г. Москва, ул. …"
+        >
+
+      </div>
+
+
+      <div class="field-row cols-2">
+
+        <div class="field">
+
+          <label
+            class="field-label"
+            for="mcu-boss-pos"
+          >
+            Должность руководителя
+          </label>
+
+          <input
+            class="input"
+            id="mcu-boss-pos"
+            type="text"
+            placeholder="Генеральный директор"
+          >
+
+        </div>
+
+
+        <div class="field">
+
+          <label
+            class="field-label"
+            for="mcu-boss-name"
+          >
+            ФИО руководителя
+          </label>
+
+          <input
+            class="input"
+            id="mcu-boss-name"
+            type="text"
+            placeholder="Петров П.П."
+          >
+
+        </div>
+
+      </div>
+
+
+      <div class="field-row cols-2">
+
+        <div class="field">
+
+          <label
+            class="field-label"
+            for="mcu-phone"
+          >
+            Телефон
+          </label>
+
+          <input
+            class="input"
+            id="mcu-phone"
+            type="text"
+            placeholder="+7 (495) 000-00-00"
+          >
+
+        </div>
+
+
+        <div class="field">
+
+          <label
+            class="field-label"
+            for="mcu-email"
+          >
+            E-mail
+          </label>
+
+          <input
+            class="input"
+            id="mcu-email"
+            type="email"
+            placeholder="office@client.ru"
+          >
+
+        </div>
+
+      </div>
+
+    </div>
+
+
+    <div class="modal-foot">
+
+      <button
+        class="btn btn-ghost"
+        type="button"
+        onclick="closeModal('modal-customer')"
+      >
+        Отмена
+      </button>
+
+      <button
+        class="btn btn-primary"
+        type="button"
+        onclick="saveCustomer()"
+      >
+        Сохранить
+      </button>
+
+    </div>
+
+  </div>
+
+</div>
+
+
+<!-- ===========================================================
+     ПОДТВЕРЖДЕНИЕ
+     =========================================================== -->
+
+<div
+  class="modal-backdrop"
+  id="modal-confirm"
+>
+
+  <div
+    class="modal"
+    style="max-width:440px;"
+  >
+
+    <div class="modal-head">
+
+      <span
+        class="modal-title"
+        id="confirm-title"
+      >
+        Подтверждение
+      </span>
+
+      <button
+        class="modal-close"
+        type="button"
+        onclick="closeModal('modal-confirm')"
+      >
+        <svg class="icon" viewBox="0 0 16 16">
+          <path d="M3 3l10 10M13 3L3 13"/>
+        </svg>
+      </button>
+
+    </div>
+
+
+    <div class="modal-body">
+
+      <p
+        id="confirm-text"
+        style="
+          margin:0;
+          font-size:13px;
+          color:var(--ink-soft);
+          line-height:1.55;
+        "
+      ></p>
+
+    </div>
+
+
+    <div class="modal-foot">
+
+      <button
+        class="btn btn-ghost"
+        type="button"
+        onclick="closeModal('modal-confirm')"
+      >
+        Отмена
+      </button>
+
+      <button
+        class="btn btn-primary"
+        type="button"
+        id="confirm-ok-btn"
+      >
+        Подтвердить
+      </button>
+
+    </div>
+
+  </div>
+
+</div>
+
+
+<!-- ===========================================================
+     ТОСТЫ
+     =========================================================== -->
+
+<div
+  class="toast-stack"
+  id="toast-stack"
+  aria-live="polite"
+  aria-atomic="true"
+></div>
+
+</body>
+</html>
