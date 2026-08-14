@@ -1,109 +1,76 @@
-<!doctype html>
+<!DOCTYPE html>
 <html lang="ru">
 <head>
-  <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta charset="UTF-8">
+  <meta
+    name="viewport"
+    content="width=device-width, initial-scale=1.0"
+  >
 
-  <title>Рабочая станция «ДжемБаланс»</title>
+  <title>Рабочая станция — ДжемБаланс</title>
 
-  <link rel="icon" type="image/png" href="/favicon.png">
-  <link rel="shortcut icon" href="/favicon.png">
-  <link rel="apple-touch-icon" href="/favicon.png">
-
-  <!-- Официальная JavaScript-библиотека Supabase -->
-  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <link
+    rel="icon"
+    href="./favicon.png"
+    type="image/png"
+  >
 
   <style>
     :root {
       --accent: #f99303;
-      --accent-hover: #e48600;
-      --accent-secondary: #df8f4a;
-      --accent-dark: #a85b17;
-      --accent-soft: #fff3e3;
+      --accent-hover: #e88900;
+      --accent-dark: #a85c00;
+      --accent-soft: #fff1dd;
 
-      --text: #2d1f15;
-      --muted: #76675b;
-      --bg: #fbf6f0;
+      --client: #df8f4a;
+      --client-dark: #a65a1b;
+      --client-soft: #fff0e4;
+
+      --strong: #172033;
+      --text: #334155;
+      --muted: #748094;
+
+      --line: #e2e7ee;
+      --page: #f3f5f7;
       --card: #ffffff;
-      --line: #e7d6c4;
 
-      --danger: #b42318;
-      --danger-soft: #fff0f0;
+      --shadow:
+        0 12px 34px rgba(30, 41, 59, .08);
 
-      --success: #18794e;
-      --success-soft: #eaf8f1;
-
-      --shadow: 0 20px 55px rgba(79, 52, 26, 0.14);
+      --shadow-hover:
+        0 16px 36px rgba(30, 41, 59, .12);
     }
 
     * {
       box-sizing: border-box;
     }
 
-    html,
-    body {
+    html {
       min-height: 100%;
+      background: var(--page);
     }
 
     body {
+      min-width: 320px;
+      min-height: 100vh;
       margin: 0;
+
       color: var(--text);
-      font-family: Arial, Helvetica, sans-serif;
+
       background:
-        radial-gradient(
-          circle at 12% 16%,
-          rgba(249, 147, 3, 0.14),
-          transparent 24%
-        ),
-        radial-gradient(
-          circle at 86% 12%,
-          rgba(255, 233, 206, 0.52),
-          transparent 22%
-        ),
-        radial-gradient(
-          circle at 82% 84%,
-          rgba(223, 143, 74, 0.13),
-          transparent 30%
-        ),
-        radial-gradient(
-          circle at 20% 88%,
-          rgba(255, 243, 227, 0.70),
-          transparent 22%
-        ),
         linear-gradient(
           180deg,
-          #fffdfb 0%,
-          #f3e8db 100%
+          #f7f8fa 0%,
+          #eef1f4 100%
         );
-      overflow-x: hidden;
-    }
 
-    body::before,
-    body::after {
-      content: "";
-      position: fixed;
-      width: 340px;
-      height: 340px;
-      border-radius: 50%;
-      background:
-        radial-gradient(
-          circle,
-          rgba(255, 251, 245, 0.92),
-          rgba(255, 255, 255, 0)
-        );
-      pointer-events: none;
-      z-index: 0;
-      filter: blur(8px);
-    }
-
-    body::before {
-      top: -120px;
-      right: -60px;
-    }
-
-    body::after {
-      bottom: -140px;
-      left: -80px;
+      font-family:
+        Inter,
+        -apple-system,
+        BlinkMacSystemFont,
+        "Segoe UI",
+        Arial,
+        sans-serif;
     }
 
     button,
@@ -112,339 +79,437 @@
     }
 
     button {
-      cursor: pointer;
+      -webkit-tap-highlight-color: transparent;
     }
 
-    button:disabled {
-      cursor: not-allowed;
-      opacity: 0.65;
+    a {
+      color: inherit;
     }
 
-    .hidden {
+    [hidden] {
       display: none !important;
     }
 
-    /* ======================================================
-       Экран загрузки
-       ====================================================== */
+
+    /* =========================================================
+       LOADING
+       ========================================================= */
 
     .loadingScreen {
       position: fixed;
+      z-index: 9999;
       inset: 0;
-      z-index: 1000;
+
       display: flex;
       align-items: center;
       justify-content: center;
+
       padding: 24px;
-      background:
-        radial-gradient(
-          circle at 20% 20%,
-          rgba(249, 147, 3, 0.15),
-          transparent 32%
-        ),
-        linear-gradient(
-          180deg,
-          #fffdf9 0%,
-          #f5ecdf 100%
-        );
+
+      background: rgba(245, 247, 249, .98);
+
+      transition:
+        opacity .2s ease,
+        visibility .2s ease;
+    }
+
+    .loadingScreen.hidden {
+      visibility: hidden;
+      opacity: 0;
+      pointer-events: none;
     }
 
     .loadingCard {
       width: min(390px, 100%);
       padding: 30px;
-      border: 1px solid #ead8c8;
-      border-radius: 24px;
+
+      border: 1px solid #f0d1a3;
+      border-top: 5px solid var(--accent);
+      border-radius: 22px;
+
       background: #ffffff;
-      box-shadow: var(--shadow);
+
+      box-shadow:
+        0 24px 70px rgba(31, 41, 55, .14);
+
       text-align: center;
     }
 
     .loadingLogo {
-      display: block;
-      width: 86px;
-      height: auto;
-      margin: 0 auto 18px;
-      filter:
-        drop-shadow(
-          0 10px 18px rgba(79, 52, 26, 0.10)
-        );
+      width: 58px;
+      height: 58px;
+      margin-bottom: 15px;
+
+      border-radius: 15px;
+      object-fit: contain;
     }
 
-    .spinner {
-      width: 38px;
-      height: 38px;
-      margin: 0 auto 17px;
-      border: 4px solid #f4ddc5;
-      border-top-color: var(--accent);
-      border-radius: 50%;
-      animation: spin 0.8s linear infinite;
+    .loadingTitle {
+      margin-bottom: 7px;
+
+      color: var(--strong);
+      font-size: 19px;
+      font-weight: 950;
     }
 
     .loadingText {
       color: var(--muted);
-      font-size: 14px;
-      font-weight: 700;
+      font-size: 12px;
+      line-height: 1.5;
     }
 
-    @keyframes spin {
+    .loadingSpinner {
+      width: 28px;
+      height: 28px;
+      margin: 18px auto 0;
+
+      border: 3px solid #ffe0b7;
+      border-top-color: var(--accent);
+      border-radius: 50%;
+
+      animation: spinner .8s linear infinite;
+    }
+
+    @keyframes spinner {
       to {
         transform: rotate(360deg);
       }
     }
 
-    /* ======================================================
-       Экран авторизации
-       ====================================================== */
 
-    .loginScreen {
-      position: relative;
-      z-index: 1;
+    /* =========================================================
+       AUTH
+       ========================================================= */
+
+    .authScreen {
+      position: fixed;
+      z-index: 5000;
+      inset: 0;
+
       display: none;
-      min-height: 100vh;
       align-items: center;
       justify-content: center;
-      padding: 24px;
+
+      padding: 20px;
+
       background:
-        radial-gradient(
-          circle at 18% 20%,
-          rgba(249, 147, 3, 0.16),
-          transparent 32%
-        ),
-        radial-gradient(
-          circle at 80% 70%,
-          rgba(223, 143, 74, 0.13),
-          transparent 34%
-        ),
         linear-gradient(
-          180deg,
-          #fffdf9 0%,
-          #f5ecdf 100%
+          145deg,
+          #f5f6f8 0%,
+          #eef1f4 100%
         );
     }
 
-    body.auth-required .loginScreen {
+    .authScreen.show {
       display: flex;
     }
 
-    .loginCard {
-      width: 100%;
-      max-width: 430px;
-      padding: 30px;
-      border: 1px solid #ead8c8;
+    .authCard {
+      width: min(430px, 100%);
+      padding: 28px;
+
+      border: 1px solid var(--line);
       border-top: 5px solid var(--accent);
-      border-radius: 24px;
+      border-radius: 23px;
+
       background: #ffffff;
+
       box-shadow:
-        0 24px 60px rgba(51, 32, 16, 0.12);
+        0 26px 80px rgba(31, 41, 55, .15);
     }
 
-    .loginLogoWrap {
+    .authBrand {
       display: flex;
-      justify-content: center;
-      margin-bottom: 14px;
+      align-items: center;
+      gap: 12px;
+
+      margin-bottom: 23px;
     }
 
-    .loginLogo {
-      display: block;
-      width: 96px;
-      height: auto;
-      filter:
-        drop-shadow(
-          0 10px 18px rgba(79, 52, 26, 0.10)
-        );
+    .authLogo {
+      width: 50px;
+      height: 50px;
+
+      border-radius: 14px;
+      object-fit: contain;
     }
 
-    .loginBadge {
-      display: inline-block;
-      margin-bottom: 16px;
-      padding: 7px 12px;
-      border: 1px solid #f1d2b5;
-      border-radius: 999px;
-      color: var(--accent-dark);
-      background: var(--accent-soft);
+    .authBrandTitle {
+      color: var(--strong);
+      font-size: 18px;
+      font-weight: 950;
+    }
+
+    .authBrandSubtitle {
+      margin-top: 3px;
+
+      color: var(--muted);
+      font-size: 11px;
+    }
+
+    .authHeading {
+      margin: 0 0 6px;
+
+      color: var(--strong);
+      font-size: 21px;
+      font-weight: 950;
+    }
+
+    .authDescription {
+      margin: 0 0 20px;
+
+      color: var(--muted);
       font-size: 12px;
-      font-weight: 800;
-      letter-spacing: 0.05em;
-      text-transform: uppercase;
-    }
-
-    .loginCard h2 {
-      margin: 0 0 8px;
-      color: #2f2015;
-      font-size: 28px;
-      line-height: 1.15;
-    }
-
-    .loginLead {
-      margin: 0 0 22px;
-      color: #6b6b6b;
-      font-size: 14px;
       line-height: 1.5;
     }
 
-    .field {
-      margin-bottom: 14px;
+    .authField {
+      margin-bottom: 12px;
     }
 
-    .field label {
+    .authField label {
       display: block;
-      margin-bottom: 6px;
-      color: #3a2a1f;
-      font-size: 13px;
-      font-weight: 700;
+
+      margin-bottom: 5px;
+
+      color: #616b7a;
+      font-size: 10px;
+      font-weight: 900;
+      letter-spacing: .04em;
+      text-transform: uppercase;
     }
 
-    .field input {
+    .authField input {
       width: 100%;
-      min-height: 48px;
-      padding: 13px 14px;
-      border: 1px solid #dbcabb;
-      border-radius: 14px;
-      color: var(--text);
-      background: #ffffff;
-      font-size: 16px;
+      min-height: 44px;
+      padding: 9px 11px;
+
+      border: 1px solid #d7dde6;
+      border-radius: 11px;
+
+      color: var(--strong);
+      background: #fff;
+
       outline: none;
+
       transition:
-        border-color 0.17s ease,
-        box-shadow 0.17s ease;
+        border-color .14s ease,
+        box-shadow .14s ease;
     }
 
-    .field input:focus {
+    .authField input:focus {
       border-color: var(--accent);
+
       box-shadow:
-        0 0 0 3px rgba(249, 147, 3, 0.16);
+        0 0 0 3px rgba(249, 147, 3, .12);
     }
 
-    .field input::placeholder {
-      color: #a09a94;
-    }
-
-    .loginBtn {
-      width: 100%;
-      min-height: 50px;
-      margin-top: 8px;
-      padding: 14px 16px;
-      border: 0;
-      border-radius: 14px;
-      color: #ffffff;
-      background:
-        linear-gradient(
-          180deg,
-          #ffab27,
-          var(--accent)
-        );
-      box-shadow:
-        0 12px 24px rgba(249, 147, 3, 0.24);
-      font-size: 16px;
-      font-weight: 800;
-      transition:
-        transform 0.17s ease,
-        background 0.17s ease;
-    }
-
-    .loginBtn:hover:not(:disabled) {
-      transform: translateY(-1px);
-      background:
-        linear-gradient(
-          180deg,
-          #fca016,
-          var(--accent-hover)
-        );
-    }
-
-    .loginError,
-    .loginSuccess {
+    .authError {
       display: none;
-      margin-top: 13px;
-      padding: 11px 12px;
-      border-radius: 12px;
-      font-size: 13px;
-      line-height: 1.4;
-    }
 
-    .loginError.show {
-      display: block;
-      color: #8a1f1f;
-      border: 1px solid #f0b6b6;
-      background: var(--danger-soft);
-    }
+      margin: 0 0 13px;
+      padding: 10px 11px;
 
-    .loginSuccess.show {
-      display: block;
-      color: var(--success);
-      border: 1px solid #b9e2ce;
-      background: var(--success-soft);
-    }
+      border: 1px solid #efc6c2;
+      border-radius: 10px;
 
-    .loginHint {
-      margin-top: 16px;
-      color: #777777;
-      font-size: 12px;
+      color: #a33e37;
+      background: #fff5f4;
+
+      font-size: 11px;
       line-height: 1.45;
     }
 
-    /* ======================================================
-       Рабочая станция
-       ====================================================== */
+    .authError.show {
+      display: block;
+    }
 
-    .wrap {
-      position: relative;
-      z-index: 1;
-      display: none;
-      min-height: 100vh;
-      max-width: 1180px;
-      margin: 0 auto;
-      padding: 42px 24px;
-      flex-direction: column;
-      justify-content: center;
+
+    /* =========================================================
+       BUTTONS
+       ========================================================= */
+
+    .button {
+      display: inline-flex;
       align-items: center;
+      justify-content: center;
+      gap: 6px;
+
+      min-height: 40px;
+      padding: 9px 13px;
+
+      border: 1px solid transparent;
+      border-radius: 12px;
+
+      cursor: pointer;
+
+      font-size: 11px;
+      font-weight: 900;
+
+      transition:
+        transform .13s ease,
+        background .13s ease,
+        border-color .13s ease,
+        box-shadow .13s ease;
     }
 
-    body.authenticated .wrap {
-      display: flex;
+    .button:hover:not(:disabled) {
+      transform: translateY(-1px);
     }
 
-    .accountBar {
+    .button:disabled {
+      cursor: default;
+      opacity: .55;
+    }
+
+    .buttonAccent {
+      color: #fff;
+      border-color: var(--accent);
+      background: var(--accent);
+
+      box-shadow:
+        0 7px 18px rgba(249, 147, 3, .2);
+    }
+
+    .buttonAccent:hover:not(:disabled) {
+      background: var(--accent-hover);
+    }
+
+    .buttonLight {
+      color: var(--accent-dark);
+      border-color: #efbd75;
+      background: #fff;
+    }
+
+    .buttonLight:hover:not(:disabled) {
+      background: #fff8ee;
+    }
+
+    .authSubmit {
       width: 100%;
+      min-height: 45px;
+      margin-top: 3px;
+    }
+
+
+    /* =========================================================
+       APP
+       ========================================================= */
+
+    .appShell {
+      display: none;
+
+      width: 100%;
+      padding: 18px;
+    }
+
+    .appShell.show {
+      display: block;
+    }
+
+    .page {
+      width: min(1520px, 100%);
+      margin: 0 auto;
+    }
+
+
+    /* =========================================================
+       TOPBAR
+       ========================================================= */
+
+    .topbar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 18px;
+
+      margin-bottom: 15px;
+      padding: 15px 18px;
+
+      border: 1px solid var(--line);
+      border-top: 4px solid var(--accent);
+      border-radius: 19px;
+
+      background: #fff;
+
+      box-shadow: var(--shadow);
+    }
+
+    .brand {
+      display: flex;
+      align-items: center;
+      min-width: 0;
+      gap: 13px;
+    }
+
+    .brandLogo {
+      width: 46px;
+      height: 46px;
+      flex: 0 0 auto;
+
+      border-radius: 13px;
+      object-fit: contain;
+    }
+
+    .brandText {
+      min-width: 0;
+    }
+
+    .brandTitle {
+      margin: 0;
+
+      color: var(--strong);
+      font-size: 19px;
+      font-weight: 950;
+      line-height: 1.15;
+    }
+
+    .brandSubtitle {
+      margin-top: 4px;
+
+      color: var(--muted);
+      font-size: 10.5px;
+      font-weight: 600;
+    }
+
+    .topbarRight {
       display: flex;
       align-items: center;
       justify-content: flex-end;
-      gap: 11px;
-      margin-bottom: 14px;
+      flex-wrap: wrap;
+      gap: 8px;
     }
 
-    .userBadge {
+    .userBox {
       display: flex;
       align-items: center;
-      gap: 10px;
       min-width: 0;
-      padding: 8px 13px 8px 9px;
-      border: 1px solid #e6d3c1;
-      border-radius: 999px;
-      color: #5f4128;
-      background: rgba(255, 255, 255, 0.82);
-      backdrop-filter: blur(7px);
-      box-shadow:
-        0 8px 20px rgba(40, 24, 8, 0.06);
+      gap: 9px;
+
+      padding: 5px 10px 5px 5px;
+
+      border: 1px solid var(--line);
+      border-radius: 14px;
+
+      background: #fafbfc;
     }
 
     .userAvatar {
-      display: flex;
-      flex: 0 0 auto;
+      display: inline-flex;
       align-items: center;
       justify-content: center;
+      flex: 0 0 auto;
+
       width: 34px;
       height: 34px;
+
       border-radius: 50%;
-      color: #ffffff;
-      background:
-        linear-gradient(
-          180deg,
-          #ffad2e,
-          var(--accent)
-        );
-      font-size: 14px;
-      font-weight: 900;
+
+      color: var(--accent-dark);
+      background: var(--accent-soft);
+
+      font-size: 11px;
+      font-weight: 950;
     }
 
     .userInfo {
@@ -452,837 +517,1467 @@
     }
 
     .userName {
-      max-width: 220px;
       overflow: hidden;
-      color: #4c321f;
-      font-size: 13px;
-      font-weight: 800;
+
+      max-width: 190px;
+
+      color: var(--strong);
+      font-size: 11px;
+      font-weight: 900;
+
       text-overflow: ellipsis;
       white-space: nowrap;
     }
 
     .userEmail {
-      max-width: 220px;
       overflow: hidden;
+
+      max-width: 190px;
+
       margin-top: 2px;
+
       color: var(--muted);
-      font-size: 11px;
+      font-size: 9px;
+
       text-overflow: ellipsis;
       white-space: nowrap;
     }
 
-    .logoutBtn {
-      min-height: 44px;
-      padding: 10px 15px;
-      border: 1px solid #e6d3c1;
-      border-radius: 999px;
-      color: #5f4128;
-      background: rgba(255, 255, 255, 0.82);
-      backdrop-filter: blur(7px);
-      box-shadow:
-        0 8px 20px rgba(40, 24, 8, 0.06);
-      font-weight: 700;
-      transition:
-        border-color 0.18s ease,
-        background 0.18s ease,
-        transform 0.18s ease;
-    }
 
-    .logoutBtn:hover:not(:disabled) {
-      transform: translateY(-1px);
-      border-color: var(--accent);
-      background: #ffffff;
-    }
+    /* =========================================================
+       HERO
+       ========================================================= */
 
     .hero {
-      width: 100%;
-      margin-bottom: 36px;
-      text-align: center;
-    }
-
-    .heroInner {
-      max-width: 980px;
-      margin: 0 auto;
-      padding: 14px 8px 0;
-    }
-
-    .brandLogoWrap {
-      display: flex;
-      justify-content: center;
-      margin-bottom: 18px;
-    }
-
-    .brandLogo {
-      display: block;
-      width: 134px;
-      max-width: 32vw;
-      height: auto;
-      filter:
-        drop-shadow(
-          0 14px 24px rgba(79, 52, 26, 0.10)
-        );
-    }
-
-    .eyebrow {
-      display: inline-block;
-      margin-bottom: 18px;
-      padding: 9px 16px;
-      border: 1px solid #f0d1a5;
-      border-radius: 999px;
-      color: var(--accent-dark);
-      background: rgba(255, 252, 248, 0.94);
-      box-shadow:
-        0 10px 24px rgba(79, 52, 26, 0.06);
-      font-size: 12px;
-      font-weight: 800;
-      letter-spacing: 0.10em;
-      text-transform: uppercase;
-    }
-
-    h1 {
-      margin: 0;
-      color: #2f2015;
-      font-size: 46px;
-      line-height: 1.06;
-      letter-spacing: -0.025em;
-    }
-
-    .heroLead {
-      width: 110px;
-      height: 4px;
-      margin: 16px auto 0;
-      border-radius: 999px;
-      background:
-        linear-gradient(
-          90deg,
-          rgba(249, 147, 3, 0),
-          rgba(249, 147, 3, 0.96),
-          rgba(249, 147, 3, 0)
-        );
-    }
-
-    .subtitle {
-      max-width: 820px;
-      margin: 16px auto 0;
-      color: #705f50;
-      font-size: 18px;
-      line-height: 1.62;
-    }
-
-    .welcomeNote {
-      display: inline-flex;
-      align-items: center;
-      gap: 10px;
-      margin: 18px auto 0;
-      padding: 12px 16px;
-      border: 1px solid #ead8c6;
-      border-radius: 18px;
-      color: #6d5a49;
-      background: rgba(255, 251, 247, 0.88);
-      box-shadow:
-        0 10px 24px rgba(79, 52, 26, 0.06);
-      font-size: 14px;
-      line-height: 1.45;
-    }
-
-    .welcomeDot {
-      flex: 0 0 auto;
-      width: 9px;
-      height: 9px;
-      border-radius: 50%;
-      background:
-        linear-gradient(
-          180deg,
-          #ffad2e,
-          var(--accent)
-        );
-      box-shadow:
-        0 0 0 5px rgba(249, 147, 3, 0.12);
-    }
-
-    .quoteCard {
       position: relative;
-      max-width: 940px;
-      margin: 26px auto 0;
-      padding: 28px 32px;
+
       overflow: hidden;
-      border: 1px solid #edd8c4;
-      border-radius: 34px;
+
+      margin-bottom: 16px;
+      padding: 26px 27px;
+
+      border: 1px solid #efd5af;
+      border-radius: 22px;
+
       background:
         linear-gradient(
-          180deg,
-          rgba(255, 252, 248, 0.96),
-          rgba(252, 242, 230, 0.98)
+          125deg,
+          #fff 0%,
+          #fffaf2 55%,
+          #fff3df 100%
         );
-      box-shadow:
-        0 24px 60px rgba(91, 58, 29, 0.14);
+
+      box-shadow: var(--shadow);
     }
 
-    .quoteCard::before {
+    .hero::after {
       content: "";
+
       position: absolute;
-      top: 0;
-      left: 0;
-      width: 180px;
-      height: 180px;
-      background:
-        radial-gradient(
-          circle,
-          rgba(249, 147, 3, 0.12),
-          rgba(249, 147, 3, 0)
-        );
+      top: -85px;
+      right: -85px;
+
+      width: 260px;
+      height: 260px;
+
+      border-radius: 50%;
+
+      background: rgba(249, 147, 3, .07);
+
       pointer-events: none;
     }
 
-    .quoteText {
+    .heroEyebrow {
       position: relative;
       z-index: 1;
-      margin: 0;
-      color: #422d1d;
-      font-size: 25px;
-      font-weight: 700;
-      line-height: 1.55;
-    }
 
-    /* ======================================================
-       Карточки инструментов
-       ====================================================== */
+      margin-bottom: 7px;
 
-    .grid {
-      width: 100%;
-      max-width: 1080px;
-      display: grid;
-      grid-template-columns:
-        repeat(
-          auto-fit,
-          minmax(238px, 255px)
-        );
-      justify-content: center;
-      gap: 18px;
-    }
+      color: var(--accent-dark);
 
-    .card {
-      position: relative;
-      display: block;
-      min-height: 194px;
-      padding: 24px 22px 20px;
-      overflow: hidden;
-      border: 1px solid #e6d3c1;
-      border-radius: 30px;
-      color: var(--text);
-      background:
-        linear-gradient(
-          180deg,
-          rgba(255, 253, 250, 0.98),
-          rgba(251, 243, 233, 0.98)
-        );
-      box-shadow:
-        0 20px 50px rgba(91, 58, 29, 0.12);
-      text-decoration: none;
-      transition:
-        transform 0.18s ease,
-        border-color 0.18s ease,
-        box-shadow 0.18s ease;
-    }
-
-    .card::before {
-      content: "";
-      position: absolute;
-      top: -42px;
-      right: -32px;
-      width: 108px;
-      height: 108px;
-      border-radius: 50%;
-      background:
-        radial-gradient(
-          circle,
-          rgba(249, 147, 3, 0.23),
-          rgba(249, 147, 3, 0)
-        );
-    }
-
-    .card:hover {
-      transform: translateY(-4px);
-      border-color: var(--accent);
-      box-shadow:
-        0 28px 56px rgba(91, 58, 29, 0.16);
-    }
-
-    .card:focus-visible,
-    .loginBtn:focus-visible,
-    .logoutBtn:focus-visible {
-      outline:
-        3px solid rgba(249, 147, 3, 0.30);
-      outline-offset: 3px;
-    }
-
-    .cardTop {
-      position: relative;
-      z-index: 1;
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      gap: 10px;
-      margin-bottom: 14px;
-    }
-
-    .cardKind {
-      display: inline-flex;
-      align-items: center;
-      padding: 7px 11px;
-      border: 1px solid #f0d1a5;
-      border-radius: 999px;
-      color: #8a6848;
-      background: rgba(255, 248, 240, 0.90);
-      font-size: 11px;
-      font-weight: 800;
-      letter-spacing: 0.08em;
+      font-size: 10px;
+      font-weight: 950;
+      letter-spacing: .07em;
       text-transform: uppercase;
     }
 
-    .cardArrow {
-      color: var(--accent-dark);
-      font-size: 20px;
-      line-height: 1;
-      transform: translateX(0);
-      transition: transform 0.18s ease;
+    .heroTitle {
+      position: relative;
+      z-index: 1;
+
+      max-width: 820px;
+      margin: 0 0 7px;
+
+      color: var(--strong);
+      font-size: clamp(25px, 3vw, 36px);
+      font-weight: 950;
+      line-height: 1.12;
     }
 
-    .card:hover .cardArrow {
-      transform: translateX(4px);
+    .heroText {
+      position: relative;
+      z-index: 1;
+
+      max-width: 790px;
+      margin: 0;
+
+      color: var(--muted);
+      font-size: 12px;
+      line-height: 1.6;
     }
 
-    .cardMark {
-      display: inline-flex;
-      align-items: center;
-      justify-content: center;
-      width: 42px;
-      height: 42px;
-      margin-bottom: 16px;
-      border: 1px solid #efc98f;
-      border-radius: 15px;
-      color: var(--accent-dark);
+
+    /* =========================================================
+       SECTIONS
+       ========================================================= */
+
+    .moduleSection {
+      margin-bottom: 17px;
+      padding: 18px;
+
+      border: 1px solid var(--line);
+      border-radius: 21px;
+
+      background: #fff;
+
+      box-shadow: var(--shadow);
+    }
+
+    .internalSection {
+      border-top: 4px solid var(--accent);
+    }
+
+    .clientSection {
+      border-top: 4px solid var(--client);
+
       background:
         linear-gradient(
           180deg,
-          #fff5e8,
-          #ffe3bd
+          #ffffff 0%,
+          #fffaf6 100%
         );
-      box-shadow:
-        inset 0 1px 0 rgba(255, 255, 255, 0.7);
-      font-size: 15px;
-      font-weight: 800;
     }
 
-    .title {
-      position: relative;
-      z-index: 1;
-      margin-bottom: 10px;
-      font-size: 23px;
-      font-weight: 700;
-      letter-spacing: -0.01em;
+    .sectionHeader {
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      gap: 18px;
+
+      margin-bottom: 15px;
     }
 
-    .desc {
-      position: relative;
-      z-index: 1;
+    .sectionHeadingWrap {
+      display: flex;
+      align-items: flex-start;
+      min-width: 0;
+      gap: 11px;
+    }
+
+    .sectionIcon {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex: 0 0 auto;
+
+      width: 42px;
+      height: 42px;
+
+      border-radius: 13px;
+
+      color: var(--accent-dark);
+      background: var(--accent-soft);
+
+      font-size: 19px;
+      font-weight: 950;
+    }
+
+    .clientSection .sectionIcon {
+      color: var(--client-dark);
+      background: var(--client-soft);
+    }
+
+    .sectionTitle {
+      margin: 1px 0 4px;
+
+      color: var(--strong);
+      font-size: 17px;
+      font-weight: 950;
+    }
+
+    .sectionDescription {
+      max-width: 760px;
+      margin: 0;
+
       color: var(--muted);
-      font-size: 14px;
-      line-height: 1.58;
+      font-size: 11px;
+      line-height: 1.5;
     }
 
-    .cardFooter {
+    .sectionBadge {
+      flex: 0 0 auto;
+
+      padding: 6px 9px;
+
+      border-radius: 999px;
+
+      color: var(--accent-dark);
+      background: var(--accent-soft);
+
+      font-size: 9px;
+      font-weight: 900;
+      letter-spacing: .03em;
+      text-transform: uppercase;
+    }
+
+    .clientSection .sectionBadge {
+      color: var(--client-dark);
+      background: var(--client-soft);
+    }
+
+
+    /* =========================================================
+       MODULE CARDS
+       ========================================================= */
+
+    .moduleGrid {
+      display: grid;
+
+      grid-template-columns:
+        repeat(
+          auto-fit,
+          minmax(250px, 1fr)
+        );
+
+      gap: 11px;
+    }
+
+    .moduleCard {
       position: relative;
-      z-index: 1;
+
+      display: flex;
+      flex-direction: column;
+
+      min-height: 168px;
+      padding: 16px;
+
+      overflow: hidden;
+
+      border: 1px solid var(--line);
+      border-radius: 17px;
+
+      background: #fff;
+
+      text-decoration: none;
+
+      transition:
+        transform .15s ease,
+        border-color .15s ease,
+        box-shadow .15s ease,
+        background .15s ease;
+    }
+
+    a.moduleCard:hover {
+      transform: translateY(-2px);
+
+      border-color: #efbd73;
+      background: #fffdf9;
+
+      box-shadow: var(--shadow-hover);
+    }
+
+    .clientSection a.moduleCard:hover {
+      border-color: #e6ad79;
+      background: #fffaf6;
+    }
+
+
+    /* FUTURE MODULE */
+
+    .moduleCard.isDisabled {
+      cursor: default;
+
+      border-style: dashed;
+
+      background:
+        linear-gradient(
+          145deg,
+          #fafbfc 0%,
+          #f6f7f9 100%
+        );
+    }
+
+    .moduleCard.isDisabled .moduleIcon {
+      color: #7c8796;
+      background: #eceff3;
+    }
+
+    .moduleCard.isDisabled .moduleTitle {
+      color: #536071;
+    }
+
+    .moduleCard.isDisabled .moduleDescription {
+      color: #8b95a3;
+    }
+
+
+    .moduleTop {
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      gap: 10px;
+
+      margin-bottom: 13px;
+    }
+
+    .moduleIcon {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+
+      width: 40px;
+      height: 40px;
+
+      border-radius: 12px;
+
+      color: var(--accent-dark);
+      background: var(--accent-soft);
+
+      font-size: 18px;
+      font-weight: 950;
+    }
+
+    .clientSection .moduleIcon {
+      color: var(--client-dark);
+      background: var(--client-soft);
+    }
+
+    .moduleTag {
+      display: inline-flex;
+      align-items: center;
+
+      min-height: 23px;
+      padding: 4px 7px;
+
+      border-radius: 999px;
+
+      color: #677386;
+      background: #eef1f4;
+
+      font-size: 8px;
+      font-weight: 950;
+      letter-spacing: .035em;
+      text-transform: uppercase;
+    }
+
+    .moduleTag.crm {
+      color: #966000;
+      background: #fff0d7;
+    }
+
+    .moduleTag.client {
+      color: #a3591b;
+      background: #ffebdc;
+    }
+
+    .moduleTag.soon {
+      color: #697483;
+      background: #e8ebef;
+    }
+
+    .moduleTitle {
+      margin: 0 0 6px;
+
+      color: var(--strong);
+      font-size: 14px;
+      font-weight: 950;
+      line-height: 1.3;
+    }
+
+    .moduleDescription {
+      margin: 0;
+
+      color: var(--muted);
+      font-size: 10.5px;
+      line-height: 1.5;
+    }
+
+    .moduleFooter {
       display: flex;
       align-items: center;
       justify-content: space-between;
       gap: 10px;
-      margin-top: 16px;
-      color: var(--accent-dark);
-      font-size: 13px;
-      font-weight: 700;
+
+      margin-top: auto;
+      padding-top: 15px;
     }
 
-    /* ======================================================
-       Адаптивность
-       ====================================================== */
+    .moduleOpen {
+      color: var(--accent-dark);
+      font-size: 10px;
+      font-weight: 900;
+    }
 
-    @media (max-width: 760px) {
-      .wrap {
-        padding: 26px 18px;
+    .clientSection .moduleOpen {
+      color: var(--client-dark);
+    }
+
+    .moduleArrow {
+      color: var(--accent);
+      font-size: 18px;
+      font-weight: 800;
+
+      transition: transform .15s ease;
+    }
+
+    a.moduleCard:hover .moduleArrow {
+      transform: translateX(3px);
+    }
+
+    .clientSection .moduleArrow {
+      color: var(--client);
+    }
+
+    .futureText {
+      color: #7c8796;
+      font-size: 10px;
+      font-weight: 900;
+    }
+
+
+    /* =========================================================
+       CLIENT NOTE
+       ========================================================= */
+
+    .clientAccessNote {
+      display: flex;
+      align-items: flex-start;
+      gap: 10px;
+
+      margin-top: 13px;
+      padding: 11px 13px;
+
+      border: 1px dashed #e6bb94;
+      border-radius: 13px;
+
+      color: #855027;
+      background: #fff9f4;
+
+      font-size: 10.5px;
+      line-height: 1.5;
+    }
+
+    .clientAccessNoteIcon {
+      flex: 0 0 auto;
+
+      color: var(--client);
+      font-size: 15px;
+      font-weight: 950;
+    }
+
+
+    /* =========================================================
+       FOOTER
+       ========================================================= */
+
+    .footer {
+      padding: 6px 4px 18px;
+
+      color: #8a93a1;
+      font-size: 9px;
+      text-align: center;
+    }
+
+
+    /* =========================================================
+       TOAST
+       ========================================================= */
+
+    .toastStack {
+      position: fixed;
+      z-index: 8000;
+      right: 18px;
+      bottom: 18px;
+
+      display: grid;
+      gap: 8px;
+
+      width: min(360px, calc(100vw - 36px));
+
+      pointer-events: none;
+    }
+
+    .toast {
+      padding: 11px 13px;
+
+      border: 1px solid #efd09e;
+      border-left: 4px solid var(--accent);
+      border-radius: 12px;
+
+      color: #714710;
+      background: #fff9ef;
+
+      box-shadow:
+        0 12px 30px rgba(31, 41, 55, .14);
+
+      font-size: 11px;
+      font-weight: 700;
+      line-height: 1.45;
+
+      animation: toastIn .18s ease-out;
+    }
+
+    .toast.error {
+      color: #8b3c35;
+      border-color: #efc7c3;
+      border-left-color: #c4473d;
+      background: #fff5f4;
+    }
+
+    @keyframes toastIn {
+      from {
+        opacity: 0;
+        transform: translateY(7px);
+      }
+
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+
+
+    /* =========================================================
+       RESPONSIVE
+       ========================================================= */
+
+    @media (max-width: 900px) {
+      .topbar {
+        align-items: flex-start;
+        flex-direction: column;
+      }
+
+      .topbarRight {
+        width: 100%;
         justify-content: flex-start;
       }
 
-      .accountBar {
-        align-items: stretch;
+      .sectionHeader {
         flex-direction: column;
-        margin-bottom: 8px;
       }
 
-      .userBadge {
+      .sectionBadge {
+        align-self: flex-start;
+      }
+    }
+
+    @media (max-width: 650px) {
+      .appShell {
+        padding: 9px;
+      }
+
+      .topbar,
+      .hero,
+      .moduleSection {
+        border-radius: 16px;
+      }
+
+      .topbar {
+        padding: 13px;
+      }
+
+      .topbarRight {
+        display: grid;
+        grid-template-columns: 1fr;
         width: 100%;
-        border-radius: 18px;
+      }
+
+      .topbarRight .button {
+        width: 100%;
+      }
+
+      .userBox {
+        width: 100%;
       }
 
       .userName,
       .userEmail {
-        max-width: calc(100vw - 115px);
+        max-width: none;
       }
 
-      .logoutBtn {
-        width: 100%;
-        border-radius: 14px;
+      .hero {
+        padding: 19px;
       }
 
-      .brandLogo {
-        width: 108px;
+      .heroTitle {
+        font-size: 24px;
       }
 
-      .loginLogo {
-        width: 82px;
+      .moduleSection {
+        padding: 13px;
       }
 
-      h1 {
-        font-size: 32px;
-      }
-
-      .subtitle {
-        font-size: 16px;
-      }
-
-      .quoteText {
-        font-size: 20px;
-      }
-
-      .welcomeNote {
-        display: flex;
-        text-align: left;
-      }
-
-      .grid {
-        max-width: 460px;
+      .moduleGrid {
         grid-template-columns: 1fr;
       }
 
-      .card {
-        min-height: 160px;
-      }
-    }
-
-    @media (max-width: 640px) {
-      .loginCard {
-        padding: 24px;
-      }
-    }
-
-    @media (prefers-reduced-motion: reduce) {
-      *,
-      *::before,
-      *::after {
-        scroll-behavior: auto !important;
-        animation: none !important;
-        transition: none !important;
+      .moduleCard {
+        min-height: 155px;
       }
     }
   </style>
 </head>
 
+
 <body>
-  <!-- Экран проверки сохранённой сессии -->
-  <section
+
+
+  <!-- =========================================================
+       LOADING
+       ========================================================= -->
+
+  <div
     class="loadingScreen"
     id="loadingScreen"
-    aria-label="Загрузка"
   >
     <div class="loadingCard">
+
       <img
         class="loadingLogo"
-        src="/favicon.png"
+        src="./favicon.png"
         alt=""
       >
 
-      <div
-        class="spinner"
-        aria-hidden="true"
-      ></div>
-
-      <div class="loadingText">
-        Проверяем доступ к рабочей станции…
+      <div class="loadingTitle">
+        Рабочая станция
       </div>
-    </div>
-  </section>
 
-  <!-- Экран входа -->
+      <div
+        class="loadingText"
+        id="loadingText"
+      >
+        Проверяем авторизацию…
+      </div>
+
+      <div class="loadingSpinner"></div>
+
+    </div>
+  </div>
+
+
+  <!-- =========================================================
+       AUTH
+       ========================================================= -->
+
   <section
-    class="loginScreen"
-    aria-label="Вход в рабочую среду"
+    class="authScreen"
+    id="authScreen"
   >
+
     <form
-      class="loginCard"
+      class="authCard"
       id="loginForm"
     >
-      <div class="loginLogoWrap">
+
+      <div class="authBrand">
+
         <img
-          class="loginLogo"
-          src="/favicon.png"
-          alt="Логотип ДжемБаланс"
+          class="authLogo"
+          src="./favicon.png"
+          alt=""
         >
+
+        <div>
+          <div class="authBrandTitle">
+            Рабочая станция
+          </div>
+
+          <div class="authBrandSubtitle">
+            ДжемБаланс
+          </div>
+        </div>
+
       </div>
 
-      <div class="loginBadge">
-        Вход для сотрудников
-      </div>
 
-      <h2>
-        Рабочая станция «ДжемБаланс»
-      </h2>
+      <h1 class="authHeading">
+        Вход
+      </h1>
 
-      <p class="loginLead">
-        Введите электронную почту и пароль,
-        созданные для вас в системе.
+      <p class="authDescription">
+        Войдите в аккаунт сотрудника,
+        чтобы открыть Рабочую станцию.
       </p>
 
-      <div class="field">
-        <label for="emailInput">
-          Электронная почта
+
+      <div
+        class="authError"
+        id="authError"
+      ></div>
+
+
+      <div class="authField">
+
+        <label for="loginEmail">
+          E-mail
         </label>
 
         <input
-          id="emailInput"
-          name="email"
+          id="loginEmail"
           type="email"
-          autocomplete="username"
-          placeholder="name@example.ru"
+          autocomplete="email"
           required
+          placeholder="name@example.ru"
         >
+
       </div>
 
-      <div class="field">
-        <label for="passwordInput">
+
+      <div class="authField">
+
+        <label for="loginPassword">
           Пароль
         </label>
 
         <input
-          id="passwordInput"
-          name="password"
+          id="loginPassword"
           type="password"
           autocomplete="current-password"
-          placeholder="Введите пароль"
           required
+          placeholder="Пароль"
         >
+
       </div>
 
+
       <button
-        class="loginBtn"
+        class="button buttonAccent authSubmit"
         id="loginBtn"
         type="submit"
       >
         Войти
       </button>
 
-      <div
-        class="loginError"
-        id="loginError"
-        role="alert"
-        aria-live="polite"
-      ></div>
-
-      <div
-        class="loginSuccess"
-        id="loginSuccess"
-        role="status"
-        aria-live="polite"
-      ></div>
-
-      <div class="loginHint">
-        Для каждого сотрудника используется отдельная учётная
-        запись. Не передавайте свой пароль другим людям.
-      </div>
     </form>
+
   </section>
 
-  <!-- Рабочая станция -->
-  <main class="wrap">
-    <div class="accountBar">
-      <div
-        class="userBadge"
-        aria-label="Текущий пользователь"
-      >
-        <div
-          class="userAvatar"
-          id="userAvatar"
-          aria-hidden="true"
-        >
-          Д
-        </div>
 
-        <div class="userInfo">
-          <div
-            class="userName"
-            id="userName"
-          >
-            Сотрудник
-          </div>
+  <!-- =========================================================
+       APPLICATION
+       ========================================================= -->
 
-          <div
-            class="userEmail"
-            id="userEmail"
-          ></div>
-        </div>
-      </div>
+  <div
+    class="appShell"
+    id="appShell"
+  >
 
-      <button
-        class="logoutBtn"
-        id="logoutBtn"
-        type="button"
-      >
-        Выйти
-      </button>
-    </div>
+    <main class="page">
 
-    <section class="hero">
-      <div class="heroInner">
-        <div class="brandLogoWrap">
+
+      <!-- TOPBAR -->
+
+      <header class="topbar">
+
+        <div class="brand">
+
           <img
             class="brandLogo"
-            src="/favicon.png"
-            alt="Логотип ДжемБаланс"
+            src="./favicon.png"
+            alt=""
           >
-        </div>
 
-        <div class="eyebrow">
-          Внутренний кабинет
-        </div>
+          <div class="brandText">
 
-        <h1>
-          Рабочая станция «ДжемБаланс»
-        </h1>
+            <h1 class="brandTitle">
+              Рабочая станция
+            </h1>
 
-        <div class="heroLead"></div>
+            <div class="brandSubtitle">
+              ДжемБаланс · рабочие инструменты и клиентские модули
+            </div>
 
-        <div class="subtitle">
-          Все основные инструменты под рукой:
-          документы, клиентские генераторы, журналы
-          и аналитика — в одном аккуратном рабочем
-          пространстве.
-        </div>
-
-        <div class="welcomeNote">
-          <span
-            class="welcomeDot"
-            aria-hidden="true"
-          ></span>
-
-          <span>
-            Добро пожаловать. Пусть первичка приходит
-            вовремя, цифры сходятся, а клиенты радуют
-            не только вопросами, но и оплатами.
-          </span>
-        </div>
-
-        <div class="quoteCard">
-          <p class="quoteText">
-            Клиент хочет, чтобы было быстро, дёшево
-            и без вопросов.
-            <br>
-            Бухгалтер хочет хотя бы документы.
-          </p>
-        </div>
-      </div>
-    </section>
-
-    <nav
-      class="grid"
-      aria-label="Рабочие инструменты"
-    >
-      <a
-        class="card"
-        href="tools/DB_dogovornoi-centr.html"
-      >
-        <div class="cardTop">
-          <div class="cardKind">
-            Основной модуль
           </div>
 
-          <div
-            class="cardArrow"
-            aria-hidden="true"
-          >
-            →
+        </div>
+
+
+        <div class="topbarRight">
+
+          <div class="userBox">
+
+            <div
+              class="userAvatar"
+              id="userAvatar"
+            >
+              ДБ
+            </div>
+
+            <div class="userInfo">
+
+              <div
+                class="userName"
+                id="userName"
+              >
+                Сотрудник
+              </div>
+
+              <div
+                class="userEmail"
+                id="userEmail"
+              ></div>
+
+            </div>
+
           </div>
+
+
+          <button
+            class="button buttonLight"
+            id="logoutBtn"
+            type="button"
+          >
+            Выйти
+          </button>
+
         </div>
 
-        <div class="cardMark">
-          ДБ
-        </div>
+      </header>
 
-        <div class="title">
+
+      <!-- HERO -->
+
+      <section class="hero">
+
+        <div class="heroEyebrow">
           ДжемБаланс
         </div>
 
-        <div class="desc">
-          Договорной центр и коммерческие предложения.
-        </div>
+        <h2 class="heroTitle">
+          Всё необходимое для работы — в одном месте
+        </h2>
 
-        <div class="cardFooter">
-          <span>Открыть модуль</span>
-          <span>Документы</span>
-        </div>
-      </a>
+        <p class="heroText">
+          Внутренние инструменты помогают организовать
+          работу команды и вести общие реестры.
+          Клиентские модули решают специализированные
+          задачи отдельных клиентов.
+        </p>
 
-      <a
-        class="card"
-        href="tools/DB_razovie-uslugi.html"
+      </section>
+
+
+      <!-- =====================================================
+           ВНУТРЕННИЕ ИНСТРУМЕНТЫ
+           ===================================================== -->
+
+      <section
+        class="moduleSection internalSection"
+        aria-labelledby="internalTitle"
       >
-        <div class="cardTop">
-          <div class="cardKind">
-            Основной модуль
+
+        <header class="sectionHeader">
+
+          <div class="sectionHeadingWrap">
+
+            <div
+              class="sectionIcon"
+              aria-hidden="true"
+            >
+              ⚙
+            </div>
+
+            <div>
+
+              <h2
+                class="sectionTitle"
+                id="internalTitle"
+              >
+                Внутренние инструменты
+              </h2>
+
+              <p class="sectionDescription">
+                Рабочие журналы, реестры, CRM-инструменты
+                и сервисы для организации нашей работы.
+              </p>
+
+            </div>
+
           </div>
+
+
+          <div class="sectionBadge">
+            Для сотрудников
+          </div>
+
+        </header>
+
+
+        <div class="moduleGrid">
+
+
+          <!-- =================================================
+               ДОГОВОРНОЙ ЦЕНТР — РАБОТАЕТ
+               ================================================= -->
+
+          <a
+            class="moduleCard"
+            href="./tools/DB_dogovornoi-centr.html"
+          >
+
+            <div class="moduleTop">
+
+              <div class="moduleIcon">
+                Д
+              </div>
+
+              <span class="moduleTag">
+                Реестр
+              </span>
+
+            </div>
+
+
+            <h3 class="moduleTitle">
+              Договорной центр
+            </h3>
+
+            <p class="moduleDescription">
+              Работа с договорами, документами
+              и договорными процессами.
+            </p>
+
+
+            <div class="moduleFooter">
+
+              <span class="moduleOpen">
+                Открыть
+              </span>
+
+              <span class="moduleArrow">
+                →
+              </span>
+
+            </div>
+
+          </a>
+
+
+          <!-- =================================================
+               ЖУРНАЛ РАЗОВЫХ РАБОТ — РАБОТАЕТ
+               ================================================= -->
+
+          <a
+            class="moduleCard"
+            href="./tools/DB_razovie-uslugi.html"
+          >
+
+            <div class="moduleTop">
+
+              <div class="moduleIcon">
+                Ж
+              </div>
+
+              <span class="moduleTag">
+                Журнал
+              </span>
+
+            </div>
+
+
+            <h3 class="moduleTitle">
+              Журнал разовых работ
+            </h3>
+
+            <p class="moduleDescription">
+              Учёт разовых услуг, выполненных работ
+              и связанных с ними данных.
+            </p>
+
+
+            <div class="moduleFooter">
+
+              <span class="moduleOpen">
+                Открыть
+              </span>
+
+              <span class="moduleArrow">
+                →
+              </span>
+
+            </div>
+
+          </a>
+
+
+          <!-- =================================================
+               ПЛАНИРОВЩИК — РАБОТАЕТ
+               ================================================= -->
+
+          <a
+            class="moduleCard"
+            href="./tools/planner.html"
+          >
+
+            <div class="moduleTop">
+
+              <div class="moduleIcon">
+                П
+              </div>
+
+              <span class="moduleTag crm">
+                CRM
+              </span>
+
+            </div>
+
+
+            <h3 class="moduleTitle">
+              Планировщик
+            </h3>
+
+            <p class="moduleDescription">
+              Потенциальные клиенты, следующие контакты,
+              ответственные сотрудники, файлы и напоминания.
+            </p>
+
+
+            <div class="moduleFooter">
+
+              <span class="moduleOpen">
+                Открыть
+              </span>
+
+              <span class="moduleArrow">
+                →
+              </span>
+
+            </div>
+
+          </a>
+
+
+          <!-- =================================================
+               КАЛЬКУЛЯТОР — БУДУЩИЙ
+               ================================================= -->
 
           <div
-            class="cardArrow"
-            aria-hidden="true"
+            class="moduleCard isDisabled"
+            aria-disabled="true"
           >
-            →
+
+            <div class="moduleTop">
+
+              <div class="moduleIcon">
+                %
+              </div>
+
+              <span class="moduleTag soon">
+                Скоро
+              </span>
+
+            </div>
+
+
+            <h3 class="moduleTitle">
+              Калькулятор
+            </h3>
+
+            <p class="moduleDescription">
+              Рабочий модуль для быстрых расчётов
+              и вспомогательных вычислений.
+            </p>
+
+
+            <div class="moduleFooter">
+
+              <span class="futureText">
+                Будущий модуль
+              </span>
+
+            </div>
+
           </div>
-        </div>
 
-        <div class="cardMark">
-          РУ
-        </div>
 
-        <div class="title">
-          Журнал разовых работ
-        </div>
-
-        <div class="desc">
-          Учёт разовых задач, ответственных,
-          статусов и сроков.
-        </div>
-
-        <div class="cardFooter">
-          <span>Открыть модуль</span>
-          <span>Задачи</span>
-        </div>
-      </a>
-
-      <a
-        class="card"
-        href="tools/planner.html"
-        aria-label="Открыть планировщик потенциальных клиентов"
-      >
-        <div class="cardTop">
-          <div class="cardKind">
-            Планирование
-          </div>
+          <!-- =================================================
+               ЗАДАЧНИК — БУДУЩИЙ
+               ================================================= -->
 
           <div
-            class="cardArrow"
-            aria-hidden="true"
+            class="moduleCard isDisabled"
+            aria-disabled="true"
           >
-            →
+
+            <div class="moduleTop">
+
+              <div class="moduleIcon">
+                ✓
+              </div>
+
+              <span class="moduleTag soon">
+                Скоро
+              </span>
+
+            </div>
+
+
+            <h3 class="moduleTitle">
+              Задачник
+            </h3>
+
+            <p class="moduleDescription">
+              Общие и персональные задачи,
+              сроки и распределение работы между сотрудниками.
+            </p>
+
+
+            <div class="moduleFooter">
+
+              <span class="futureText">
+                Будущий модуль
+              </span>
+
+            </div>
+
           </div>
-        </div>
 
-        <div class="cardMark">
-          ПЛ
-        </div>
 
-        <div class="title">
-          Планировщик
-        </div>
-
-        <div class="desc">
-          Потенциальные клиенты, история общения,
-          даты следующих контактов и напоминания.
-        </div>
-
-        <div class="cardFooter">
-          <span>Открыть модуль</span>
-          <span>Лиды</span>
-        </div>
-      </a>
-
-      <a
-        class="card"
-        href="tools/LIBERA_generator-gph.html"
-      >
-        <div class="cardTop">
-          <div class="cardKind">
-            Клиентский модуль
-          </div>
+          <!-- =================================================
+               КЛИЕНТЫ — БУДУЩИЙ
+               ================================================= -->
 
           <div
-            class="cardArrow"
-            aria-hidden="true"
+            class="moduleCard isDisabled"
+            aria-disabled="true"
           >
-            →
+
+            <div class="moduleTop">
+
+              <div class="moduleIcon">
+                К
+              </div>
+
+              <span class="moduleTag soon">
+                Скоро
+              </span>
+
+            </div>
+
+
+            <h3 class="moduleTitle">
+              Клиенты
+            </h3>
+
+            <p class="moduleDescription">
+              Единая клиентская база с полной карточкой,
+              контактами, услугами, документами
+              и ответственными сотрудниками.
+            </p>
+
+
+            <div class="moduleFooter">
+
+              <span class="futureText">
+                Будущий модуль
+              </span>
+
+            </div>
+
           </div>
-        </div>
 
-        <div class="cardMark">
-          ЛБ
-        </div>
 
-        <div class="title">
-          ООО «ЛИБЕРА»
-        </div>
-
-        <div class="desc">
-          Генератор ГПХ и рабочие формы.
-        </div>
-
-        <div class="cardFooter">
-          <span>Открыть модуль</span>
-          <span>Кадры</span>
-        </div>
-      </a>
-
-      <a
-        class="card"
-        href="tools/GENSTROY_jurnal-dogovorov.html"
-      >
-        <div class="cardTop">
-          <div class="cardKind">
-            Клиентский модуль
-          </div>
+          <!-- =================================================
+               ГЕНЕРАТОР КС-2 И КС-3 — БУДУЩИЙ
+               ================================================= -->
 
           <div
-            class="cardArrow"
-            aria-hidden="true"
+            class="moduleCard isDisabled"
+            aria-disabled="true"
           >
-            →
+
+            <div class="moduleTop">
+
+              <div class="moduleIcon">
+                КС
+              </div>
+
+              <span class="moduleTag soon">
+                Скоро
+              </span>
+
+            </div>
+
+
+            <h3 class="moduleTitle">
+              Генератор КС-2 и КС-3
+            </h3>
+
+            <p class="moduleDescription">
+              Формирование документов КС-2 и КС-3
+              на основании исходных данных по выполненным работам.
+            </p>
+
+
+            <div class="moduleFooter">
+
+              <span class="futureText">
+                Будущий модуль
+              </span>
+
+            </div>
+
           </div>
+
+
         </div>
 
-        <div class="cardMark">
-          ГС
+      </section>
+
+
+      <!-- =====================================================
+           КЛИЕНТСКИЕ МОДУЛИ
+           ===================================================== -->
+
+      <section
+        class="moduleSection clientSection"
+        aria-labelledby="clientModulesTitle"
+      >
+
+        <header class="sectionHeader">
+
+          <div class="sectionHeadingWrap">
+
+            <div
+              class="sectionIcon"
+              aria-hidden="true"
+            >
+              ◇
+            </div>
+
+            <div>
+
+              <h2
+                class="sectionTitle"
+                id="clientModulesTitle"
+              >
+                Клиентские модули
+              </h2>
+
+              <p class="sectionDescription">
+                Специализированные инструменты,
+                созданные под конкретные процессы
+                и задачи наших клиентов.
+              </p>
+
+            </div>
+
+          </div>
+
+
+          <div class="sectionBadge">
+            Клиентские решения
+          </div>
+
+        </header>
+
+
+        <div class="moduleGrid">
+
+
+          <!-- =================================================
+               ООО «ЛИБЕРА» — РАБОТАЕТ
+               ================================================= -->
+
+          <a
+            class="moduleCard"
+            href="./tools/LIBERA_generator-gph.html"
+          >
+
+            <div class="moduleTop">
+
+              <div class="moduleIcon">
+                Л
+              </div>
+
+              <span class="moduleTag client">
+                ООО «Либера»
+              </span>
+
+            </div>
+
+
+            <h3 class="moduleTitle">
+              Генератор ГПХ
+            </h3>
+
+            <p class="moduleDescription">
+              Специализированный модуль
+              для формирования документов ГПХ.
+            </p>
+
+
+            <div class="moduleFooter">
+
+              <span class="moduleOpen">
+                Открыть модуль
+              </span>
+
+              <span class="moduleArrow">
+                →
+              </span>
+
+            </div>
+
+          </a>
+
+
+          <!-- =================================================
+               ООО «ГЕНСТРОЙ» — РАБОТАЕТ
+               ================================================= -->
+
+          <a
+            class="moduleCard"
+            href="./tools/GENSTROY_jurnal-dogovorov.html"
+          >
+
+            <div class="moduleTop">
+
+              <div class="moduleIcon">
+                Г
+              </div>
+
+              <span class="moduleTag client">
+                ООО «Генстрой»
+              </span>
+
+            </div>
+
+
+            <h3 class="moduleTitle">
+              Журнал договоров
+            </h3>
+
+            <p class="moduleDescription">
+              Специализированный клиентский реестр
+              для работы с договорами ООО «Генстрой».
+            </p>
+
+
+            <div class="moduleFooter">
+
+              <span class="moduleOpen">
+                Открыть модуль
+              </span>
+
+              <span class="moduleArrow">
+                →
+              </span>
+
+            </div>
+
+          </a>
+
+
+          <!-- =================================================
+               BASIS CASHFLOW — БУДУЩИЙ
+               ================================================= -->
+
+          <div
+            class="moduleCard isDisabled"
+            aria-disabled="true"
+          >
+
+            <div class="moduleTop">
+
+              <div class="moduleIcon">
+                B
+              </div>
+
+              <span class="moduleTag soon">
+                Скоро
+              </span>
+
+            </div>
+
+
+            <h3 class="moduleTitle">
+              BASIS Cashflow
+            </h3>
+
+            <p class="moduleDescription">
+              Специализированный клиентский модуль
+              для работы с денежными потоками BASIS.
+            </p>
+
+
+            <div class="moduleFooter">
+
+              <span class="futureText">
+                Будущий модуль
+              </span>
+
+            </div>
+
+          </div>
+
+
         </div>
 
-        <div class="title">
-          ООО «ГЕНСТРОЙ»
+
+        <div class="clientAccessNote">
+
+          <div class="clientAccessNoteIcon">
+            i
+          </div>
+
+          <div>
+            Клиентские модули выделены в отдельную группу.
+            В дальнейшем для них можно будет сделать отдельный
+            клиентский вход с доступом только к разрешённым
+            модулям — без доступа к внутренним инструментам
+            Рабочей станции.
+          </div>
+
         </div>
 
-        <div class="desc">
-          Журнал договоров и доступ
-          к связанным данным.
-        </div>
+      </section>
 
-        <div class="cardFooter">
-          <span>Открыть модуль</span>
-          <span>Журнал</span>
-        </div>
-      </a>
-    </nav>
-  </main>
+
+      <footer class="footer">
+        ДжемБаланс · Рабочая станция
+      </footer>
+
+    </main>
+
+  </div>
+
+
+  <!-- TOASTS -->
+
+  <div
+    class="toastStack"
+    id="toastStack"
+    aria-live="polite"
+  ></div>
+
+
+  <!-- =========================================================
+       SUPABASE
+       ========================================================= -->
+
+  <script
+    src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"
+  ></script>
+
 
   <script>
     'use strict';
 
-    /* ======================================================
-       Настройки Supabase
-       ====================================================== */
+
+    /* =========================================================
+       SUPABASE CONFIG
+       ========================================================= */
 
     const SUPABASE_URL =
       'https://fqcltmxiarohfpfnghjn.supabase.co';
@@ -1290,34 +1985,43 @@
     const SUPABASE_PUBLISHABLE_KEY =
       'sb_publishable_PqjH12Cbf7Fw9CWxvTPHaQ_MYYq7HQT';
 
-    /* ======================================================
-       Элементы страницы
-       ====================================================== */
+
+    let supabaseClient = null;
+    let currentUser = null;
+    let currentProfile = null;
+
+
+    /* =========================================================
+       DOM
+       ========================================================= */
 
     const elements = {
       loadingScreen:
         document.getElementById('loadingScreen'),
 
+      loadingText:
+        document.getElementById('loadingText'),
+
+      authScreen:
+        document.getElementById('authScreen'),
+
       loginForm:
         document.getElementById('loginForm'),
 
-      emailInput:
-        document.getElementById('emailInput'),
+      loginEmail:
+        document.getElementById('loginEmail'),
 
-      passwordInput:
-        document.getElementById('passwordInput'),
+      loginPassword:
+        document.getElementById('loginPassword'),
 
       loginBtn:
         document.getElementById('loginBtn'),
 
-      loginError:
-        document.getElementById('loginError'),
+      authError:
+        document.getElementById('authError'),
 
-      loginSuccess:
-        document.getElementById('loginSuccess'),
-
-      logoutBtn:
-        document.getElementById('logoutBtn'),
+      appShell:
+        document.getElementById('appShell'),
 
       userAvatar:
         document.getElementById('userAvatar'),
@@ -1326,66 +2030,42 @@
         document.getElementById('userName'),
 
       userEmail:
-        document.getElementById('userEmail')
+        document.getElementById('userEmail'),
+
+      logoutBtn:
+        document.getElementById('logoutBtn'),
+
+      toastStack:
+        document.getElementById('toastStack')
     };
 
-    let supabaseClient = null;
-    let currentSession = null;
-    let sessionUpdateNumber = 0;
 
-    /* ======================================================
-       Вспомогательные функции
-       ====================================================== */
+    /* =========================================================
+       HELPERS
+       ========================================================= */
 
-    function showLoginError(message) {
-      elements.loginSuccess.classList.remove('show');
-
-      elements.loginError.textContent = message;
-      elements.loginError.classList.add('show');
+    function cleanText(value, maxLength = 500) {
+      return String(value ?? '')
+        .trim()
+        .slice(0, maxLength);
     }
 
-    function hideLoginMessages() {
-      elements.loginError.classList.remove('show');
-      elements.loginSuccess.classList.remove('show');
-
-      elements.loginError.textContent = '';
-      elements.loginSuccess.textContent = '';
-    }
-
-    function setLoginLoading(isLoading) {
-      elements.loginBtn.disabled = isLoading;
-      elements.emailInput.disabled = isLoading;
-      elements.passwordInput.disabled = isLoading;
-
-      elements.loginBtn.textContent =
-        isLoading
-          ? 'Входим…'
-          : 'Войти';
-    }
-
-    function setLogoutLoading(isLoading) {
-      elements.logoutBtn.disabled = isLoading;
-
-      elements.logoutBtn.textContent =
-        isLoading
-          ? 'Выходим…'
-          : 'Выйти';
-    }
 
     function getInitials(name, email) {
       const source =
-        String(name || '').trim() ||
-        String(email || '').split('@')[0] ||
-        'Д';
+        cleanText(name, 200) ||
+        cleanText(email, 200).split('@')[0] ||
+        'ДБ';
 
-      const words = source
-        .split(/\s+/)
-        .filter(Boolean);
+      const parts =
+        source
+          .split(/\s+/)
+          .filter(Boolean);
 
-      if (words.length >= 2) {
+      if (parts.length >= 2) {
         return (
-          words[0][0] +
-          words[1][0]
+          parts[0][0] +
+          parts[1][0]
         ).toLocaleUpperCase('ru-RU');
       }
 
@@ -1394,354 +2074,78 @@
         .toLocaleUpperCase('ru-RU');
     }
 
-    function showLoginScreen() {
-      currentSession = null;
 
-      document.body.classList.remove('authenticated');
-      document.body.classList.add('auth-required');
-
-      elements.loadingScreen.classList.add('hidden');
-
-      elements.passwordInput.value = '';
-
-      window.setTimeout(() => {
-        elements.emailInput.focus();
-      }, 50);
-    }
-
-    function showWorkspace() {
-      document.body.classList.remove('auth-required');
-      document.body.classList.add('authenticated');
-
-      elements.loadingScreen.classList.add('hidden');
-      hideLoginMessages();
-    }
-
-    function showFatalError(message) {
-      elements.loadingScreen.classList.remove('hidden');
-
-      elements.loadingScreen.innerHTML = `
-        <div class="loadingCard">
-          <img
-            class="loadingLogo"
-            src="/favicon.png"
-            alt=""
-          >
-
-          <div
-            style="
-              margin-bottom:10px;
-              color:#b42318;
-              font-size:18px;
-              font-weight:800;
-            "
-          >
-            Не удалось запустить сайт
-          </div>
-
-          <div
-            style="
-              color:#6b7280;
-              font-size:14px;
-              line-height:1.5;
-            "
-          >
-            ${escapeHtml(message)}
-          </div>
-        </div>
-      `;
-    }
-
-    function escapeHtml(value) {
-      return String(value ?? '')
-        .replaceAll('&', '&amp;')
-        .replaceAll('<', '&lt;')
-        .replaceAll('>', '&gt;')
-        .replaceAll('"', '&quot;')
-        .replaceAll("'", '&#039;');
-    }
-
-    function getFriendlyAuthError(error) {
-      const message =
-        String(error?.message || '')
-          .toLocaleLowerCase('ru-RU');
-
-      if (
-        message.includes('invalid login credentials') ||
-        message.includes('invalid_credentials')
-      ) {
-        return (
-          'Неверная электронная почта или пароль. ' +
-          'Проверьте данные и попробуйте ещё раз.'
-        );
+    function showToast(
+      message,
+      type = 'success',
+      duration = 4200
+    ) {
+      if (!elements.toastStack) {
+        return;
       }
 
-      if (
-        message.includes('email not confirmed')
-      ) {
-        return (
-          'Электронная почта ещё не подтверждена. ' +
-          'Обратитесь к администратору системы.'
-        );
-      }
+      const toast =
+        document.createElement('div');
 
-      if (
-        message.includes('too many requests') ||
-        message.includes('rate limit')
-      ) {
-        return (
-          'Слишком много попыток входа. ' +
-          'Подождите немного и попробуйте снова.'
-        );
-      }
+      toast.className =
+        'toast ' + type;
 
-      if (
-        message.includes('failed to fetch') ||
-        message.includes('network')
-      ) {
-        return (
-          'Не удалось связаться с сервером. ' +
-          'Проверьте подключение к интернету.'
-        );
-      }
+      toast.textContent =
+        message;
 
-      return (
-        'Не удалось выполнить вход. ' +
-        'Проверьте данные и попробуйте ещё раз.'
+      elements.toastStack.appendChild(toast);
+
+      window.setTimeout(
+        () => {
+          toast.remove();
+        },
+        duration
       );
     }
 
-    /* ======================================================
-       Загрузка профиля сотрудника
-       ====================================================== */
 
-    async function loadUserProfile(user) {
-      const fallbackName =
-        user.user_metadata?.full_name ||
-        user.email?.split('@')[0] ||
-        'Сотрудник';
-
-      let profileName = fallbackName;
-      let profileEmail = user.email || '';
-
-      try {
-        const {
-          data,
-          error
-        } = await supabaseClient
-          .from('profiles')
-          .select(
-            'full_name, email, position, role, is_active'
-          )
-          .eq('id', user.id)
-          .maybeSingle();
-
-        if (error) {
-          console.warn(
-            'Не удалось загрузить профиль:',
-            error
-          );
-        }
-
-        if (data) {
-          if (data.is_active === false) {
-            await supabaseClient.auth.signOut();
-
-            showLoginError(
-              'Эта учётная запись отключена. ' +
-              'Обратитесь к администратору.'
-            );
-
-            return false;
-          }
-
-          profileName =
-            data.full_name?.trim() ||
-            fallbackName;
-
-          profileEmail =
-            data.email?.trim() ||
-            user.email ||
-            '';
-        }
-      } catch (error) {
-        console.warn(
-          'Ошибка загрузки профиля:',
-          error
-        );
-      }
-
-      elements.userName.textContent =
-        profileName;
-
-      elements.userEmail.textContent =
-        profileEmail;
-
-      elements.userAvatar.textContent =
-        getInitials(
-          profileName,
-          profileEmail
-        );
-
-      return true;
-    }
-
-    /* ======================================================
-       Работа с сессией
-       ====================================================== */
-
-    async function applySession(session) {
-      const updateNumber =
-        ++sessionUpdateNumber;
-
-      currentSession = session;
-
-      if (!session?.user) {
-        showLoginScreen();
+    function showAuthError(message) {
+      if (!elements.authError) {
         return;
       }
 
-      const profileAllowed =
-        await loadUserProfile(session.user);
+      if (!message) {
+        elements.authError
+          .classList.remove('show');
 
-      if (
-        updateNumber !== sessionUpdateNumber ||
-        !profileAllowed
-      ) {
-        return;
-      }
-
-      showWorkspace();
-    }
-
-    async function handleLogin(event) {
-      event.preventDefault();
-      hideLoginMessages();
-
-      const email =
-        elements.emailInput.value
-          .trim()
-          .toLocaleLowerCase('ru-RU');
-
-      const password =
-        elements.passwordInput.value;
-
-      if (!email || !password) {
-        showLoginError(
-          'Введите электронную почту и пароль.'
-        );
+        elements.authError.textContent = '';
 
         return;
       }
 
-      setLoginLoading(true);
+      elements.authError.textContent =
+        message;
 
-      try {
-        const {
-          data,
-          error
-        } = await supabaseClient.auth
-          .signInWithPassword({
-            email,
-            password
-          });
+      elements.authError
+        .classList.add('show');
+    }
 
-        if (error) {
-          throw error;
-        }
 
-        if (!data?.session) {
-          throw new Error(
-            'Сервер не вернул пользовательскую сессию.'
-          );
-        }
-
-        elements.loginSuccess.textContent =
-          'Вход выполнен. Открываем рабочую станцию…';
-
-        elements.loginSuccess.classList.add('show');
-
-        elements.passwordInput.value = '';
-
-        await applySession(data.session);
-      } catch (error) {
-        console.error(
-          'Ошибка входа:',
-          error
-        );
-
-        showLoginError(
-          getFriendlyAuthError(error)
-        );
-
-        elements.passwordInput.value = '';
-        elements.passwordInput.focus();
-      } finally {
-        setLoginLoading(false);
+    function setLoadingText(text) {
+      if (elements.loadingText) {
+        elements.loadingText.textContent =
+          text;
       }
     }
 
-    async function handleLogout() {
-      setLogoutLoading(true);
 
-      try {
-        const {
-          error
-        } = await supabaseClient.auth.signOut();
+    /* =========================================================
+       SUPABASE CLIENT
+       ========================================================= */
 
-        if (error) {
-          throw error;
-        }
-
-        showLoginScreen();
-      } catch (error) {
-        console.error(
-          'Ошибка выхода:',
-          error
-        );
-
-        window.alert(
-          'Не удалось завершить сеанс. ' +
-          'Проверьте интернет и попробуйте ещё раз.'
-        );
-      } finally {
-        setLogoutLoading(false);
-      }
-    }
-
-    function protectToolLinks() {
-      document
-        .querySelectorAll('a.card')
-        .forEach((link) => {
-          link.addEventListener(
-            'click',
-            (event) => {
-              if (currentSession?.user) {
-                return;
-              }
-
-              event.preventDefault();
-              showLoginScreen();
-            }
-          );
-        });
-    }
-
-    /* ======================================================
-       Запуск приложения
-       ====================================================== */
-
-    async function initialize() {
+    function createSupabaseClient() {
       if (
         !window.supabase ||
         typeof window.supabase.createClient !== 'function'
       ) {
-        showFatalError(
-          'Не загрузилась библиотека Supabase. ' +
-          'Проверьте подключение к интернету и обновите страницу.'
+        throw new Error(
+          'Не удалось загрузить Supabase.'
         );
-
-        return;
       }
 
       supabaseClient =
@@ -1756,61 +2160,393 @@
             }
           }
         );
+    }
 
-      elements.loginForm.addEventListener(
-        'submit',
-        handleLogin
+
+    /* =========================================================
+       UI STATE
+       ========================================================= */
+
+    function showLoginScreen() {
+      elements.loadingScreen
+        ?.classList.add('hidden');
+
+      elements.appShell
+        ?.classList.remove('show');
+
+      elements.authScreen
+        ?.classList.add('show');
+
+      window.setTimeout(
+        () => {
+          elements.loginEmail?.focus();
+        },
+        50
+      );
+    }
+
+
+    function showApplication() {
+      elements.authScreen
+        ?.classList.remove('show');
+
+      elements.appShell
+        ?.classList.add('show');
+
+      elements.loadingScreen
+        ?.classList.add('hidden');
+    }
+
+
+    /* =========================================================
+       PROFILE
+       ========================================================= */
+
+    async function loadProfile() {
+      const {
+        data,
+        error
+      } =
+        await supabaseClient
+          .from('profiles')
+          .select(
+            'id, full_name, email, position, role, is_active'
+          )
+          .eq(
+            'id',
+            currentUser.id
+          )
+          .maybeSingle();
+
+      if (error) {
+        console.warn(
+          'Не удалось загрузить профиль:',
+          error
+        );
+      }
+
+      if (data?.is_active === false) {
+        await supabaseClient
+          .auth
+          .signOut();
+
+        showLoginScreen();
+
+        showAuthError(
+          'Учётная запись отключена.'
+        );
+
+        return false;
+      }
+
+      currentProfile =
+        data || {
+          id:
+            currentUser.id,
+
+          full_name:
+            currentUser
+              .user_metadata
+              ?.full_name ||
+            currentUser.email
+              ?.split('@')[0] ||
+            'Сотрудник',
+
+          email:
+            currentUser.email || ''
+        };
+
+      renderUser();
+
+      return true;
+    }
+
+
+    function renderUser() {
+      const name =
+        cleanText(
+          currentProfile?.full_name,
+          200
+        ) ||
+        currentUser
+          ?.email
+          ?.split('@')[0] ||
+        'Сотрудник';
+
+      const email =
+        cleanText(
+          currentProfile?.email,
+          200
+        ) ||
+        currentUser?.email ||
+        '';
+
+      if (elements.userName) {
+        elements.userName.textContent =
+          name;
+      }
+
+      if (elements.userEmail) {
+        elements.userEmail.textContent =
+          email;
+      }
+
+      if (elements.userAvatar) {
+        elements.userAvatar.textContent =
+          getInitials(name, email);
+      }
+    }
+
+
+    /* =========================================================
+       AUTH
+       ========================================================= */
+
+    async function checkSession() {
+      setLoadingText(
+        'Проверяем авторизацию…'
       );
 
-      elements.logoutBtn.addEventListener(
-        'click',
-        handleLogout
+      const {
+        data,
+        error
+      } =
+        await supabaseClient
+          .auth
+          .getSession();
+
+      if (error) {
+        throw error;
+      }
+
+      if (!data?.session?.user) {
+        showLoginScreen();
+        return;
+      }
+
+      currentUser =
+        data.session.user;
+
+      setLoadingText(
+        'Загружаем профиль сотрудника…'
       );
 
-      protectToolLinks();
+      const profileLoaded =
+        await loadProfile();
 
-      /*
-       * Подписываемся на изменения авторизации.
-       * Асинхронное применение сессии запускается вне callback,
-       * чтобы не блокировать внутреннюю обработку Supabase Auth.
-       */
-      supabaseClient.auth.onAuthStateChange(
-        (event, session) => {
-          window.setTimeout(() => {
-            applySession(session);
-          }, 0);
-        }
-      );
+      if (!profileLoaded) {
+        return;
+      }
+
+      showApplication();
+    }
+
+
+    async function handleLogin(event) {
+      event.preventDefault();
+
+      showAuthError('');
+
+      const email =
+        cleanText(
+          elements.loginEmail?.value,
+          200
+        );
+
+      const password =
+        String(
+          elements.loginPassword?.value ||
+          ''
+        );
+
+      if (!email || !password) {
+        showAuthError(
+          'Введите e-mail и пароль.'
+        );
+
+        return;
+      }
+
+      elements.loginBtn.disabled = true;
+      elements.loginBtn.textContent =
+        'Входим…';
 
       try {
         const {
           data,
           error
-        } = await supabaseClient.auth.getSession();
+        } =
+          await supabaseClient
+            .auth
+            .signInWithPassword({
+              email,
+              password
+            });
 
         if (error) {
           throw error;
         }
 
-        await applySession(
-          data?.session || null
+        if (!data?.user) {
+          throw new Error(
+            'Пользователь не найден.'
+          );
+        }
+
+        currentUser =
+          data.user;
+
+        const profileLoaded =
+          await loadProfile();
+
+        if (!profileLoaded) {
+          return;
+        }
+
+        elements.loginPassword.value =
+          '';
+
+        showApplication();
+
+        showToast(
+          'Вход выполнен.',
+          'success'
         );
       } catch (error) {
         console.error(
-          'Ошибка проверки сессии:',
+          'Ошибка входа:',
           error
         );
 
+        const message =
+          String(
+            error?.message || ''
+          ).toLowerCase();
+
+        if (
+          message.includes(
+            'invalid login credentials'
+          )
+        ) {
+          showAuthError(
+            'Неверный e-mail или пароль.'
+          );
+        } else {
+          showAuthError(
+            'Не удалось войти. Проверьте данные и попробуйте снова.'
+          );
+        }
+      } finally {
+        elements.loginBtn.disabled =
+          false;
+
+        elements.loginBtn.textContent =
+          'Войти';
+      }
+    }
+
+
+    async function handleLogout() {
+      elements.logoutBtn.disabled =
+        true;
+
+      try {
+        await supabaseClient
+          .auth
+          .signOut();
+
+        currentUser = null;
+        currentProfile = null;
+
+        showLoginScreen();
+      } catch (error) {
+        console.error(
+          'Ошибка выхода:',
+          error
+        );
+
+        showToast(
+          'Не удалось выйти из аккаунта.',
+          'error'
+        );
+      } finally {
+        elements.logoutBtn.disabled =
+          false;
+      }
+    }
+
+
+    /* =========================================================
+       EVENTS
+       ========================================================= */
+
+    function bindEvents() {
+      elements.loginForm
+        ?.addEventListener(
+          'submit',
+          handleLogin
+        );
+
+      elements.logoutBtn
+        ?.addEventListener(
+          'click',
+          handleLogout
+        );
+
+      supabaseClient
+        .auth
+        .onAuthStateChange(
+          (event, session) => {
+            if (
+              event === 'SIGNED_OUT' ||
+              !session?.user
+            ) {
+              currentUser = null;
+              currentProfile = null;
+
+              showLoginScreen();
+
+              return;
+            }
+
+            currentUser =
+              session.user;
+          }
+        );
+    }
+
+
+    /* =========================================================
+       START
+       ========================================================= */
+
+    async function initialize() {
+      try {
+        createSupabaseClient();
+
+        bindEvents();
+
+        await checkSession();
+      } catch (error) {
+        console.error(
+          'Ошибка запуска:',
+          error
+        );
+
+        elements.loadingScreen
+          ?.classList.add('hidden');
+
         showLoginScreen();
 
-        showLoginError(
-          'Не удалось проверить сохранённый вход. ' +
-          'Введите электронную почту и пароль ещё раз.'
+        showAuthError(
+          'Не удалось подключиться к Рабочей станции.'
         );
       }
     }
 
+
     initialize();
   </script>
+
 </body>
 </html>
