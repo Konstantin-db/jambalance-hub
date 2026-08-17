@@ -1,0 +1,2397 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+  <title>JamBalance — Задачник</title>
+
+  <style>
+    :root {
+      --brand: #f99303;
+      --brand-dark: #d97f00;
+      --brand-soft: #fff4e3;
+      --brand-pale: #fffaf2;
+
+      --bg: #f5f7fa;
+      --surface: #ffffff;
+      --surface-soft: #fafbfc;
+
+      --text: #172033;
+      --text-soft: #667085;
+      --text-mute: #98a2b3;
+
+      --line: #e4e7ec;
+      --line-strong: #d0d5dd;
+
+      --success: #1f9d55;
+      --danger: #c24141;
+      --warning: #d97706;
+      --info: #3b82f6;
+
+      --shadow-sm: 0 1px 2px rgba(16, 24, 40, .05);
+      --shadow-md: 0 8px 24px rgba(16, 24, 40, .10);
+      --shadow-lg: 0 18px 45px rgba(16, 24, 40, .16);
+
+      --radius-xs: 7px;
+      --radius-sm: 10px;
+      --radius: 14px;
+      --radius-lg: 18px;
+
+      --sidebar-width: 320px;
+      --topbar-height: 72px;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    html,
+    body {
+      margin: 0;
+      min-height: 100%;
+      background: var(--bg);
+      color: var(--text);
+      font-family:
+        Inter,
+        ui-sans-serif,
+        system-ui,
+        -apple-system,
+        BlinkMacSystemFont,
+        "Segoe UI",
+        Arial,
+        sans-serif;
+    }
+
+    body.modal-open {
+      overflow: hidden;
+    }
+
+    button,
+    input,
+    select,
+    textarea {
+      font: inherit;
+    }
+
+    button {
+      cursor: pointer;
+    }
+
+    a {
+      color: inherit;
+      text-decoration: none;
+    }
+
+    .hidden {
+      display: none !important;
+    }
+
+    .icon {
+      width: 18px;
+      height: 18px;
+      display: inline-block;
+      fill: none;
+      stroke: currentColor;
+      stroke-width: 1.8;
+      stroke-linecap: round;
+      stroke-linejoin: round;
+      flex: 0 0 auto;
+    }
+
+    .app {
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+    }
+
+    /* =========================================================
+       TOPBAR
+       ========================================================= */
+
+    .topbar {
+      min-height: var(--topbar-height);
+      background: var(--surface);
+      border-bottom: 1px solid var(--line);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 18px;
+      padding: 12px 22px;
+      position: sticky;
+      top: 0;
+      z-index: 100;
+      box-shadow: var(--shadow-sm);
+    }
+
+    .topbar-left,
+    .topbar-right {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .brand-mark {
+      width: 42px;
+      height: 42px;
+      border-radius: 12px;
+      background: var(--brand-soft);
+      color: var(--brand);
+      display: grid;
+      place-items: center;
+      font-weight: 800;
+      font-size: 18px;
+      border: 1px solid #ffe2b4;
+    }
+
+    .brand-block {
+      display: flex;
+      flex-direction: column;
+      min-width: 0;
+    }
+
+    .brand-name {
+      font-size: 18px;
+      font-weight: 800;
+      letter-spacing: -.02em;
+      line-height: 1.1;
+    }
+
+    .brand-sub {
+      color: var(--text-soft);
+      font-size: 12px;
+      margin-top: 4px;
+    }
+
+    .topbar-divider {
+      width: 1px;
+      height: 32px;
+      background: var(--line);
+      margin: 0 2px;
+    }
+
+    /* =========================================================
+       BUTTONS
+       ========================================================= */
+
+    .btn {
+      border: 1px solid transparent;
+      border-radius: 10px;
+      min-height: 40px;
+      padding: 9px 14px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      font-weight: 700;
+      font-size: 13px;
+      transition:
+        background .16s ease,
+        color .16s ease,
+        border-color .16s ease,
+        transform .12s ease,
+        box-shadow .16s ease;
+      white-space: nowrap;
+    }
+
+    .btn:hover {
+      transform: translateY(-1px);
+    }
+
+    .btn:active {
+      transform: translateY(0);
+    }
+
+    .btn-primary {
+      background: var(--brand);
+      color: #fff;
+      border-color: var(--brand);
+      box-shadow: 0 4px 12px rgba(249, 147, 3, .22);
+    }
+
+    .btn-primary:hover {
+      background: var(--brand-dark);
+      border-color: var(--brand-dark);
+    }
+
+    .btn-secondary {
+      background: var(--surface);
+      color: var(--text);
+      border-color: var(--line-strong);
+    }
+
+    .btn-secondary:hover {
+      border-color: var(--brand);
+      color: var(--brand-dark);
+      background: var(--brand-pale);
+    }
+
+    .btn-ghost {
+      background: transparent;
+      color: var(--text-soft);
+      border-color: transparent;
+    }
+
+    .btn-ghost:hover {
+      color: var(--text);
+      background: #f2f4f7;
+    }
+
+    .btn-danger {
+      background: #fff;
+      color: var(--danger);
+      border-color: #f4cccc;
+    }
+
+    .btn-danger:hover {
+      background: #fff4f4;
+    }
+
+    .btn-sm {
+      min-height: 34px;
+      padding: 7px 10px;
+      font-size: 12px;
+      border-radius: 8px;
+    }
+
+    .icon-btn {
+      width: 38px;
+      height: 38px;
+      padding: 0;
+      border-radius: 10px;
+    }
+
+    /* =========================================================
+       MAIN LAYOUT
+       ========================================================= */
+
+    .workspace {
+      flex: 1;
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) var(--sidebar-width);
+      min-height: calc(100vh - var(--topbar-height));
+    }
+
+    .calendar-pane {
+      min-width: 0;
+      padding: 18px;
+      display: flex;
+      flex-direction: column;
+      gap: 14px;
+    }
+
+    .sidebar {
+      background: var(--surface);
+      border-left: 1px solid var(--line);
+      padding: 18px;
+      overflow-y: auto;
+    }
+
+    /* =========================================================
+       CALENDAR TOOLBAR
+       ========================================================= */
+
+    .calendar-toolbar {
+      background: var(--surface);
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      box-shadow: var(--shadow-sm);
+      padding: 12px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      flex-wrap: wrap;
+      gap: 12px;
+    }
+
+    .calendar-toolbar-left,
+    .calendar-toolbar-right {
+      display: flex;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 8px;
+    }
+
+    .calendar-period {
+      min-width: 230px;
+      font-size: 19px;
+      font-weight: 800;
+      letter-spacing: -.02em;
+      padding: 0 6px;
+    }
+
+    .view-switch {
+      display: inline-flex;
+      padding: 4px;
+      border-radius: 10px;
+      background: #f2f4f7;
+      gap: 2px;
+    }
+
+    .view-switch button {
+      border: 0;
+      background: transparent;
+      color: var(--text-soft);
+      border-radius: 7px;
+      min-height: 32px;
+      padding: 6px 10px;
+      font-size: 12px;
+      font-weight: 700;
+    }
+
+    .view-switch button.active {
+      background: var(--surface);
+      color: var(--brand-dark);
+      box-shadow: var(--shadow-sm);
+    }
+
+    /* =========================================================
+       CALENDAR SHELL
+       ========================================================= */
+
+    .calendar-shell {
+      background: var(--surface);
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      box-shadow: var(--shadow-sm);
+      overflow: hidden;
+      min-height: 680px;
+      display: flex;
+      flex-direction: column;
+    }
+
+    .calendar-view {
+      flex: 1;
+      min-height: 0;
+    }
+
+    /* =========================================================
+       MONTH VIEW
+       ========================================================= */
+
+    .month-grid {
+      display: grid;
+      grid-template-columns: repeat(7, minmax(0, 1fr));
+      grid-template-rows: auto repeat(6, minmax(110px, 1fr));
+      min-height: 680px;
+    }
+
+    .weekday-head {
+      min-height: 38px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      border-right: 1px solid var(--line);
+      border-bottom: 1px solid var(--line);
+      color: var(--text-soft);
+      background: var(--surface-soft);
+      font-size: 11px;
+      font-weight: 800;
+      text-transform: uppercase;
+      letter-spacing: .05em;
+    }
+
+    .weekday-head:nth-child(7n) {
+      border-right: 0;
+    }
+
+    .calendar-day {
+      position: relative;
+      border-right: 1px solid var(--line);
+      border-bottom: 1px solid var(--line);
+      padding: 8px;
+      min-width: 0;
+      overflow: hidden;
+      background: #fff;
+      transition: background .15s ease;
+    }
+
+    .calendar-day:nth-child(7n) {
+      border-right: 0;
+    }
+
+    .calendar-day:hover {
+      background: #fffaf4;
+    }
+
+    .calendar-day.outside {
+      background: #fafbfc;
+      color: var(--text-mute);
+    }
+
+    .calendar-day.today {
+      background: #fff9ef;
+    }
+
+    .calendar-day.selected {
+      box-shadow: inset 0 0 0 2px var(--brand);
+    }
+
+    .day-head {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 6px;
+      margin-bottom: 7px;
+    }
+
+    .day-number {
+      width: 27px;
+      height: 27px;
+      border-radius: 50%;
+      display: grid;
+      place-items: center;
+      font-size: 12px;
+      font-weight: 800;
+    }
+
+    .today .day-number {
+      background: var(--brand);
+      color: #fff;
+    }
+
+    .day-add {
+      border: 0;
+      background: transparent;
+      width: 25px;
+      height: 25px;
+      border-radius: 7px;
+      display: grid;
+      place-items: center;
+      color: var(--text-mute);
+      opacity: 0;
+      transition: opacity .15s ease, background .15s ease, color .15s ease;
+    }
+
+    .calendar-day:hover .day-add {
+      opacity: 1;
+    }
+
+    .day-add:hover {
+      background: var(--brand-soft);
+      color: var(--brand-dark);
+    }
+
+    .day-tasks {
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+    }
+
+    .task-chip {
+      width: 100%;
+      min-width: 0;
+      border: 0;
+      text-align: left;
+      border-radius: 6px;
+      padding: 5px 7px;
+      font-size: 11px;
+      line-height: 1.3;
+      font-weight: 700;
+      overflow: hidden;
+      white-space: nowrap;
+      text-overflow: ellipsis;
+      background: #f2f4f7;
+      color: var(--text);
+      border-left: 3px solid var(--task-color, var(--brand));
+    }
+
+    .task-chip:hover {
+      filter: brightness(.98);
+    }
+
+    .task-chip.done {
+      opacity: .58;
+      text-decoration: line-through;
+    }
+
+    .task-more {
+      font-size: 11px;
+      color: var(--brand-dark);
+      font-weight: 700;
+      padding: 2px 4px;
+    }
+
+    /* =========================================================
+       WEEK VIEW
+       ========================================================= */
+
+    .week-view {
+      display: grid;
+      grid-template-columns: 62px repeat(7, minmax(140px, 1fr));
+      min-width: 1040px;
+      min-height: 740px;
+    }
+
+    .week-scroll {
+      overflow: auto;
+      height: 100%;
+    }
+
+    .week-time-head,
+    .week-day-head {
+      position: sticky;
+      top: 0;
+      z-index: 3;
+      background: var(--surface-soft);
+      border-bottom: 1px solid var(--line);
+      border-right: 1px solid var(--line);
+      min-height: 58px;
+    }
+
+    .week-time-head {
+      left: 0;
+      z-index: 5;
+    }
+
+    .week-day-head {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 2px;
+    }
+
+    .week-day-name {
+      color: var(--text-soft);
+      font-size: 10px;
+      text-transform: uppercase;
+      font-weight: 800;
+    }
+
+    .week-day-num {
+      font-size: 16px;
+      font-weight: 800;
+    }
+
+    .week-day-head.today .week-day-num {
+      color: #fff;
+      background: var(--brand);
+      border-radius: 50%;
+      width: 30px;
+      height: 30px;
+      display: grid;
+      place-items: center;
+    }
+
+    .time-label {
+      border-right: 1px solid var(--line);
+      border-bottom: 1px solid var(--line);
+      color: var(--text-mute);
+      font-size: 10px;
+      padding: 5px 7px;
+      background: var(--surface-soft);
+      text-align: right;
+      min-height: 52px;
+      position: sticky;
+      left: 0;
+      z-index: 2;
+    }
+
+    .week-cell {
+      border-right: 1px solid var(--line);
+      border-bottom: 1px solid var(--line);
+      min-height: 52px;
+      position: relative;
+      padding: 3px;
+      background: #fff;
+    }
+
+    .week-cell:hover {
+      background: #fffaf4;
+    }
+
+    .week-task {
+      border-radius: 6px;
+      padding: 5px 6px;
+      font-size: 10px;
+      font-weight: 700;
+      line-height: 1.25;
+      border-left: 3px solid var(--task-color, var(--brand));
+      background: #fff4e3;
+      overflow: hidden;
+      cursor: pointer;
+    }
+
+    /* =========================================================
+       QUARTER / YEAR
+       ========================================================= */
+
+    .mini-months-grid {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(260px, 1fr));
+      gap: 14px;
+      padding: 14px;
+    }
+
+    .year-grid {
+      display: grid;
+      grid-template-columns: repeat(4, minmax(220px, 1fr));
+      gap: 14px;
+      padding: 14px;
+    }
+
+    .mini-month {
+      border: 1px solid var(--line);
+      border-radius: 12px;
+      overflow: hidden;
+      background: #fff;
+    }
+
+    .mini-month-title {
+      padding: 10px 12px;
+      font-size: 13px;
+      font-weight: 800;
+      background: var(--surface-soft);
+      border-bottom: 1px solid var(--line);
+    }
+
+    .mini-month-grid {
+      display: grid;
+      grid-template-columns: repeat(7, 1fr);
+    }
+
+    .mini-weekday {
+      text-align: center;
+      color: var(--text-mute);
+      font-size: 9px;
+      font-weight: 800;
+      padding: 5px 2px;
+    }
+
+    .mini-day {
+      aspect-ratio: 1;
+      min-height: 30px;
+      border: 0;
+      background: transparent;
+      color: var(--text);
+      font-size: 10px;
+      border-radius: 7px;
+      margin: 1px;
+      position: relative;
+    }
+
+    .mini-day:hover {
+      background: var(--brand-soft);
+    }
+
+    .mini-day.outside {
+      color: #d0d5dd;
+    }
+
+    .mini-day.today {
+      background: var(--brand);
+      color: #fff;
+      font-weight: 800;
+    }
+
+    .mini-day.has-tasks::after {
+      content: "";
+      position: absolute;
+      width: 4px;
+      height: 4px;
+      background: var(--brand);
+      border-radius: 50%;
+      left: 50%;
+      bottom: 2px;
+      transform: translateX(-50%);
+    }
+
+    .mini-day.today.has-tasks::after {
+      background: #fff;
+    }
+
+    /* =========================================================
+       SIDEBAR
+       ========================================================= */
+
+    .sidebar-section {
+      border-bottom: 1px solid var(--line);
+      padding-bottom: 18px;
+      margin-bottom: 18px;
+    }
+
+    .sidebar-section:last-child {
+      border-bottom: 0;
+      margin-bottom: 0;
+    }
+
+    .sidebar-title {
+      font-size: 14px;
+      font-weight: 800;
+      margin-bottom: 10px;
+    }
+
+    .sidebar-subtitle {
+      color: var(--text-soft);
+      font-size: 12px;
+      line-height: 1.5;
+      margin-top: -4px;
+      margin-bottom: 12px;
+    }
+
+    .filter-group {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+
+    .filter-label {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 12px;
+      color: var(--text-soft);
+      cursor: pointer;
+    }
+
+    .filter-label input {
+      accent-color: var(--brand);
+    }
+
+    .type-dot {
+      width: 9px;
+      height: 9px;
+      border-radius: 50%;
+      background: var(--type-color, var(--brand));
+      flex: 0 0 auto;
+    }
+
+    .day-summary {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+
+    .summary-empty {
+      color: var(--text-mute);
+      font-size: 12px;
+      line-height: 1.5;
+      border: 1px dashed var(--line-strong);
+      border-radius: 10px;
+      padding: 14px;
+      text-align: center;
+      background: var(--surface-soft);
+    }
+
+    .summary-task {
+      border: 1px solid var(--line);
+      border-radius: 10px;
+      padding: 10px;
+      display: flex;
+      flex-direction: column;
+      gap: 5px;
+      cursor: pointer;
+      transition: border-color .15s ease, background .15s ease;
+    }
+
+    .summary-task:hover {
+      border-color: #ffc977;
+      background: var(--brand-pale);
+    }
+
+    .summary-task-head {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 8px;
+    }
+
+    .summary-task-title {
+      font-size: 12px;
+      font-weight: 800;
+      min-width: 0;
+      overflow: hidden;
+      white-space: nowrap;
+      text-overflow: ellipsis;
+    }
+
+    .summary-task-time {
+      color: var(--text-mute);
+      font-size: 10px;
+      white-space: nowrap;
+    }
+
+    .summary-task-meta {
+      color: var(--text-soft);
+      font-size: 11px;
+      line-height: 1.4;
+    }
+
+    /* =========================================================
+       FIELDS
+       ========================================================= */
+
+    .field {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+
+    .field + .field {
+      margin-top: 12px;
+    }
+
+    .field-label {
+      font-size: 11px;
+      font-weight: 800;
+      color: var(--text-soft);
+      text-transform: uppercase;
+      letter-spacing: .035em;
+    }
+
+    .req {
+      color: var(--danger);
+    }
+
+    .input,
+    .select,
+    .textarea {
+      width: 100%;
+      border: 1px solid var(--line-strong);
+      border-radius: 9px;
+      color: var(--text);
+      background: #fff;
+      outline: 0;
+      transition: border-color .15s ease, box-shadow .15s ease;
+    }
+
+    .input,
+    .select {
+      min-height: 40px;
+      padding: 9px 11px;
+    }
+
+    .textarea {
+      min-height: 110px;
+      resize: vertical;
+      padding: 10px 11px;
+      line-height: 1.5;
+    }
+
+    .input:focus,
+    .select:focus,
+    .textarea:focus {
+      border-color: var(--brand);
+      box-shadow: 0 0 0 3px rgba(249, 147, 3, .13);
+    }
+
+    .field-row {
+      display: grid;
+      gap: 12px;
+    }
+
+    .field-row.cols-2 {
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+
+    .field-row.cols-3 {
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+    }
+
+    .field-help {
+      color: var(--text-mute);
+      font-size: 10px;
+      line-height: 1.4;
+    }
+
+    .input-with-action {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) auto;
+      gap: 8px;
+    }
+
+    /* =========================================================
+       MODAL
+       ========================================================= */
+
+    .modal-backdrop {
+      position: fixed;
+      inset: 0;
+      background: rgba(16, 24, 40, .45);
+      display: none;
+      align-items: center;
+      justify-content: center;
+      padding: 22px;
+      z-index: 1000;
+      backdrop-filter: blur(3px);
+    }
+
+    .modal-backdrop.active {
+      display: flex;
+    }
+
+    .modal {
+      width: min(760px, 100%);
+      max-height: calc(100vh - 44px);
+      background: var(--surface);
+      border-radius: var(--radius-lg);
+      box-shadow: var(--shadow-lg);
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+      border: 1px solid rgba(255,255,255,.6);
+    }
+
+    .modal-head {
+      min-height: 64px;
+      border-bottom: 1px solid var(--line);
+      padding: 14px 18px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      background: #fff;
+    }
+
+    .modal-title-block {
+      min-width: 0;
+    }
+
+    .modal-title {
+      font-size: 17px;
+      font-weight: 800;
+      letter-spacing: -.02em;
+    }
+
+    .modal-subtitle {
+      color: var(--text-soft);
+      font-size: 11px;
+      margin-top: 3px;
+    }
+
+    .modal-close {
+      width: 36px;
+      height: 36px;
+      display: grid;
+      place-items: center;
+      border: 0;
+      border-radius: 9px;
+      color: var(--text-soft);
+      background: transparent;
+    }
+
+    .modal-close:hover {
+      background: #f2f4f7;
+      color: var(--text);
+    }
+
+    .modal-body {
+      padding: 18px;
+      overflow-y: auto;
+    }
+
+    .modal-foot {
+      border-top: 1px solid var(--line);
+      padding: 12px 18px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+      background: var(--surface-soft);
+    }
+
+    .modal-foot-right {
+      display: flex;
+      gap: 8px;
+      margin-left: auto;
+    }
+
+    .form-section {
+      padding-bottom: 18px;
+      margin-bottom: 18px;
+      border-bottom: 1px solid var(--line);
+    }
+
+    .form-section:last-child {
+      border-bottom: 0;
+      padding-bottom: 0;
+      margin-bottom: 0;
+    }
+
+    .form-section-title {
+      font-size: 12px;
+      font-weight: 800;
+      margin-bottom: 12px;
+      color: var(--text);
+    }
+
+    /* =========================================================
+       TASK TYPE SELECT
+       ========================================================= */
+
+    .task-type-grid {
+      display: grid;
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+      gap: 8px;
+    }
+
+    .task-type-option {
+      border: 1px solid var(--line);
+      border-radius: 10px;
+      padding: 10px 8px;
+      background: #fff;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 6px;
+      color: var(--text-soft);
+      font-size: 10px;
+      font-weight: 800;
+      text-align: center;
+      min-height: 72px;
+    }
+
+    .task-type-option:hover {
+      border-color: #ffc977;
+      background: var(--brand-pale);
+    }
+
+    .task-type-option.active {
+      border-color: var(--brand);
+      color: var(--brand-dark);
+      background: var(--brand-soft);
+      box-shadow: 0 0 0 2px rgba(249,147,3,.08);
+    }
+
+    .task-type-icon {
+      width: 28px;
+      height: 28px;
+      border-radius: 8px;
+      background: #f2f4f7;
+      display: grid;
+      place-items: center;
+      color: var(--type-color, var(--brand));
+    }
+
+    .task-type-option.active .task-type-icon {
+      background: #fff;
+    }
+
+    /* =========================================================
+       FILES
+       ========================================================= */
+
+    .file-drop {
+      border: 1px dashed var(--line-strong);
+      border-radius: 10px;
+      padding: 16px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 7px;
+      text-align: center;
+      color: var(--text-soft);
+      background: var(--surface-soft);
+      transition: border-color .15s ease, background .15s ease;
+    }
+
+    .file-drop:hover,
+    .file-drop.dragover {
+      border-color: var(--brand);
+      background: var(--brand-pale);
+    }
+
+    .file-drop strong {
+      color: var(--text);
+      font-size: 12px;
+    }
+
+    .file-drop span {
+      font-size: 10px;
+    }
+
+    .attachment-list {
+      display: flex;
+      flex-direction: column;
+      gap: 7px;
+      margin-top: 10px;
+    }
+
+    .attachment-item {
+      border: 1px solid var(--line);
+      border-radius: 9px;
+      padding: 8px 10px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      background: #fff;
+    }
+
+    .attachment-name {
+      min-width: 0;
+      flex: 1;
+      overflow: hidden;
+      white-space: nowrap;
+      text-overflow: ellipsis;
+      font-size: 11px;
+      font-weight: 700;
+    }
+
+    .attachment-size {
+      color: var(--text-mute);
+      font-size: 10px;
+      white-space: nowrap;
+    }
+
+    /* =========================================================
+       TASK STATUS
+       ========================================================= */
+
+    .status-pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      min-height: 24px;
+      padding: 4px 8px;
+      border-radius: 999px;
+      background: #f2f4f7;
+      color: var(--text-soft);
+      font-size: 10px;
+      font-weight: 800;
+    }
+
+    .status-pill.pending {
+      background: #fff4e3;
+      color: #b76400;
+    }
+
+    .status-pill.done {
+      background: #eaf8ef;
+      color: #247347;
+    }
+
+    .status-pill.cancelled {
+      background: #f8eeee;
+      color: #9c3d3d;
+    }
+
+    /* =========================================================
+       TOASTS
+       ========================================================= */
+
+    .toast-stack {
+      position: fixed;
+      right: 18px;
+      bottom: 18px;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      z-index: 1500;
+      pointer-events: none;
+    }
+
+    .toast {
+      min-width: 260px;
+      max-width: 360px;
+      color: #fff;
+      background: #344054;
+      padding: 11px 13px;
+      border-radius: 10px;
+      box-shadow: var(--shadow-md);
+      font-size: 12px;
+      line-height: 1.4;
+      pointer-events: auto;
+    }
+
+    .toast.ok {
+      background: #247347;
+    }
+
+    .toast.err {
+      background: #a63f3f;
+    }
+
+    .toast.warn {
+      background: #b56b00;
+    }
+
+    /* =========================================================
+       LOADING
+       ========================================================= */
+
+    .loading-overlay {
+      position: absolute;
+      inset: 0;
+      display: none;
+      align-items: center;
+      justify-content: center;
+      z-index: 30;
+      background: rgba(255,255,255,.76);
+      backdrop-filter: blur(2px);
+    }
+
+    .loading-overlay.active {
+      display: flex;
+    }
+
+    .loader {
+      width: 30px;
+      height: 30px;
+      border-radius: 50%;
+      border: 3px solid #ffe0b3;
+      border-top-color: var(--brand);
+      animation: spin .8s linear infinite;
+    }
+
+    @keyframes spin {
+      to { transform: rotate(360deg); }
+    }
+
+    .relative {
+      position: relative;
+    }
+
+    /* =========================================================
+       RESPONSIVE
+       ========================================================= */
+
+    @media (max-width: 1180px) {
+      :root {
+        --sidebar-width: 280px;
+      }
+
+      .year-grid {
+        grid-template-columns: repeat(3, minmax(220px, 1fr));
+      }
+    }
+
+    @media (max-width: 980px) {
+      .workspace {
+        grid-template-columns: 1fr;
+      }
+
+      .sidebar {
+        border-left: 0;
+        border-top: 1px solid var(--line);
+      }
+
+      .mini-months-grid,
+      .year-grid {
+        grid-template-columns: repeat(2, minmax(240px, 1fr));
+      }
+    }
+
+    @media (max-width: 720px) {
+      .topbar {
+        position: relative;
+        padding: 10px 12px;
+        align-items: flex-start;
+      }
+
+      .topbar-right {
+        flex-wrap: wrap;
+        justify-content: flex-end;
+      }
+
+      .brand-sub {
+        display: none;
+      }
+
+      .calendar-pane {
+        padding: 10px;
+      }
+
+      .calendar-toolbar {
+        align-items: stretch;
+      }
+
+      .calendar-toolbar-left,
+      .calendar-toolbar-right {
+        width: 100%;
+      }
+
+      .calendar-period {
+        flex: 1;
+        min-width: 160px;
+      }
+
+      .view-switch {
+        width: 100%;
+      }
+
+      .view-switch button {
+        flex: 1;
+      }
+
+      .month-grid {
+        min-width: 720px;
+      }
+
+      .calendar-shell {
+        overflow: auto;
+      }
+
+      .mini-months-grid,
+      .year-grid {
+        grid-template-columns: 1fr;
+      }
+
+      .field-row.cols-2,
+      .field-row.cols-3 {
+        grid-template-columns: 1fr;
+      }
+
+      .task-type-grid {
+        grid-template-columns: repeat(2, 1fr);
+      }
+
+      .modal-backdrop {
+        padding: 8px;
+      }
+
+      .modal {
+        max-height: calc(100vh - 16px);
+      }
+
+      .modal-foot {
+        flex-wrap: wrap;
+      }
+    }
+
+    @media (max-width: 520px) {
+      .topbar {
+        flex-direction: column;
+      }
+
+      .topbar-left,
+      .topbar-right {
+        width: 100%;
+      }
+
+      .topbar-right {
+        justify-content: stretch;
+      }
+
+      .topbar-right .btn {
+        flex: 1;
+      }
+
+      .task-type-grid {
+        grid-template-columns: 1fr 1fr;
+      }
+    }
+  </style>
+</head>
+
+<body>
+<div class="app">
+
+  <!-- =========================================================
+       ВЕРХНЯЯ ПАНЕЛЬ
+       ========================================================= -->
+  <header class="topbar">
+
+    <div class="topbar-left">
+
+      <a href="../index.html" class="btn btn-secondary btn-sm">
+        <svg class="icon" viewBox="0 0 24 24">
+          <path d="M15 18l-6-6 6-6"/>
+        </svg>
+        На главную
+      </a>
+
+      <div class="topbar-divider"></div>
+
+      <div class="brand-mark">
+        ✓
+      </div>
+
+      <div class="brand-block">
+        <span class="brand-name">Задачник</span>
+        <span class="brand-sub">
+          Рабочие задачи, сроки и напоминания
+        </span>
+      </div>
+
+    </div>
+
+    <div class="topbar-right">
+
+      <button
+        class="btn btn-secondary btn-sm"
+        id="btn-notifications"
+        type="button"
+      >
+        <svg class="icon" viewBox="0 0 24 24">
+          <path d="M18 8a6 6 0 10-12 0c0 7-3 7-3 9h18c0-2-3-2-3-9"/>
+          <path d="M10 21h4"/>
+        </svg>
+        Уведомления
+      </button>
+
+      <button
+        class="btn btn-primary"
+        id="btn-new-task"
+        type="button"
+      >
+        <svg class="icon" viewBox="0 0 24 24">
+          <path d="M12 5v14M5 12h14"/>
+        </svg>
+        Новая задача
+      </button>
+
+    </div>
+
+  </header>
+
+  <!-- =========================================================
+       РАБОЧАЯ ОБЛАСТЬ
+       ========================================================= -->
+  <main class="workspace">
+
+    <!-- =======================================================
+         КАЛЕНДАРЬ
+         ======================================================= -->
+    <section class="calendar-pane">
+
+      <div class="calendar-toolbar">
+
+        <div class="calendar-toolbar-left">
+
+          <button
+            class="btn btn-secondary icon-btn"
+            id="btn-prev-period"
+            type="button"
+            title="Предыдущий период"
+          >
+            <svg class="icon" viewBox="0 0 24 24">
+              <path d="M15 18l-6-6 6-6"/>
+            </svg>
+          </button>
+
+          <button
+            class="btn btn-secondary btn-sm"
+            id="btn-today"
+            type="button"
+          >
+            Сегодня
+          </button>
+
+          <button
+            class="btn btn-secondary icon-btn"
+            id="btn-next-period"
+            type="button"
+            title="Следующий период"
+          >
+            <svg class="icon" viewBox="0 0 24 24">
+              <path d="M9 18l6-6-6-6"/>
+            </svg>
+          </button>
+
+          <div class="calendar-period" id="calendar-period-title">
+            —
+          </div>
+
+        </div>
+
+        <div class="calendar-toolbar-right">
+
+          <div class="view-switch" id="calendar-view-switch">
+            <button
+              type="button"
+              data-view="week"
+            >
+              Неделя
+            </button>
+
+            <button
+              type="button"
+              data-view="month"
+              class="active"
+            >
+              Месяц
+            </button>
+
+            <button
+              type="button"
+              data-view="quarter"
+            >
+              Квартал
+            </button>
+
+            <button
+              type="button"
+              data-view="year"
+            >
+              Год
+            </button>
+          </div>
+
+        </div>
+
+      </div>
+
+      <div class="calendar-shell relative">
+
+        <div
+          class="calendar-view"
+          id="calendar-root"
+        ></div>
+
+        <div
+          class="loading-overlay"
+          id="calendar-loading"
+        >
+          <div class="loader"></div>
+        </div>
+
+      </div>
+
+    </section>
+
+
+    <!-- =======================================================
+         БОКОВАЯ ПАНЕЛЬ
+         ======================================================= -->
+    <aside class="sidebar">
+
+      <section class="sidebar-section">
+
+        <div class="sidebar-title">
+          Выбранная дата
+        </div>
+
+        <div
+          class="sidebar-subtitle"
+          id="selected-date-label"
+        >
+          Выберите день в календаре
+        </div>
+
+        <div
+          class="day-summary"
+          id="selected-day-tasks"
+        >
+          <div class="summary-empty">
+            Выберите дату, чтобы увидеть задачи на этот день.
+          </div>
+        </div>
+
+      </section>
+
+
+      <section class="sidebar-section">
+
+        <div class="sidebar-title">
+          Фильтр задач
+        </div>
+
+        <div class="filter-group">
+
+          <label class="filter-label">
+            <input
+              type="checkbox"
+              class="task-type-filter"
+              value="payment"
+              checked
+            >
+            <span
+              class="type-dot"
+              style="--type-color:#f99303"
+            ></span>
+            Оплата
+          </label>
+
+          <label class="filter-label">
+            <input
+              type="checkbox"
+              class="task-type-filter"
+              value="act"
+              checked
+            >
+            <span
+              class="type-dot"
+              style="--type-color:#7b61ff"
+            ></span>
+            Составление акта
+          </label>
+
+          <label class="filter-label">
+            <input
+              type="checkbox"
+              class="task-type-filter"
+              value="call"
+              checked
+            >
+            <span
+              class="type-dot"
+              style="--type-color:#2f80ed"
+            ></span>
+            Созвон
+          </label>
+
+          <label class="filter-label">
+            <input
+              type="checkbox"
+              class="task-type-filter"
+              value="document"
+              checked
+            >
+            <span
+              class="type-dot"
+              style="--type-color:#0f9d84"
+            ></span>
+            Документы
+          </label>
+
+          <label class="filter-label">
+            <input
+              type="checkbox"
+              class="task-type-filter"
+              value="meeting"
+              checked
+            >
+            <span
+              class="type-dot"
+              style="--type-color:#d946ef"
+            ></span>
+            Встреча
+          </label>
+
+          <label class="filter-label">
+            <input
+              type="checkbox"
+              class="task-type-filter"
+              value="other"
+              checked
+            >
+            <span
+              class="type-dot"
+              style="--type-color:#667085"
+            ></span>
+            Другое
+          </label>
+
+        </div>
+
+      </section>
+
+
+      <section class="sidebar-section">
+
+        <div class="sidebar-title">
+          Ответственный
+        </div>
+
+        <select
+          class="select"
+          id="filter-assignee"
+        >
+          <option value="">
+            Все сотрудники
+          </option>
+        </select>
+
+      </section>
+
+
+      <section class="sidebar-section">
+
+        <div class="sidebar-title">
+          Статус
+        </div>
+
+        <select
+          class="select"
+          id="filter-status"
+        >
+          <option value="">
+            Все статусы
+          </option>
+          <option value="pending">
+            Активные
+          </option>
+          <option value="done">
+            Выполненные
+          </option>
+          <option value="cancelled">
+            Отменённые
+          </option>
+        </select>
+
+      </section>
+
+    </aside>
+
+  </main>
+
+</div>
+
+
+<!-- ===========================================================
+     МОДАЛЬНОЕ ОКНО ЗАДАЧИ
+     =========================================================== -->
+<div
+  class="modal-backdrop"
+  id="task-modal"
+>
+
+  <div class="modal">
+
+    <div class="modal-head">
+
+      <div class="modal-title-block">
+        <div
+          class="modal-title"
+          id="task-modal-title"
+        >
+          Новая задача
+        </div>
+
+        <div
+          class="modal-subtitle"
+          id="task-modal-subtitle"
+        >
+          Заполните основные параметры задачи
+        </div>
+      </div>
+
+      <button
+        class="modal-close"
+        type="button"
+        data-close-modal="task-modal"
+        aria-label="Закрыть"
+      >
+        <svg class="icon" viewBox="0 0 24 24">
+          <path d="M18 6L6 18M6 6l12 12"/>
+        </svg>
+      </button>
+
+    </div>
+
+    <div class="modal-body">
+
+      <input
+        type="hidden"
+        id="task-id"
+      >
+
+
+      <!-- =====================================================
+           ОСНОВНЫЕ ДАННЫЕ
+           ===================================================== -->
+      <section class="form-section">
+
+        <div class="form-section-title">
+          Основные данные
+        </div>
+
+        <div class="field">
+          <label
+            class="field-label"
+            for="task-title"
+          >
+            Название задачи
+            <span class="req">*</span>
+          </label>
+
+          <input
+            class="input"
+            type="text"
+            id="task-title"
+            maxlength="200"
+            placeholder="Например: Подготовить КС-2 за август"
+          >
+        </div>
+
+
+        <div class="field">
+          <label class="field-label">
+            Тип задачи
+          </label>
+
+          <input
+            type="hidden"
+            id="task-type"
+            value="other"
+          >
+
+          <div
+            class="task-type-grid"
+            id="task-type-grid"
+          >
+
+            <button
+              type="button"
+              class="task-type-option"
+              data-type="payment"
+              style="--type-color:#f99303"
+            >
+              <span class="task-type-icon">
+                ₽
+              </span>
+              Оплата
+            </button>
+
+            <button
+              type="button"
+              class="task-type-option"
+              data-type="act"
+              style="--type-color:#7b61ff"
+            >
+              <span class="task-type-icon">
+                КС
+              </span>
+              Составление акта
+            </button>
+
+            <button
+              type="button"
+              class="task-type-option"
+              data-type="call"
+              style="--type-color:#2f80ed"
+            >
+              <span class="task-type-icon">
+                ☎
+              </span>
+              Созвон
+            </button>
+
+            <button
+              type="button"
+              class="task-type-option"
+              data-type="document"
+              style="--type-color:#0f9d84"
+            >
+              <span class="task-type-icon">
+                ≡
+              </span>
+              Документы
+            </button>
+
+            <button
+              type="button"
+              class="task-type-option"
+              data-type="meeting"
+              style="--type-color:#d946ef"
+            >
+              <span class="task-type-icon">
+                ◉
+              </span>
+              Встреча
+            </button>
+
+            <button
+              type="button"
+              class="task-type-option active"
+              data-type="other"
+              style="--type-color:#667085"
+            >
+              <span class="task-type-icon">
+                •••
+              </span>
+              Другое
+            </button>
+
+          </div>
+        </div>
+
+      </section>
+
+
+      <!-- =====================================================
+           ДАТА И ВРЕМЯ
+           ===================================================== -->
+      <section class="form-section">
+
+        <div class="form-section-title">
+          Дата и время
+        </div>
+
+        <div class="field-row cols-3">
+
+          <div class="field">
+            <label
+              class="field-label"
+              for="task-date"
+            >
+              Дата
+              <span class="req">*</span>
+            </label>
+
+            <input
+              class="input"
+              type="date"
+              id="task-date"
+            >
+          </div>
+
+          <div class="field">
+            <label
+              class="field-label"
+              for="task-time"
+            >
+              Время
+            </label>
+
+            <input
+              class="input"
+              type="time"
+              id="task-time"
+            >
+          </div>
+
+          <div class="field">
+            <label
+              class="field-label"
+              for="task-status"
+            >
+              Статус
+            </label>
+
+            <select
+              class="select"
+              id="task-status"
+            >
+              <option value="pending">
+                Активная
+              </option>
+              <option value="done">
+                Выполнена
+              </option>
+              <option value="cancelled">
+                Отменена
+              </option>
+            </select>
+          </div>
+
+        </div>
+
+      </section>
+
+
+      <!-- =====================================================
+           КЛИЕНТ И ОТВЕТСТВЕННЫЙ
+           ===================================================== -->
+      <section class="form-section">
+
+        <div class="form-section-title">
+          Связи
+        </div>
+
+        <div class="field">
+
+          <label
+            class="field-label"
+            for="task-client-select"
+          >
+            Клиент
+          </label>
+
+          <select
+            class="select"
+            id="task-client-select"
+          >
+            <option value="">
+              — выбрать из базы клиентов —
+            </option>
+            <option value="manual">
+              Ввести вручную…
+            </option>
+          </select>
+
+        </div>
+
+
+        <div
+          class="field hidden"
+          id="task-client-manual-field"
+        >
+          <label
+            class="field-label"
+            for="task-client-name"
+          >
+            Имя клиента вручную
+          </label>
+
+          <input
+            class="input"
+            id="task-client-name"
+            type="text"
+            maxlength="200"
+            placeholder="Название или имя клиента"
+          >
+        </div>
+
+
+        <div class="field">
+
+          <label
+            class="field-label"
+            for="task-assigned-to"
+          >
+            Ответственный
+            <span class="req">*</span>
+          </label>
+
+          <select
+            class="select"
+            id="task-assigned-to"
+          >
+            <option value="">
+              — выбрать сотрудника —
+            </option>
+          </select>
+
+        </div>
+
+      </section>
+
+
+      <!-- =====================================================
+           ПОВТОРЯЕМОСТЬ
+           ===================================================== -->
+      <section class="form-section">
+
+        <div class="form-section-title">
+          Повторяемость
+        </div>
+
+        <div class="field">
+          <label
+            class="field-label"
+            for="task-repeat-type"
+          >
+            Как повторять
+          </label>
+
+          <select
+            class="select"
+            id="task-repeat-type"
+          >
+            <option value="none">
+              Один раз
+            </option>
+
+            <option value="weekly">
+              Каждую неделю
+            </option>
+
+            <option value="monthly">
+              Каждый месяц
+            </option>
+
+            <option value="quarterly">
+              Раз в квартал
+            </option>
+
+            <option value="halfyear">
+              Раз в полгода
+            </option>
+          </select>
+        </div>
+
+
+        <div
+          class="field hidden"
+          id="repeat-weekday-field"
+        >
+          <label
+            class="field-label"
+            for="task-repeat-weekday"
+          >
+            День недели
+          </label>
+
+          <select
+            class="select"
+            id="task-repeat-weekday"
+          >
+            <option value="1">Понедельник</option>
+            <option value="2">Вторник</option>
+            <option value="3">Среда</option>
+            <option value="4">Четверг</option>
+            <option value="5">Пятница</option>
+            <option value="6">Суббота</option>
+            <option value="0">Воскресенье</option>
+          </select>
+        </div>
+
+
+        <div
+          class="field hidden"
+          id="repeat-monthday-field"
+        >
+          <label
+            class="field-label"
+            for="task-repeat-monthday"
+          >
+            Число месяца
+          </label>
+
+          <input
+            class="input"
+            type="number"
+            id="task-repeat-monthday"
+            min="1"
+            max="31"
+            placeholder="Например: 15"
+          >
+
+          <div class="field-help">
+            Если в конкретном месяце такого числа нет, обработку определим в логике повторений.
+          </div>
+        </div>
+
+
+        <div
+          class="field hidden"
+          id="repeat-until-field"
+        >
+          <label
+            class="field-label"
+            for="task-repeat-until"
+          >
+            Повторять до
+          </label>
+
+          <input
+            class="input"
+            type="date"
+            id="task-repeat-until"
+          >
+        </div>
+
+      </section>
+
+
+      <!-- =====================================================
+           ОПИСАНИЕ
+           ===================================================== -->
+      <section class="form-section">
+
+        <div class="form-section-title">
+          Описание
+        </div>
+
+        <div class="field">
+          <label
+            class="field-label"
+            for="task-description"
+          >
+            Что нужно сделать
+          </label>
+
+          <textarea
+            class="textarea"
+            id="task-description"
+            maxlength="5000"
+            placeholder="Подробное описание задачи, комментарии, важные детали…"
+          ></textarea>
+        </div>
+
+      </section>
+
+
+      <!-- =====================================================
+           ВЛОЖЕНИЯ
+           ===================================================== -->
+      <section class="form-section">
+
+        <div class="form-section-title">
+          Вложения
+        </div>
+
+        <input
+          type="file"
+          id="task-file-input"
+          multiple
+          hidden
+        >
+
+        <div
+          class="file-drop"
+          id="task-file-drop"
+          role="button"
+          tabindex="0"
+        >
+          <svg
+            class="icon"
+            viewBox="0 0 24 24"
+            style="width:24px;height:24px;color:var(--brand);"
+          >
+            <path d="M12 16V4"/>
+            <path d="M7 9l5-5 5 5"/>
+            <path d="M5 20h14"/>
+          </svg>
+
+          <strong>
+            Перетащите файлы сюда
+          </strong>
+
+          <span>
+            или нажмите, чтобы выбрать с компьютера
+          </span>
+        </div>
+
+        <div
+          class="attachment-list"
+          id="task-attachment-list"
+        ></div>
+
+      </section>
+
+    </div>
+
+
+    <div class="modal-foot">
+
+      <button
+        class="btn btn-danger hidden"
+        type="button"
+        id="btn-delete-task"
+      >
+        <svg class="icon" viewBox="0 0 24 24">
+          <path d="M3 6h18"/>
+          <path d="M8 6V4h8v2"/>
+          <path d="M19 6l-1 14H6L5 6"/>
+          <path d="M10 11v5M14 11v5"/>
+        </svg>
+        Удалить
+      </button>
+
+      <div class="modal-foot-right">
+
+        <button
+          class="btn btn-ghost"
+          type="button"
+          data-close-modal="task-modal"
+        >
+          Отмена
+        </button>
+
+        <button
+          class="btn btn-primary"
+          type="button"
+          id="btn-save-task"
+        >
+          <svg class="icon" viewBox="0 0 24 24">
+            <path d="M4 4h13l3 3v13H4z"/>
+            <path d="M8 4v6h8V4"/>
+            <path d="M8 20v-6h8v6"/>
+          </svg>
+          Сохранить задачу
+        </button>
+
+      </div>
+
+    </div>
+
+  </div>
+
+</div>
+
+
+<!-- ===========================================================
+     ПОДТВЕРЖДЕНИЕ
+     =========================================================== -->
+<div
+  class="modal-backdrop"
+  id="confirm-modal"
+>
+
+  <div
+    class="modal"
+    style="width:min(440px,100%);"
+  >
+
+    <div class="modal-head">
+
+      <div class="modal-title-block">
+
+        <div
+          class="modal-title"
+          id="confirm-title"
+        >
+          Подтверждение
+        </div>
+
+      </div>
+
+      <button
+        class="modal-close"
+        type="button"
+        data-close-modal="confirm-modal"
+      >
+        <svg class="icon" viewBox="0 0 24 24">
+          <path d="M18 6L6 18M6 6l12 12"/>
+        </svg>
+      </button>
+
+    </div>
+
+    <div class="modal-body">
+
+      <p
+        id="confirm-text"
+        style="
+          margin:0;
+          color:var(--text-soft);
+          font-size:13px;
+          line-height:1.6;
+        "
+      ></p>
+
+    </div>
+
+    <div class="modal-foot">
+
+      <div class="modal-foot-right">
+
+        <button
+          class="btn btn-ghost"
+          type="button"
+          data-close-modal="confirm-modal"
+        >
+          Отмена
+        </button>
+
+        <button
+          class="btn btn-primary"
+          type="button"
+          id="confirm-ok-btn"
+        >
+          Подтвердить
+        </button>
+
+      </div>
+
+    </div>
+
+  </div>
+
+</div>
+
+
+<!-- ===========================================================
+     TOASTS
+     =========================================================== -->
+<div
+  class="toast-stack"
+  id="toast-stack"
+></div>
+
+
+<!-- ===========================================================
+     SUPABASE
+     ===========================================================
+
+     Если в других инструментах Рабочей станции Supabase уже
+     подключается локальным файлом, позже заменим этот CDN
+     на тот же вариант ради единообразия.
+
+     Сам клиент будет создаваться в task-manager.js.
+     =========================================================== -->
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="task-manager.js"></script>
+
+
+<!-- ===========================================================
+     ЛОГИКА ЗАДАЧНИКА
+     =========================================================== -->
+<script src="./task-manager.js"></script>
+
+</body>
+</html>
