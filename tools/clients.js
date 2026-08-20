@@ -57,6 +57,12 @@
       activities:
         'client_activities',
 
+      groups:
+        'client_groups',
+
+      taxSystems:
+        'client_tax_systems',
+
       contacts:
         'client_contacts',
 
@@ -87,9 +93,12 @@
 
     activities: [],
     reports: [],
+    clientGroups: [],
+    taxSystems: [],
 
     currentClientId: null,
 
+    currentClientTaxSystems: [],
     currentClientContacts: [],
     currentClientBanks: [],
     currentClientReports: [],
@@ -114,6 +123,7 @@
     },
 
     sort: 'name_asc',
+    viewMode: 'list',
 
     notificationTimer: null,
 
@@ -204,12 +214,23 @@
       return window.crypto.randomUUID();
     }
 
-    return (
-      Date.now().toString(36) +
-      Math.random()
-        .toString(36)
-        .slice(2)
-    );
+    return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'
+      .replace(
+        /[xy]/g,
+        character => {
+          const random =
+            Math.floor(
+              Math.random() * 16
+            );
+
+          const value =
+            character === 'x'
+              ? random
+              : (random & 0x3) | 0x8;
+
+          return value.toString(16);
+        }
+      );
   }
 
 
@@ -772,6 +793,96 @@
     }
   }
 
+  function getClientGroup(id) {
+    if (!id) {
+      return null;
+    }
+
+    return (
+      state.clientGroups.find(
+        group =>
+          group.id === id
+      ) ||
+      null
+    );
+  }
+
+
+  function renderClientGroupSelect(
+    selectedValue = null
+  ) {
+    const select =
+      $('client-group');
+
+    if (!select) {
+      return;
+    }
+
+    const value =
+      selectedValue === null
+        ? select.value
+        : selectedValue;
+
+    const options =
+      state.clientGroups
+        .slice()
+        .sort(
+          (a, b) =>
+            String(
+              a.group_name || ''
+            ).localeCompare(
+              String(
+                b.group_name || ''
+              ),
+              'ru'
+            )
+        )
+        .map(
+          group =>
+            '<option value="' +
+            escapeHtml(group.id) +
+            '">' +
+            escapeHtml(group.group_name) +
+            '</option>'
+        )
+        .join('');
+
+    select.innerHTML =
+      '<option value="">— без группы —</option>' +
+      options;
+
+    select.value =
+      value || '';
+  }
+
+
+  const TAX_SYSTEM_OPTIONS = [
+    ['ОСНО', 'ОСНО'],
+    ['УСН Доходы', 'УСН «Доходы»'],
+    [
+      'УСН Доходы-Расходы',
+      'УСН «Доходы минус расходы»'
+    ],
+    ['ПСН', 'ПСН'],
+    ['ЕСХН', 'ЕСХН'],
+    ['НПД', 'НПД'],
+    ['Другое', 'Другое']
+  ];
+
+
+  const TAX_RATE_OPTIONS = [
+    ['', '—'],
+    ['5', '5%'],
+    ['6', '6%'],
+    ['7', '7%'],
+    ['10', '10%'],
+    ['12', '12%'],
+    ['15', '15%'],
+    ['20', '20%'],
+    ['22', '22%'],
+    ['other', 'Другое']
+  ];
+
 
   /* ============================================================
      LOAD MAIN DATA
@@ -786,7 +897,9 @@
       const [
         clientsResult,
         activitiesResult,
-        reportsResult
+        reportsResult,
+        groupsResult,
+        taxSystemsResult
       ] =
         await Promise.all([
           state.supabase
@@ -805,7 +918,31 @@
             .from(
               CONFIG.tables.reports
             )
+            .select('*'),
+
+          state.supabase
+            .from(
+              CONFIG.tables.groups
+            )
             .select('*')
+            .order(
+              'group_name',
+              {
+                ascending: true
+              }
+            ),
+
+          state.supabase
+            .from(
+              CONFIG.tables.taxSystems
+            )
+            .select('*')
+            .order(
+              'sort_order',
+              {
+                ascending: true
+              }
+            )
         ]);
 
 
@@ -821,6 +958,14 @@
         throw reportsResult.error;
       }
 
+      if (groupsResult.error) {
+        throw groupsResult.error;
+      }
+
+      if (taxSystemsResult.error) {
+        throw taxSystemsResult.error;
+      }
+
 
       state.clients =
         clientsResult.data || [];
@@ -831,7 +976,14 @@
       state.reports =
         reportsResult.data || [];
 
+      state.clientGroups =
+        groupsResult.data || [];
 
+      state.taxSystems =
+        taxSystemsResult.data || [];
+
+
+      renderClientGroupSelect();
       renderFilterOptions();
       renderClients();
       renderOverview();
@@ -975,13 +1127,585 @@
     fillFilterSelect(
       'filter-tax-system',
       uniqueTextValues(
-        state.clients.map(
-          client =>
-            client.tax_system
+        state.taxSystems.map(
+          item =>
+            item.tax_system
         )
       ),
       'Все'
     );
+  }
+
+  function getTaxSystemsForClient(
+    clientId
+  ) {
+    return state.taxSystems
+      .filter(
+        item =>
+          item.client_id ===
+          clientId
+      )
+      .sort(
+        (a, b) =>
+          Number(a.sort_order || 0) -
+          Number(b.sort_order || 0)
+      );
+  }
+
+
+  function taxRateLabel(item) {
+    if (!item) {
+      return '';
+    }
+
+    if (
+      item.rate_code === 'other'
+    ) {
+      return item.custom_rate || 'Другое';
+    }
+
+    return item.rate_code
+      ? item.rate_code + '%'
+      : '';
+  }
+
+
+  function taxSystemLabel(item) {
+    if (!item) {
+      return '';
+    }
+
+    const rate =
+      taxRateLabel(item);
+
+    return (
+      item.tax_system +
+      (
+        rate
+          ? ' — ' + rate
+          : ''
+      )
+    );
+  }
+
+
+  function taxSystemsTextForClient(
+    client
+  ) {
+    const items =
+      getTaxSystemsForClient(
+        client.id
+      );
+
+    if (items.length) {
+      return items
+        .map(taxSystemLabel)
+        .join(', ');
+    }
+
+    return client.tax_system || '';
+  }
+
+
+  function selectOptionsHtml(
+    options,
+    selected,
+    emptyLabel = null
+  ) {
+    const empty =
+      emptyLabel === null
+        ? ''
+        : (
+            '<option value="">' +
+            escapeHtml(emptyLabel) +
+            '</option>'
+          );
+
+    return (
+      empty +
+      options
+        .map(
+          option => {
+            const value =
+              option[0];
+
+            return (
+              '<option value="' +
+              escapeHtml(value) +
+              '"' +
+              (
+                value === selected
+                  ? ' selected'
+                  : ''
+              ) +
+              '>' +
+              escapeHtml(option[1]) +
+              '</option>'
+            );
+          }
+        )
+        .join('')
+    );
+  }
+
+
+  function renderTaxSystemsEditor() {
+    const box =
+      $('client-tax-systems-list');
+
+    if (!box) {
+      return;
+    }
+
+    if (
+      !state.currentClientTaxSystems.length
+    ) {
+      box.innerHTML =
+        '<div class="tax-system-empty">' +
+        'Системы налогообложения не добавлены.' +
+        '</div>';
+
+      return;
+    }
+
+    box.innerHTML =
+      state.currentClientTaxSystems
+        .map(
+          item => {
+            const localId =
+              item.local_id ||
+              item.id ||
+              createId();
+
+            item.local_id =
+              localId;
+
+            const customHidden =
+              item.rate_code === 'other'
+                ? ''
+                : ' hidden';
+
+            return (
+              '<div class="tax-system-row"' +
+              ' data-tax-system-row="' +
+              escapeHtml(localId) +
+              '"' +
+              ' data-tax-record-id="' +
+              escapeHtml(item.id || '') +
+              '">' +
+                '<div class="field">' +
+                  '<label class="field-label">Система</label>' +
+                  '<select class="select tax-system-select">' +
+                    selectOptionsHtml(
+                      TAX_SYSTEM_OPTIONS,
+                      item.tax_system || '',
+                      '— выбрать —'
+                    ) +
+                  '</select>' +
+                '</div>' +
+                '<div class="field">' +
+                  '<label class="field-label">Ставка</label>' +
+                  '<select class="select tax-rate-select">' +
+                    selectOptionsHtml(
+                      TAX_RATE_OPTIONS,
+                      item.rate_code || ''
+                    ) +
+                  '</select>' +
+                '</div>' +
+                '<div class="field tax-custom-rate-field' +
+                  customHidden +
+                '">' +
+                  '<label class="field-label">Другая ставка</label>' +
+                  '<input class="input tax-custom-rate"' +
+                    ' type="text"' +
+                    ' value="' +
+                    escapeHtml(item.custom_rate || '') +
+                    '"' +
+                    ' placeholder="Например, 4% или по патенту">' +
+                '</div>' +
+                '<button class="btn btn-ghost btn-sm"' +
+                  ' type="button"' +
+                  ' data-remove-tax-system="' +
+                  escapeHtml(localId) +
+                  '"' +
+                  ' aria-label="Удалить систему">' +
+                  '×' +
+                '</button>' +
+              '</div>'
+            );
+          }
+        )
+        .join('');
+
+    bindTaxSystemRows();
+  }
+
+
+  function bindTaxSystemRows() {
+    $all(
+      '[data-remove-tax-system]'
+    ).forEach(
+      button => {
+        button.addEventListener(
+          'click',
+          () =>
+            removeTaxSystemRow(
+              button.dataset.removeTaxSystem
+            )
+        );
+      }
+    );
+
+    $all(
+      '.tax-rate-select',
+      $('client-tax-systems-list')
+    ).forEach(
+      select => {
+        select.addEventListener(
+          'change',
+          () => {
+            const row =
+              select.closest(
+                '[data-tax-system-row]'
+              );
+
+            setHidden(
+              row.querySelector(
+                '.tax-custom-rate-field'
+              ),
+              select.value !== 'other'
+            );
+          }
+        );
+      }
+    );
+  }
+
+
+  function collectTaxSystemsFromForm(
+    validate = false
+  ) {
+    return $all(
+      '[data-tax-system-row]',
+      $('client-tax-systems-list')
+    )
+      .map(
+        (row, index) => {
+          const taxSystem =
+            row.querySelector(
+              '.tax-system-select'
+            ).value;
+
+          const rateCode =
+            row.querySelector(
+              '.tax-rate-select'
+            ).value;
+
+          const customRate =
+            nullableText(
+              row.querySelector(
+                '.tax-custom-rate'
+              ).value
+            );
+
+          if (
+            !taxSystem &&
+            !rateCode &&
+            !customRate
+          ) {
+            return null;
+          }
+
+          if (
+            validate &&
+            !taxSystem
+          ) {
+            throw new Error(
+              'Выберите систему налогообложения.'
+            );
+          }
+
+          if (
+            validate &&
+            rateCode === 'other' &&
+            !customRate
+          ) {
+            throw new Error(
+              'Укажите собственное значение ставки.'
+            );
+          }
+
+          const id =
+            row.dataset.taxRecordId ||
+            null;
+
+          const existing =
+            state.currentClientTaxSystems
+              .find(
+                item =>
+                  item.id === id
+              );
+
+          return {
+            id,
+            local_id:
+              row.dataset.taxSystemRow,
+            tax_system:
+              taxSystem,
+            rate_code:
+              rateCode,
+            custom_rate:
+              rateCode === 'other'
+                ? customRate
+                : null,
+            sort_order:
+              index,
+            created_by:
+              existing?.created_by ||
+              null
+          };
+        }
+      )
+      .filter(Boolean);
+  }
+
+
+  function syncTaxSystemDrafts() {
+    state.currentClientTaxSystems =
+      collectTaxSystemsFromForm();
+  }
+
+
+  function addTaxSystemRow() {
+    syncTaxSystemDrafts();
+
+    state.currentClientTaxSystems
+      .push({
+        id: null,
+        local_id:
+          createId(),
+        tax_system: '',
+        rate_code: '',
+        custom_rate: null,
+        sort_order:
+          state.currentClientTaxSystems
+            .length
+      });
+
+    renderTaxSystemsEditor();
+  }
+
+
+  function removeTaxSystemRow(
+    localId
+  ) {
+    syncTaxSystemDrafts();
+
+    state.currentClientTaxSystems =
+      state.currentClientTaxSystems
+        .filter(
+          item =>
+            item.local_id !==
+            localId
+        );
+
+    renderTaxSystemsEditor();
+  }
+
+
+  async function saveClientTaxSystems(
+    clientId,
+    items
+  ) {
+    const existingIds =
+      getTaxSystemsForClient(
+        clientId
+      )
+        .map(item => item.id)
+        .filter(Boolean);
+
+    const keptIds =
+      items
+        .map(item => item.id)
+        .filter(Boolean);
+
+    const removedIds =
+      existingIds.filter(
+        id =>
+          !keptIds.includes(id)
+      );
+
+    if (removedIds.length) {
+      const {
+        error
+      } =
+        await state.supabase
+          .from(
+            CONFIG.tables.taxSystems
+          )
+          .delete()
+          .in(
+            'id',
+            removedIds
+          );
+
+      if (error) {
+        throw error;
+      }
+    }
+
+    if (!items.length) {
+      state.currentClientTaxSystems = [];
+      return;
+    }
+
+    const payload =
+      items.map(
+        (item, index) => ({
+          id:
+            item.id ||
+            createId(),
+          client_id:
+            clientId,
+          tax_system:
+            item.tax_system,
+          rate_code:
+            item.rate_code || '',
+          custom_rate:
+            item.rate_code === 'other'
+              ? item.custom_rate
+              : null,
+          sort_order:
+            index,
+          created_by:
+            item.created_by ||
+            state.user.id,
+          updated_by:
+            state.user.id,
+          updated_at:
+            new Date().toISOString()
+        })
+      );
+
+    const {
+      data,
+      error
+    } =
+      await state.supabase
+        .from(
+          CONFIG.tables.taxSystems
+        )
+        .upsert(
+          payload,
+          {
+            onConflict: 'id'
+          }
+        )
+        .select('*');
+
+    if (error) {
+      throw error;
+    }
+
+    state.currentClientTaxSystems =
+      data || [];
+  }
+
+  function openClientGroupModal() {
+    $('client-group-name').value =
+      '';
+
+    openModal(
+      'client-group-modal'
+    );
+
+    setTimeout(
+      () =>
+        $('client-group-name')
+          ?.focus(),
+      70
+    );
+  }
+
+
+  async function saveClientGroup() {
+    const name =
+      $('client-group-name')
+        .value
+        .trim();
+
+    if (!name) {
+      toast(
+        'Укажите название группы',
+        'err'
+      );
+
+      return;
+    }
+
+    const button =
+      $('btn-save-client-group');
+
+    try {
+      setButtonBusy(
+        button,
+        true,
+        'Создаём…'
+      );
+
+      const {
+        data,
+        error
+      } =
+        await state.supabase
+          .from(
+            CONFIG.tables.groups
+          )
+          .insert({
+            group_name:
+              name,
+            created_by:
+              state.user.id,
+            updated_by:
+              state.user.id
+          })
+          .select('*')
+          .single();
+
+      if (error) {
+        throw error;
+      }
+
+      state.clientGroups
+        .push(data);
+
+      renderClientGroupSelect(
+        data.id
+      );
+
+      closeModal(
+        'client-group-modal'
+      );
+
+      renderClients();
+
+      toast(
+        'Группа создана',
+        'ok'
+      );
+
+    } catch (error) {
+      toast(
+        friendlyError(error),
+        'err'
+      );
+
+    } finally {
+      setButtonBusy(
+        button,
+        false
+      );
+    }
   }
 
 
@@ -1266,6 +1990,16 @@
                 client
               );
 
+            const taxSystems =
+              taxSystemsTextForClient(
+                client
+              );
+
+            const group =
+              getClientGroup(
+                client.client_group_id
+              );
+
             const blob =
               [
                 client.client_name,
@@ -1276,7 +2010,9 @@
                 activity,
                 client.service_contract_number,
                 client.org_form,
-                client.tax_system
+                taxSystems,
+                group?.group_name,
+                client.edo_identifier
               ]
                 .filter(Boolean)
                 .join(' ')
@@ -1320,8 +2056,20 @@
       list =
         list.filter(
           client =>
-            client.tax_system ===
-            state.filters.taxSystem
+            getTaxSystemsForClient(
+              client.id
+            ).some(
+              item =>
+                item.tax_system ===
+                state.filters.taxSystem
+            ) ||
+            (
+              !getTaxSystemsForClient(
+                client.id
+              ).length &&
+              client.tax_system ===
+                state.filters.taxSystem
+            )
         );
     }
 
@@ -1400,12 +2148,9 @@
       case 'tax_system':
         list.sort(
           (a, b) =>
-            String(
-              a.tax_system || ''
-            ).localeCompare(
-              String(
-                b.tax_system || ''
-              ),
+            taxSystemsTextForClient(a)
+              .localeCompare(
+              taxSystemsTextForClient(b),
               'ru'
             )
         );
@@ -1495,14 +2240,28 @@
     }
 
 
-    grid.innerHTML =
-      list
-        .map(
-          buildClientCard
-        )
-        .join('');
+    if (
+      state.viewMode === 'groups'
+    ) {
+      renderGroupedClients(
+        grid,
+        list
+      );
+
+    } else {
+      grid.innerHTML =
+        list
+          .map(
+            buildClientCard
+          )
+          .join('');
+    }
 
 
+    bindClientCards();
+  }
+
+  function bindClientCards() {
     $all(
       '[data-client-card]'
     ).forEach(
@@ -1519,6 +2278,100 @@
   }
 
 
+  function renderGroupedClients(
+    grid,
+    clients
+  ) {
+    const sections =
+      new Map();
+
+    for (
+      const client
+      of clients
+    ) {
+      const group =
+        getClientGroup(
+          client.client_group_id
+        );
+
+      const key =
+        group?.id ||
+        '__ungrouped__';
+
+      if (!sections.has(key)) {
+        sections.set(
+          key,
+          {
+            name:
+              group?.group_name ||
+              'Без группы',
+            ungrouped:
+              !group,
+            clients: []
+          }
+        );
+      }
+
+      sections.get(key)
+        .clients
+        .push(client);
+    }
+
+    const ordered =
+      Array.from(
+        sections.values()
+      )
+        .sort(
+          (a, b) => {
+            if (
+              a.ungrouped !==
+              b.ungrouped
+            ) {
+              return a.ungrouped
+                ? 1
+                : -1;
+            }
+
+            return a.name
+              .localeCompare(
+                b.name,
+                'ru'
+              );
+          }
+        );
+
+    grid.innerHTML =
+      ordered
+        .map(
+          section =>
+            '<section class="client-group-section">' +
+              '<div class="client-group-head">' +
+                '<div class="client-group-title">' +
+                  escapeHtml(section.name) +
+                '</div>' +
+                '<div class="client-group-count">' +
+                  section.clients.length +
+                  ' ' +
+                  (
+                    section.clients.length === 1
+                      ? 'клиент'
+                      : 'клиентов'
+                  ) +
+                '</div>' +
+              '</div>' +
+              '<div class="client-group-grid">' +
+                section.clients
+                  .map(
+                    buildClientCard
+                  )
+                  .join('') +
+              '</div>' +
+            '</section>'
+        )
+        .join('');
+  }
+
+
   function buildClientCard(client) {
     const profile =
       getProfile(
@@ -1528,6 +2381,16 @@
     const activities =
       getActivitiesForClient(
         client.id
+      );
+
+    const taxSystems =
+      taxSystemsTextForClient(
+        client
+      );
+
+    const group =
+      getClientGroup(
+        client.client_group_id
       );
 
     const ecp =
@@ -1638,6 +2501,11 @@
             ${escapeHtml(client.phone || '—')}
           </div>
 
+          <div class="client-meta-row">
+            <strong>Налоги:</strong>
+            ${escapeHtml(taxSystems || '—')}
+          </div>
+
           ${
             profile
               ? `
@@ -1650,6 +2518,17 @@
           }
 
         </div>
+
+
+        ${
+          group
+            ? `
+              <div class="group-badge">
+                Связан с: ${escapeHtml(group.group_name)}
+              </div>
+            `
+            : ''
+        }
 
 
         ${
@@ -1903,6 +2782,7 @@
     state.currentClientId =
       null;
 
+    state.currentClientTaxSystems = [];
     state.currentClientContacts = [];
     state.currentClientBanks = [];
     state.currentClientReports = [];
@@ -1932,6 +2812,7 @@
       'client-discounts',
       'client-vat-rate',
       'client-edo-operator',
+      'client-edo-identifier',
       'client-ecp-expires',
       'client-1c-expires',
       'client-employees-count',
@@ -1965,8 +2846,9 @@
     $('client-status').value =
       'active';
 
-    $('client-tax-system').value =
-      '';
+    renderClientGroupSelect(
+      ''
+    );
 
     $('client-vat-enabled').checked =
       false;
@@ -1991,6 +2873,11 @@
       true
     );
 
+    setHidden(
+      $('edo-identifier-field'),
+      true
+    );
+
 
     setHidden(
       $('btn-delete-client'),
@@ -2011,6 +2898,7 @@
 
 
     renderCurrentActivities();
+    renderTaxSystemsEditor();
     renderContacts();
     renderBankAccounts();
     renderReports();
@@ -2137,6 +3025,11 @@
       client.responsible_user ||
       '';
 
+    renderClientGroupSelect(
+      client.client_group_id ||
+      ''
+    );
+
     $('client-folder-url').value =
       client.folder_url || '';
 
@@ -2172,8 +3065,19 @@
     $('client-status').value =
       client.status || 'active';
 
-    $('client-tax-system').value =
-      client.tax_system || '';
+    state.currentClientTaxSystems =
+      getTaxSystemsForClient(
+        client.id
+      )
+        .map(
+          item => ({
+            ...item,
+            local_id:
+              item.id
+          })
+        );
+
+    renderTaxSystemsEditor();
 
     $('client-vat-enabled').checked =
       client.vat_enabled === true;
@@ -2187,6 +3091,9 @@
 
     $('client-edo-operator').value =
       client.edo_operator || '';
+
+    $('client-edo-identifier').value =
+      client.edo_identifier || '';
 
     $('client-ecp-expires').value =
       client.ecp_expires_at || '';
@@ -2230,6 +3137,11 @@
       !client.edo_enabled
     );
 
+    setHidden(
+      $('edo-identifier-field'),
+      !client.edo_enabled
+    );
+
 
     $('drawer-client-title').textContent =
       client.client_name;
@@ -2239,7 +3151,9 @@
         client.inn
           ? `ИНН ${client.inn}`
           : '',
-        client.tax_system || ''
+        taxSystemsTextForClient(
+          client
+        )
       ]
         .filter(Boolean)
         .join(' • ') ||
@@ -2371,7 +3285,9 @@
      BUILD CLIENT PAYLOAD
      ============================================================ */
 
-  function buildClientPayload() {
+  function buildClientPayload(
+    taxSystems = []
+  ) {
     const name =
       $('client-name')
         .value
@@ -2462,6 +3378,11 @@
           $('client-responsible').value
         ),
 
+      client_group_id:
+        nullableText(
+          $('client-group').value
+        ),
+
       folder_url:
         nullableText(
           $('client-folder-url').value
@@ -2493,9 +3414,9 @@
         ),
 
       tax_system:
-        nullableText(
-          $('client-tax-system').value
-        ),
+        taxSystems[0]
+          ?.tax_system ||
+        null,
 
       vat_enabled:
         vatEnabled,
@@ -2514,6 +3435,13 @@
         edoEnabled
           ? nullableText(
               $('client-edo-operator').value
+            )
+          : null,
+
+      edo_identifier:
+        edoEnabled
+          ? nullableText(
+              $('client-edo-identifier').value
             )
           : null,
 
@@ -2578,8 +3506,15 @@
       );
 
 
+      const taxSystems =
+        collectTaxSystemsFromForm(
+          true
+        );
+
       const payload =
-        buildClientPayload();
+        buildClientPayload(
+          taxSystems
+        );
 
 
       let saved;
@@ -2639,9 +3574,21 @@
       }
 
 
-      fillClientForm(
-        saved
+      await saveClientTaxSystems(
+        saved.id,
+        taxSystems
       );
+
+      state.taxSystems = [
+        ...state.taxSystems.filter(
+          item =>
+            item.client_id !==
+            saved.id
+        ),
+        ...state.currentClientTaxSystems
+      ];
+
+      fillClientForm(saved);
 
       toast(
         'Клиент сохранён',
@@ -3058,11 +4005,20 @@
     if (
       client.edo_enabled
     ) {
+      const edoDetails = [
+        client.edo_operator ||
+          'Подключён',
+        client.edo_identifier
+          ? 'ID ' +
+            client.edo_identifier
+          : ''
+      ]
+        .filter(Boolean)
+        .join(' · ');
+
       setQuickValue(
         'quick-edo',
-        client.edo_operator
-          ? `✓ ${client.edo_operator}`
-          : '✓ Подключён',
+        '✓ ' + edoDetails,
         'ok'
       );
 
@@ -4412,7 +5368,8 @@
       '';
 
     $('report-tax-system').value =
-      $('client-tax-system').value ||
+      state.currentClientTaxSystems[0]
+        ?.tax_system ||
       '';
 
     $('report-status').value =
@@ -6494,12 +7451,62 @@
     $('client-edo-enabled')
       ?.addEventListener(
         'change',
-        event =>
+        event => {
           setHidden(
             $('edo-operator-field'),
             !event.target.checked
-          )
+          );
+
+          setHidden(
+            $('edo-identifier-field'),
+            !event.target.checked
+          );
+        }
       );
+
+    $('btn-add-tax-system')
+      ?.addEventListener(
+        'click',
+        addTaxSystemRow
+      );
+
+    $('btn-new-client-group')
+      ?.addEventListener(
+        'click',
+        openClientGroupModal
+      );
+
+    $('btn-save-client-group')
+      ?.addEventListener(
+        'click',
+        saveClientGroup
+      );
+
+    $all(
+      '[data-clients-view]'
+    ).forEach(
+      button => {
+        button.addEventListener(
+          'click',
+          () => {
+            state.viewMode =
+              button.dataset.clientsView;
+
+            $all(
+              '[data-clients-view]'
+            ).forEach(
+              item =>
+                item.classList.toggle(
+                  'active',
+                  item === button
+                )
+            );
+
+            renderClients();
+          }
+        );
+      }
+    );
 
 
     $all(

@@ -573,6 +573,38 @@
       border-color: var(--brand);
     }
 
+    .view-switch {
+      display: inline-flex;
+      align-items: center;
+      gap: 3px;
+
+      min-height: 40px;
+      padding: 3px;
+
+      border: 1px solid var(--line-strong);
+      border-radius: 10px;
+      background: var(--surface-soft);
+    }
+
+    .view-switch-btn {
+      min-height: 32px;
+      padding: 0 11px;
+
+      border: 0;
+      border-radius: 7px;
+      background: transparent;
+      color: var(--ink-soft);
+
+      font-size: 12px;
+      font-weight: 800;
+    }
+
+    .view-switch-btn.active {
+      background: #fff;
+      color: var(--brand-dark);
+      box-shadow: 0 2px 7px rgba(26, 39, 64, 0.09);
+    }
+
 
     /* ============================================================
        FILTER BAR
@@ -929,6 +961,59 @@
 
       font-size: 11px;
       font-weight: 700;
+    }
+
+    .group-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+
+      margin-top: 11px;
+      padding: 5px 8px;
+
+      border-radius: 8px;
+      background: var(--purple-soft);
+      color: var(--purple);
+
+      font-size: 11px;
+      font-weight: 800;
+    }
+
+    .client-group-section {
+      grid-column: 1 / -1;
+
+      padding: 14px;
+
+      border: 1px solid var(--line);
+      border-radius: var(--radius-md);
+      background: rgba(255, 255, 255, 0.72);
+    }
+
+    .client-group-head {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+
+      margin-bottom: 11px;
+    }
+
+    .client-group-title {
+      font-size: 15px;
+      font-weight: 900;
+    }
+
+    .client-group-count {
+      color: var(--ink-muted);
+      font-size: 12px;
+      font-weight: 700;
+    }
+
+    .client-group-grid {
+      display: grid;
+      grid-template-columns:
+        repeat(auto-fill, minmax(280px, 1fr));
+      gap: 11px;
     }
 
     .client-warning {
@@ -1329,6 +1414,51 @@
     .item-list {
       display: grid;
       gap: 8px;
+    }
+
+    .field-with-action {
+      display: grid;
+      grid-template-columns:
+        minmax(0, 1fr)
+        auto;
+      gap: 8px;
+      align-items: end;
+    }
+
+    .tax-system-list {
+      display: grid;
+      gap: 8px;
+    }
+
+    .tax-system-row {
+      display: grid;
+      grid-template-columns:
+        minmax(180px, 1.35fr)
+        minmax(120px, .7fr)
+        minmax(150px, .9fr)
+        auto;
+      gap: 8px;
+      align-items: end;
+
+      padding: 10px;
+
+      border: 1px solid var(--line);
+      border-radius: 10px;
+      background: var(--surface-soft);
+    }
+
+    .tax-system-row .field {
+      margin: 0;
+    }
+
+    .tax-system-empty {
+      padding: 12px;
+
+      border: 1px dashed var(--line-strong);
+      border-radius: 10px;
+
+      color: var(--ink-muted);
+      text-align: center;
     }
 
     .list-item {
@@ -1779,6 +1909,23 @@
         flex: 1 1 auto;
       }
 
+      .view-switch {
+        width: 100%;
+      }
+
+      .view-switch-btn {
+        flex: 1 1 50%;
+      }
+
+      .tax-system-row,
+      .field-with-action {
+        grid-template-columns: 1fr;
+      }
+
+      .client-group-grid {
+        grid-template-columns: 1fr;
+      }
+
       .drawer-head,
       .drawer-body,
       .drawer-foot {
@@ -2092,6 +2239,27 @@
           По сфере деятельности
         </option>
       </select>
+
+      <div
+        class="view-switch"
+        aria-label="Режим отображения клиентов"
+      >
+        <button
+          class="view-switch-btn active"
+          type="button"
+          data-clients-view="list"
+        >
+          Обычно
+        </button>
+
+        <button
+          class="view-switch-btn"
+          type="button"
+          data-clients-view="groups"
+        >
+          По группам
+        </button>
+      </div>
 
 
       <button
@@ -2924,6 +3092,44 @@
 
             <label
               class="field-label"
+              for="client-group"
+            >
+              Связан с…
+            </label>
+
+            <div class="field-with-action">
+
+              <select
+                class="select"
+                id="client-group"
+              >
+                <option value="">
+                  — без группы —
+                </option>
+              </select>
+
+              <button
+                class="btn btn-secondary"
+                type="button"
+                id="btn-new-client-group"
+              >
+                + Новая группа
+              </button>
+
+            </div>
+
+            <div class="field-hint">
+              Объединяет ИП и организации одного владельца
+              или другой связанный контур.
+            </div>
+
+          </div>
+
+
+          <div class="field">
+
+            <label
+              class="field-label"
               for="client-folder-url"
             >
               Папка клиента
@@ -3215,89 +3421,50 @@
               </div>
 
               <div class="form-section-note">
-                Система налогообложения и НДС
+                Несколько систем со своей ставкой и НДС
               </div>
 
             </div>
+
+            <button
+              class="btn btn-secondary btn-sm"
+              type="button"
+              id="btn-add-tax-system"
+            >
+              + Добавить систему
+            </button>
 
           </div>
 
 
-          <div class="field-row cols-2">
-
-            <div class="field">
-
-              <label
-                class="field-label"
-                for="client-tax-system"
-              >
-                Система налогообложения
-              </label>
-
-              <select
-                class="select"
-                id="client-tax-system"
-              >
-                <option value="">
-                  — не указана —
-                </option>
-
-                <option value="ОСНО">
-                  ОСНО
-                </option>
-
-                <option value="УСН Доходы">
-                  УСН «Доходы»
-                </option>
-
-                <option value="УСН Доходы-Расходы">
-                  УСН «Доходы минус расходы»
-                </option>
-
-                <option value="ПСН">
-                  ПСН
-                </option>
-
-                <option value="ЕСХН">
-                  ЕСХН
-                </option>
-
-                <option value="НПД">
-                  НПД
-                </option>
-
-                <option value="Другое">
-                  Другое
-                </option>
-              </select>
-
-            </div>
+          <div
+            class="tax-system-list"
+            id="client-tax-systems-list"
+          ></div>
 
 
-            <div class="field">
+          <div class="field" style="margin-top:14px;">
 
-              <label class="field-label">
-                НДС
-              </label>
+            <label class="field-label">
+              НДС
+            </label>
 
-              <div class="switch-row">
+            <div class="switch-row">
 
-                <div class="switch-label">
-                  Плательщик НДС
-                </div>
-
-                <label class="toggle">
-
-                  <input
-                    type="checkbox"
-                    id="client-vat-enabled"
-                  >
-
-                  <span class="toggle-track"></span>
-
-                </label>
-
+              <div class="switch-label">
+                Плательщик НДС
               </div>
+
+              <label class="toggle">
+
+                <input
+                  type="checkbox"
+                  id="client-vat-enabled"
+                >
+
+                <span class="toggle-track"></span>
+
+              </label>
 
             </div>
 
@@ -3394,6 +3561,27 @@
               id="client-edo-operator"
               type="text"
               placeholder="Контур.Диадок / СБИС / ..."
+            >
+
+          </div>
+
+          <div
+            class="field hidden"
+            id="edo-identifier-field"
+          >
+
+            <label
+              class="field-label"
+              for="client-edo-identifier"
+            >
+              Идентификатор (ID) ЭДО клиента
+            </label>
+
+            <input
+              class="input mono"
+              id="client-edo-identifier"
+              type="text"
+              placeholder="Идентификатор участника ЭДО"
             >
 
           </div>
@@ -4011,6 +4199,92 @@
     </div>
 
   </aside>
+
+
+  <!-- =========================================================
+       MODAL: CLIENT GROUP
+       ========================================================= -->
+
+  <div
+    class="modal-backdrop"
+    id="client-group-modal"
+  >
+
+    <div class="modal">
+
+      <div class="modal-head">
+
+        <div>
+
+          <div class="modal-title">
+            Новая группа клиентов
+          </div>
+
+          <div class="modal-subtitle">
+            Например: «Группа Хачатряна» или «Акуловы»
+          </div>
+
+        </div>
+
+        <button
+          class="modal-close"
+          type="button"
+          data-close-modal="client-group-modal"
+        >
+          ×
+        </button>
+
+      </div>
+
+
+      <div class="modal-body">
+
+        <div class="field">
+
+          <label
+            class="field-label"
+            for="client-group-name"
+          >
+            Название группы
+            <span class="req">*</span>
+          </label>
+
+          <input
+            class="input"
+            id="client-group-name"
+            type="text"
+            maxlength="200"
+            placeholder="Название связанной группы"
+          >
+
+        </div>
+
+      </div>
+
+
+      <div class="modal-foot">
+
+        <button
+          class="btn btn-secondary"
+          type="button"
+          data-close-modal="client-group-modal"
+        >
+          Отмена
+        </button>
+
+        <button
+          class="btn btn-primary"
+          type="button"
+          id="btn-save-client-group"
+        >
+          Создать группу
+        </button>
+
+      </div>
+
+    </div>
+
+  </div>
 
 
   <!-- =========================================================
