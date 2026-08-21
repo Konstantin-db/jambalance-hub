@@ -72,6 +72,9 @@
       reports:
         'client_reporting_periods',
 
+      documents:
+        'client_documents',
+
       communication:
         'client_communication_items'
     }
@@ -95,6 +98,7 @@
     reports: [],
     clientGroups: [],
     taxSystems: [],
+    clientDocuments: [],
 
     currentClientId: null,
 
@@ -899,7 +903,8 @@
         activitiesResult,
         reportsResult,
         groupsResult,
-        taxSystemsResult
+        taxSystemsResult,
+        documentsResult
       ] =
         await Promise.all([
           state.supabase
@@ -942,6 +947,14 @@
               {
                 ascending: true
               }
+            ),
+
+          state.supabase
+            .from(
+              CONFIG.tables.documents
+            )
+            .select(
+              'id, client_id'
             )
         ]);
 
@@ -966,6 +979,10 @@
         throw taxSystemsResult.error;
       }
 
+      if (documentsResult.error) {
+        throw documentsResult.error;
+      }
+
 
       state.clients =
         clientsResult.data || [];
@@ -981,6 +998,9 @@
 
       state.taxSystems =
         taxSystemsResult.data || [];
+
+      state.clientDocuments =
+        documentsResult.data || [];
 
 
       renderClientGroupSelect();
@@ -2275,6 +2295,19 @@
         );
       }
     );
+
+    $all(
+      '[data-client-documents]'
+    ).forEach(
+      link => {
+        link.addEventListener(
+          'click',
+          event => {
+            event.stopPropagation();
+          }
+        );
+      }
+    );
   }
 
 
@@ -2395,6 +2428,12 @@
 
     const ecp =
       getEcpState(client);
+
+    const documentsCount =
+      state.clientDocuments.filter(
+        item =>
+          item.client_id === client.id
+      ).length;
 
     let warningClass = '';
 
@@ -2579,6 +2618,16 @@
 
 
         ${warningHtml}
+
+        <div class="client-document-actions">
+          <a
+            class="client-document-link"
+            data-client-documents="${escapeHtml(client.id)}"
+            href="DB_dogovornoi-centr.html?client=${encodeURIComponent(client.id)}&view=journal"
+          >
+            Документы · ${documentsCount}
+          </a>
+        </div>
 
       </article>
     `;
@@ -7916,6 +7965,23 @@
 
 
       await loadClients();
+
+      const requestedClientId =
+        new URLSearchParams(
+          window.location.search
+        ).get('client');
+
+      if (
+        requestedClientId &&
+        state.clients.some(
+          client =>
+            client.id === requestedClientId
+        )
+      ) {
+        await openClient(
+          requestedClientId
+        );
+      }
 
 
       listenAuthChanges();
