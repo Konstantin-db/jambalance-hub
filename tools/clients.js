@@ -2507,6 +2507,23 @@
           </div>
 
           ${
+            client.vat_enabled === true
+              ? `
+                <div class="client-meta-row">
+                  <strong>НДС:</strong>
+                  ${escapeHtml(
+                    client.vat_rate !== null &&
+                    client.vat_rate !== undefined &&
+                    client.vat_rate !== ''
+                      ? String(client.vat_rate) + '%'
+                      : 'ставка не указана'
+                  )}
+                </div>
+              `
+              : ''
+          }
+
+          ${
             profile
               ? `
                 <div class="client-meta-row">
