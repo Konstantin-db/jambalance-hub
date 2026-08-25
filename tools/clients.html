@@ -353,6 +353,12 @@
       border: 1px solid #ffe0b5;
     }
 
+    .module-mark svg {
+      width: 26px;
+      height: 26px;
+      display: block;
+    }
+
     .module-title {
       font-size: 18px;
       font-weight: 900;
@@ -2021,8 +2027,15 @@
 
       <div class="header-divider"></div>
 
-      <div class="module-mark">
-        К
+      <div class="module-mark" aria-hidden="true">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+          <circle cx="12" cy="7" r="2.6"></circle>
+          <path d="M7.5 19v-1.4a4.5 4.5 0 0 1 9 0V19"></path>
+          <circle cx="5.5" cy="9.5" r="2"></circle>
+          <path d="M2.2 18v-.8a3.3 3.3 0 0 1 4.7-3"></path>
+          <circle cx="18.5" cy="9.5" r="2"></circle>
+          <path d="M17.1 14.2a3.3 3.3 0 0 1 4.7 3v.8"></path>
+        </svg>
       </div>
 
       <div>
