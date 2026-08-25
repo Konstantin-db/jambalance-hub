@@ -112,6 +112,7 @@
 .top{justify-content:space-between}
 .brand{display:flex;align-items:center;gap:14px}
 .brand-mark{width:48px;height:48px;border-radius:15px;background:linear-gradient(135deg,#f99303,#df8f4a);color:white;display:grid;place-items:center;font-weight:900;font-size:18px;box-shadow:0 8px 22px rgba(249,147,3,.25)}
+.brand-mark svg{width:29px;height:29px;display:block}
 .top-actions{display:flex;align-items:center;gap:9px;flex-wrap:wrap}
 .home-link,.module-link{display:inline-flex;align-items:center;text-decoration:none;border-radius:12px;padding:10px 13px;font:700 13px Arial,Helvetica,sans-serif;color:#2d241d;background:white;border:1px solid var(--line)}
 .home-link:hover,.module-link:hover{border-color:var(--accent);color:var(--accent-dark)}
@@ -132,7 +133,14 @@ button:disabled{opacity:.55;cursor:wait}
 <header>
   <div class="top">
     <div class="brand">
-      <div class="brand-mark">JB</div>
+      <div class="brand-mark" aria-hidden="true">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M6 2.75h7l5 5v13.5H6z"/>
+          <path d="M13 2.75v5h5"/>
+          <path d="M9 11.5h6M9 14.5h4"/>
+          <path d="M9 18.5c1.4-1.8 2.5.8 4.2-.8"/>
+        </svg>
+      </div>
       <div class="title">
         <h1>Договорной центр «ДжемБаланс»</h1>
         <p>Быстрое создание договоров, допсоглашений и единый журнал документов</p>
