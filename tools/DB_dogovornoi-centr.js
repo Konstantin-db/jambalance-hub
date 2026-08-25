@@ -8,7 +8,8 @@ const LEGACY_STORAGE_KEY = 'jambalance_contract_center_v4_dops';
 
 const CONTRACTOR = {
   name:'Общество с ограниченной ответственностью «ДжемБаланс»', short:'ООО «ДжемБаланс»',
-  directorFull:'Черных Татьяна Ивановна', directorShort:'Черных Т. И.', directorTitle:'Генерального директора', basis:'Устава',
+  directorFull:'Черных Татьяна Ивановна', directorFullGenitive:'Черных Татьяны Ивановны', directorShort:'Черных Т. И.',
+  directorTitle:'Генеральный директор', directorTitleGenitive:'Генерального директора', basis:'Устава',
   inn:'5032326356', kpp:'503201001', ogrn:'1175024002030', okpo:'06264827',
   address:'143002, Московская область, г. Одинцово, ул. Западная, д. 13, офис 310',
   phone:'+7 (495) 260-99-79', email:'info@jambalance.ru',
@@ -222,11 +223,11 @@ function f(){
 }
 function intro(x, customerTerm='Заказчик'){
   if(x.isIp){
-    return `${clientIntroName(x)}, именуемый в дальнейшем «${customerTerm}», с одной стороны, и ${CONTRACTOR.name}, именуемое в дальнейшем «Исполнитель», в лице ${CONTRACTOR.directorTitle} ${CONTRACTOR.directorFull}, действующей на основании ${CONTRACTOR.basis}, с другой стороны, вместе именуемые «Стороны», заключили настоящий документ о нижеследующем:`;
+    return `${clientIntroName(x)}, именуемый в дальнейшем «${customerTerm}», с одной стороны, и ${CONTRACTOR.name}, именуемое в дальнейшем «Исполнитель», в лице ${CONTRACTOR.directorTitleGenitive} ${CONTRACTOR.directorFullGenitive}, действующей на основании ${CONTRACTOR.basis}, с другой стороны, вместе именуемые «Стороны», заключили настоящий документ о нижеследующем:`;
   }
   const signer = x.clientSigner ? `, в лице ${x.clientSignerTitleIntro} ${x.clientSigner}, действующего на основании ${x.clientSignerBasis}` : '';
   const named = isLegalEntityClient(x.clientName) ? 'именуемое' : 'именуемый';
-  return `${x.clientName}${signer}, ${named} в дальнейшем «${customerTerm}», с одной стороны, и ${CONTRACTOR.name}, именуемое в дальнейшем «Исполнитель», в лице ${CONTRACTOR.directorTitle} ${CONTRACTOR.directorFull}, действующей на основании ${CONTRACTOR.basis}, с другой стороны, вместе именуемые «Стороны», заключили настоящий документ о нижеследующем:`;
+  return `${x.clientName}${signer}, ${named} в дальнейшем «${customerTerm}», с одной стороны, и ${CONTRACTOR.name}, именуемое в дальнейшем «Исполнитель», в лице ${CONTRACTOR.directorTitleGenitive} ${CONTRACTOR.directorFullGenitive}, действующей на основании ${CONTRACTOR.basis}, с другой стороны, вместе именуемые «Стороны», заключили настоящий документ о нижеследующем:`;
 }
 function baseRequisites(x){
   return {type:'table', widths:[4600,4600], rows:[
