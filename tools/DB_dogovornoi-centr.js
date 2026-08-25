@@ -8,7 +8,7 @@ const LEGACY_STORAGE_KEY = 'jambalance_contract_center_v4_dops';
 
 const CONTRACTOR = {
   name:'Общество с ограниченной ответственностью «ДжемБаланс»', short:'ООО «ДжемБаланс»',
-  directorFull:'Звягина Ирина Игоревна', directorShort:'Звягина И. И.', directorTitle:'Генерального директора', basis:'Устава',
+  directorFull:'Черных Татьяна Ивановна', directorShort:'Черных Т. И.', directorTitle:'Генерального директора', basis:'Устава',
   inn:'5032326356', kpp:'503201001', ogrn:'1175024002030', okpo:'06264827',
   address:'143002, Московская область, г. Одинцово, ул. Западная, д. 13, офис 310',
   phone:'+7 (495) 260-99-79', email:'info@jambalance.ru',
