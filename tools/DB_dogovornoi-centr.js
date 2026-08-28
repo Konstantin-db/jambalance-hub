@@ -7,11 +7,12 @@ const TABLES = {clients:'clients', taxSystems:'client_tax_systems', banks:'clien
 const LEGACY_STORAGE_KEY = 'jambalance_contract_center_v4_dops';
 
 const CONTRACTOR = {
-  name:'Общество с ограниченной ответственностью «ДжемБаланс»', short:'ООО «ДжемБаланс»',
+  name:'Общество с ограниченной ответственностью «ДЖЕМБАЛАНС»', short:'ООО «ДЖЕМБАЛАНС»',
   directorFull:'Черных Татьяна Ивановна', directorFullGenitive:'Черных Татьяны Ивановны', directorShort:'Черных Т. И.',
   directorTitle:'Генеральный директор', directorTitleGenitive:'Генерального директора', basis:'Устава',
-  inn:'5032326356', kpp:'503201001', ogrn:'1175024002030', okpo:'06264827',
-  address:'143002, Московская область, г. Одинцово, ул. Западная, д. 13, офис 310',
+  inn:'5032379528', kpp:'503201001', ogrn:'1245000057500',
+  legalAddress:'143000, Московская область, г. Одинцово, ул. Союзная, д. 1В, оф. 207',
+  actualAddress:'143000, Московская область, г. Одинцово, ул. Союзная, д. 1В, оф. 207',
   phone:'+7 (495) 260-99-79', email:'info@jambalance.ru',
   account:'40702810320000108319', bank:'ООО «Банк Точка»', bik:'044525104', corr:'30101810745374525104'
 };
@@ -232,7 +233,7 @@ function intro(x, customerTerm='Заказчик'){
 function baseRequisites(x){
   return {type:'table', widths:[4600,4600], rows:[
     [{text:'Заказчик',bold:true},{text:'Исполнитель',bold:true}],
-    [`${x.clientName}\nАдрес регистрации: ${x.clientAddress||''}\nПочтовый адрес: ${x.clientPostAddress||x.clientAddress||''}\nE-mail: ${x.clientEmail||''}\nТелефон: ${x.clientPhone||''}\nИНН/КПП: ${x.inn||''}${x.kpp?'/'+x.kpp:''}\nОГРН/ОГРНИП: ${x.ogrn||''}\nРасчётный счёт: ${x.clientAccount||''}\nБанк: ${x.clientBank||''}\nБИК: ${x.clientBik||''}\nКорр. счёт: ${x.clientCorr||''}`, `${CONTRACTOR.name}\nАдрес регистрации: ${CONTRACTOR.address}\nПочтовый адрес: ${CONTRACTOR.address}\nE-mail: ${CONTRACTOR.email}\nТелефон: ${CONTRACTOR.phone}\nИНН/КПП: ${CONTRACTOR.inn}/${CONTRACTOR.kpp}\nОГРН: ${CONTRACTOR.ogrn}\nРасчётный счёт: ${CONTRACTOR.account}\nБанк: ${CONTRACTOR.bank}\nБИК: ${CONTRACTOR.bik}\nКорр. счёт: ${CONTRACTOR.corr}`],
+    [`${x.clientName}\nАдрес регистрации: ${x.clientAddress||''}\nПочтовый адрес: ${x.clientPostAddress||x.clientAddress||''}\nE-mail: ${x.clientEmail||''}\nТелефон: ${x.clientPhone||''}\nИНН/КПП: ${x.inn||''}${x.kpp?'/'+x.kpp:''}\nОГРН/ОГРНИП: ${x.ogrn||''}\nРасчётный счёт: ${x.clientAccount||''}\nБанк: ${x.clientBank||''}\nБИК: ${x.clientBik||''}\nКорр. счёт: ${x.clientCorr||''}`, `${CONTRACTOR.short}\nГенеральный директор: ${CONTRACTOR.directorFull}\nE-mail: ${CONTRACTOR.email}\nТелефон: ${CONTRACTOR.phone}\nЮридический адрес: ${CONTRACTOR.legalAddress}\nФактический адрес: ${CONTRACTOR.actualAddress}\nИНН: ${CONTRACTOR.inn}\nКПП: ${CONTRACTOR.kpp}\nОГРН: ${CONTRACTOR.ogrn}\nБанк: ${CONTRACTOR.bank}\nБИК: ${CONTRACTOR.bik}\nРасчётный счёт: ${CONTRACTOR.account}\nКорреспондентский счёт: ${CONTRACTOR.corr}`],
     [`От Заказчика:\n${x.clientSignerTitle||''}\n\n________________ /${x.clientSignerShort||'______________'}/\nМ. П.`, `От Исполнителя:\n${CONTRACTOR.directorTitle}\n\n________________ /${CONTRACTOR.directorShort}/\nМ. П.`]
   ], signature:true};
 }
