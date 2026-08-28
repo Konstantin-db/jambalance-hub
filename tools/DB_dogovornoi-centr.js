@@ -33,6 +33,7 @@ const DOC_TYPES = [
 const state = {supabase:null,user:null,clients:[],taxSystems:[],banks:[],contacts:[],journal:[]};
 let currentBlocks = [];
 let numberTouched = false;
+let editingDocumentId = null;
 let selectedContractIndex = null;
 let expandedContractKeys = new Set();
 let currentImportedText = '';
@@ -612,8 +613,8 @@ function renderContractDetail(){
   if(selectedContractIndex===null || !state.journal[selectedContractIndex]){box.classList.remove('show'); box.innerHTML=''; return;}
   const r=normalizeRecord(state.journal[selectedContractIndex], selectedContractIndex);
   const related=relatedRecordsFor(selectedContractIndex);
-  const relHtml = related.length ? related.map(a=>`<div class="relatedItem"><div class="relatedItemMain"><div class="relatedItemTitle">${escapeHtml(a.docTypeLabel || a.contractNumber || 'Связанный документ')}</div><div class="relatedItemText">${escapeHtml(a.contractNumber || '')}${a.sourceFile ? ' · файл: '+escapeHtml(a.sourceFile) : ''}${a.reason ? ' · '+escapeHtml(a.reason) : ''}</div></div><div class="relatedItemActions"><button class="smallBtn" onclick="restoreRecordToForm(${a._idx})">открыть</button><button class="smallBtn" onclick="openJournalEditor(${a._idx})">редактировать</button></div></div>`).join('') : '<div class="hint">Связанных допсоглашений пока нет.</div>';
-  box.innerHTML = `<div class="detailHead"><div><div class="detailTitle">${escapeHtml(r.clientName || 'Договор без клиента')}</div><div class="detailMeta">Договор ${escapeHtml(r.contractNumber || '')} · связанных документов: ${related.length}</div></div><div><button class="ghost smallBtn" onclick="restoreRecordToForm(${selectedContractIndex})">открыть договор</button> <button class="ghost smallBtn" onclick="closeContractDetail()">закрыть</button></div></div><div class="detailGrid"><div class="detailItem"><b>ИНН</b>${escapeHtml(r.inn||'—')}</div><div class="detailItem"><b>Стоимость</b>${escapeHtml(r.price||'—')}</div><div class="detailItem"><b>СНО</b>${escapeHtml([r.taxSystem,normalizeRate(r.taxRate)].filter(Boolean).join(' ')||'—')}</div><div class="detailItem"><b>Подписант</b>${escapeHtml([r.clientSignerTitle,r.clientSigner].filter(Boolean).join(' — ')||'—')}</div></div><div class="sectionTitle">Связанные допсоглашения и документы</div><div class="relatedList">${relHtml}</div>`;
+  const relHtml = related.length ? related.map(a=>`<div class="relatedItem"><div class="relatedItemMain"><div class="relatedItemTitle">${escapeHtml(a.docTypeLabel || a.contractNumber || 'Связанный документ')}</div><div class="relatedItemText">${escapeHtml(a.contractNumber || '')}${a.sourceFile ? ' · файл: '+escapeHtml(a.sourceFile) : ''}${a.reason ? ' · '+escapeHtml(a.reason) : ''}</div></div><div class="relatedItemActions"><button class="smallBtn" onclick="restoreRecordToForm(${a._idx})">открыть и редактировать</button><button class="smallBtn" onclick="openJournalEditor(${a._idx})">данные журнала</button></div></div>`).join('') : '<div class="hint">Связанных допсоглашений пока нет.</div>';
+  box.innerHTML = `<div class="detailHead"><div><div class="detailTitle">${escapeHtml(r.clientName || 'Договор без клиента')}</div><div class="detailMeta">Договор ${escapeHtml(r.contractNumber || '')} · связанных документов: ${related.length}</div></div><div><button class="ghost smallBtn" onclick="restoreRecordToForm(${selectedContractIndex})">открыть и редактировать</button> <button class="ghost smallBtn" onclick="closeContractDetail()">закрыть</button></div></div><div class="detailGrid"><div class="detailItem"><b>ИНН</b>${escapeHtml(r.inn||'—')}</div><div class="detailItem"><b>Стоимость</b>${escapeHtml(r.price||'—')}</div><div class="detailItem"><b>СНО</b>${escapeHtml([r.taxSystem,normalizeRate(r.taxRate)].filter(Boolean).join(' ')||'—')}</div><div class="detailItem"><b>Подписант</b>${escapeHtml([r.clientSignerTitle,r.clientSigner].filter(Boolean).join(' — ')||'—')}</div></div><div class="sectionTitle">Связанные допсоглашения и документы</div><div class="relatedList">${relHtml}</div>`;
   box.classList.add('show');
 }
 function openContractDetail(idx){selectedContractIndex=idx; renderContractDetail(); $('contractDetail').scrollIntoView({behavior:'smooth', block:'nearest'});}
@@ -1048,6 +1049,12 @@ function setActiveView(view){
   if(safe==='journal') renderJournal();
 }
 
+function setDocumentEditMode(record=null){
+  editingDocumentId=record?.id||null;
+  const button=$('saveBtn');
+  if(button) button.textContent=editingDocumentId?'Сохранить изменения':'Сохранить в журнал';
+}
+
 function restoreRecordToForm(idx){
   const r=normalizeRecord(state.journal[idx],idx);
   if(!r) return;
@@ -1085,11 +1092,13 @@ function restoreRecordToForm(idx){
     if($(id)&&Object.prototype.hasOwnProperty.call(data,id)) setVal(id,data[id]);
   });
   $('clientSelect').value=r.clientId||data.clientId||'';
+  $('openClientBtn').disabled=!$('clientSelect').value;
   $('parentContractSelect').dataset.parentDocumentId=r.parentDocumentId||'';
+  setDocumentEditMode(r);
   numberTouched=true;
   refreshDoc();
   setActiveView('preview');
-  showToast(r.recordType==='related'?'Допсоглашение открыто':'Договор открыт');
+  showToast(r.recordType==='related'?'Допсоглашение открыто для редактирования':'Договор открыт для редактирования');
 }
 
 function applyJournalRecord(idx){
@@ -1118,6 +1127,7 @@ function applyJournalRecord(idx){
 function chooseParentRecord(idx){
   const r=normalizeRecord(state.journal[idx],idx);
   if(!r) return;
+  setDocumentEditMode(null);
   if(!isAddendumType()){
     setVal('docType','addendum-price');
     updateConditionalFields();
@@ -1164,12 +1174,12 @@ function renderJournal(){
     const key=journalContractKeyFromRecord(record,record._idx);
     const expanded=expandedContractKeys.has(key)||(q&&!contractMatches&&matchingRelated.length);
     const relatedToShow=q&&!contractMatches?matchingRelated:related;
-    rows.push('<tr class="contractRow"><td>'+number+'</td><td>'+escapeHtml(record.clientName)+'</td><td><span class="expandMark">'+(related.length?(expanded?'▾':'▸'):'·')+'</span><button class="contractNoBtn" onclick="toggleJournalContract('+record._idx+')">'+escapeHtml(parseContractNo(record.contractNumber)||'без номера')+'</button><div class="hint">'+escapeHtml(record.contractNumber)+'</div></td><td>'+related.length+'</td><td>'+escapeHtml(record.inn)+'</td><td>'+escapeHtml(record.price)+'</td><td>'+escapeHtml([record.taxSystem,normalizeRate(record.taxRate)].filter(Boolean).join(' '))+'</td><td>'+escapeHtml(record.status)+'</td><td><button class="smallBtn" onclick="restoreRecordToForm('+record._idx+')">открыть</button> <button class="smallBtn" onclick="chooseParentRecord('+record._idx+')">создать доп</button> <button class="smallBtn" onclick="openJournalEditor('+record._idx+')">изменить</button></td></tr>');
+    rows.push('<tr class="contractRow"><td>'+number+'</td><td>'+escapeHtml(record.clientName)+'</td><td><span class="expandMark">'+(related.length?(expanded?'▾':'▸'):'·')+'</span><button class="contractNoBtn" onclick="toggleJournalContract('+record._idx+')">'+escapeHtml(parseContractNo(record.contractNumber)||'без номера')+'</button><div class="hint">'+escapeHtml(record.contractNumber)+'</div></td><td>'+related.length+'</td><td>'+escapeHtml(record.inn)+'</td><td>'+escapeHtml(record.price)+'</td><td>'+escapeHtml([record.taxSystem,normalizeRate(record.taxRate)].filter(Boolean).join(' '))+'</td><td>'+escapeHtml(record.status)+'</td><td><button class="smallBtn" onclick="restoreRecordToForm('+record._idx+')">открыть и редактировать</button> <button class="smallBtn" onclick="chooseParentRecord('+record._idx+')">создать доп</button> <button class="smallBtn" onclick="openJournalEditor('+record._idx+')">данные журнала</button></td></tr>');
     if(expanded){
       if(!relatedToShow.length){
         rows.push('<tr class="relatedRow"><td></td><td colspan="8"><span class="hint">Допсоглашений пока нет.</span></td></tr>');
       }else{
-        relatedToShow.forEach(item=>rows.push('<tr class="relatedRow"><td></td><td colspan="2"><div class="relatedDocTitle">'+escapeHtml(item.docTypeLabel)+'</div><div class="relatedDocMeta">'+escapeHtml(item.contractNumber)+'</div></td><td colspan="3">'+escapeHtml(item.reason||item.specialTerms||'')+'</td><td>'+escapeHtml(item.newPrice||item.price||'')+'</td><td>'+escapeHtml(item.status)+'</td><td><button class="smallBtn" onclick="restoreRecordToForm('+item._idx+')">открыть</button> <button class="smallBtn" onclick="openJournalEditor('+item._idx+')">изменить</button></td></tr>'));
+        relatedToShow.forEach(item=>rows.push('<tr class="relatedRow"><td></td><td colspan="2"><div class="relatedDocTitle">'+escapeHtml(item.docTypeLabel)+'</div><div class="relatedDocMeta">'+escapeHtml(item.contractNumber)+'</div></td><td colspan="3">'+escapeHtml(item.reason||item.specialTerms||'')+'</td><td>'+escapeHtml(item.newPrice||item.price||'')+'</td><td>'+escapeHtml(item.status)+'</td><td><button class="smallBtn" onclick="restoreRecordToForm('+item._idx+')">открыть и редактировать</button> <button class="smallBtn" onclick="openJournalEditor('+item._idx+')">данные журнала</button></td></tr>'));
       }
     }
   }
@@ -1186,9 +1196,14 @@ async function saveToJournal(){
     if(!x.docDate) throw new Error('Укажите дату документа.');
     if(isAddendumType()&&!x.parentContractNumber) throw new Error('Выберите основной договор.');
     const isContract=isContractType();
-    const record=normalizeRecord({
+    const existingRaw=editingDocumentId
+      ? state.journal.find(item=>item.id===editingDocumentId)
+      : null;
+    const existing=existingRaw?normalizeRecord(existingRaw):null;
+    if(editingDocumentId&&!existing?.id) throw new Error('Редактируемый документ больше не найден в журнале. Обновите страницу.');
+    const record=normalizeRecord({...existing,
       clientId:$('clientSelect').value,
-      parentDocumentId:isContract?'':$('parentContractSelect').dataset.parentDocumentId,
+      parentDocumentId:isContract?'':($('parentContractSelect').dataset.parentDocumentId||existing?.parentDocumentId||''),
       recordType:isContract?'contract':'related',
       docType:x.type,
       docTypeLabel:x.docTypeLabel,
@@ -1201,16 +1216,19 @@ async function saveToJournal(){
       contractNumber:isContract?`${x.docNumber} от ${formatDateShort(x.docDate)}`:`${x.docTypeLabel} № ${x.agreementNumber} от ${formatDateShort(x.docDate)} к договору ${x.parentContractNumber}`,
       phone:x.clientPhone,email:x.clientEmail,price:x.price,taxSystem:x.taxSystem,taxRate:'',employees:x.employees,
       clientSigner:x.clientSigner,clientSignerTitle:x.clientSignerTitle,paymentPeriod:x.paymentPeriod,startDate:x.startDate,endDate:x.endDate,
-      newPrice:x.newPrice,newPriceDate:x.newPriceDate,reason:x.reason,specialTerms:x.specialTerms,status:'действует',source:'создано в Договорном центре',
+      newPrice:x.newPrice,newPriceDate:x.newPriceDate,reason:x.reason,specialTerms:x.specialTerms,status:existing?.status||'действует',source:existing?.source||'создано в Договорном центре',
       clientSnapshot:collectClientSnapshot(),formData:collectFormData()
     });
-    const {error}=await state.supabase.from(TABLES.documents).insert(recordToDatabase(record,{insert:true}));
+    const query=editingDocumentId
+      ? state.supabase.from(TABLES.documents).update(recordToDatabase(record)).eq('id',editingDocumentId)
+      : state.supabase.from(TABLES.documents).insert(recordToDatabase(record,{insert:true}));
+    const {error}=await query;
     if(error) throw error;
     await reloadDocuments();
     numberTouched=false;
-    refreshNumber(true);
+    if(!editingDocumentId) refreshNumber(true);
     refreshDoc();
-    showToast('Документ сохранён в общий журнал');
+    showToast(editingDocumentId?'Изменения документа сохранены':'Документ сохранён в общий журнал');
   }catch(error){
     console.error(error);
     alert(friendlyError(error));
@@ -1258,6 +1276,7 @@ async function deleteCurrentJournalEdit(){
 }
 
 function clearForm(){
+  setDocumentEditMode(null);
   currentImportedText='';
   currentImportedSourceFile='';
   const keepType=getVal('docType');
