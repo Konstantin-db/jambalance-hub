@@ -1372,7 +1372,10 @@
         grid-template-columns: 1fr 1fr;
       }
     }
-  </style>
+    .assignee-choices { display:flex; flex-direction:column; gap:8px; max-height:200px; overflow:auto; padding:10px; border:1px solid #ddd; border-radius:10px; }
+  .assignee-choice { display:flex; align-items:center; gap:10px; cursor:pointer; padding:4px; }
+  .assignee-choice input { width:18px; height:18px; flex-shrink:0; accent-color:#f99303; }
+</style>
 </head>
 
 <body>
@@ -2018,22 +2021,11 @@
 
         <div class="field">
 
-          <label
-            class="field-label"
-            for="task-assigned-to"
-          >
-            Ответственный
-            <span class="req">*</span>
-          </label>
-
-          <select
-            class="select"
-            id="task-assigned-to"
-          >
-            <option value="">
-              — выбрать сотрудника —
-            </option>
-          </select>
+          <div class="field-label" id="task-assignees-label">
+            Ответственные <span class="req">*</span>
+          </div>
+          <div id="task-assigned-to" class="assignee-choices" role="group" aria-labelledby="task-assignees-label"></div>
+          <p class="field-hint">Отметьте одного или нескольких сотрудников.</p>
 
         </div>
 
