@@ -190,6 +190,7 @@ const TASK_FIELDS = {
   clientNameManual: 'client_name_manual',
 
   assignedTo: 'assigned_to',
+  assigneeIds: 'assignee_ids',
 
   startAt: 'start_at',
   dueAt: 'due_at',
@@ -1005,6 +1006,8 @@ function normalizeTask(row) {
       ] ||
       '',
 
+    assigneeIds: taskAssigneeIds(row),
+
     assignedTo:
       row[
         TASK_FIELDS.assignedTo
@@ -1384,8 +1387,7 @@ function getFilteredTasks() {
 
       if (
         state.filters.assignee &&
-        task.assignedTo !==
-          state.filters.assignee
+        !taskAssigneeIds(task).includes(state.filters.assignee)
       ) {
         return false;
       }
@@ -2247,10 +2249,9 @@ function buildSummaryTask(task) {
     ] ||
     TASK_TYPES.other;
 
-  const profile =
-    findProfile(
-      task.assignedTo
-    );
+  const assigneeNames = taskAssigneeIds(task).map(id =>
+    profileDisplayName(findProfile(id)) || 'Сотрудник недоступен'
+  ).join(', ');
 
   const client =
     getTaskClientName(
@@ -2297,8 +2298,8 @@ function buildSummaryTask(task) {
         }
 
         ${
-          profile
-            ? ` • ${escapeHtml(profileDisplayName(profile))}`
+          assigneeNames
+            ? ` • ${escapeHtml(assigneeNames)}`
             : ''
         }
 
@@ -2418,6 +2419,37 @@ function getTaskClientName(
    28. SELECTS
    ============================================================ */
 
+function taskAssigneeIds(task) {
+  const ids = task.assigneeIds ?? task.assignee_ids;
+  const legacy = task.assignedTo ?? task.assigned_to;
+  return [...new Set((Array.isArray(ids) && ids.length ? ids : [legacy]).filter(Boolean))];
+}
+
+function getSelectedAssignees() {
+  return Array.from(document.querySelectorAll('#task-assigned-to input:checked'), input => input.value);
+}
+
+function setSelectedAssignees(ids) {
+  const selected = new Set((ids || []).filter(Boolean));
+  const container = $('task-assigned-to');
+  if (!container) return;
+  container.querySelectorAll('[data-missing-profile]').forEach(element => element.remove());
+  // Preserve assignments to inactive profiles when an existing task is opened.
+  selected.forEach(id => {
+    if (!Array.from(container.querySelectorAll('input')).some(input => input.value === id)) {
+      const label = document.createElement('label');
+      label.className = 'assignee-choice';
+      label.dataset.missingProfile = 'true';
+      const input = document.createElement('input');
+      input.type = 'checkbox';
+      input.value = id;
+      label.append(input, document.createTextNode('Сотрудник недоступен (сохранённое назначение)'));
+      container.append(label);
+    }
+  });
+  container.querySelectorAll('input').forEach(input => { input.checked = selected.has(input.value); });
+}
+
 function renderAssigneeSelects() {
   const formSelect =
     $('task-assigned-to');
@@ -2442,17 +2474,14 @@ function renderAssigneeSelects() {
       .join('');
 
   if (formSelect) {
-    const previous =
-      formSelect.value;
-
-    formSelect.innerHTML =
-      '<option value="">— выбрать сотрудника —</option>' +
-      options;
-
-    formSelect.value =
-      previous ||
-      state.user?.id ||
-      '';
+    const previous = getSelectedAssignees();
+    formSelect.innerHTML = state.profiles.map(profile => `
+      <label class="assignee-choice">
+        <input type="checkbox" value="${escapeHtml(profile.id)}">
+        <span>${escapeHtml(profileDisplayName(profile))}</span>
+      </label>
+    `).join('');
+    setSelectedAssignees(previous.length ? previous : [state.user?.id]);
   }
 
   if (filterSelect) {
@@ -2670,9 +2699,7 @@ async function openTaskModal(
       state.user?.id &&
       $('task-assigned-to')
     ) {
-      $('task-assigned-to')
-        .value =
-        state.user.id;
+      setSelectedAssignees([state.user.id]);
     }
   }
 
@@ -2741,9 +2768,7 @@ function resetTaskForm() {
   }
 
   if ($('task-assigned-to')) {
-    $('task-assigned-to').value =
-      state.user?.id ||
-      '';
+    setSelectedAssignees([state.user?.id]);
   }
 
   if ($('task-repeat-type')) {
@@ -2837,9 +2862,7 @@ function fillTaskForm(task) {
   }
 
   if ($('task-assigned-to')) {
-    $('task-assigned-to').value =
-      task.assignedTo ||
-      '';
+    setSelectedAssignees(taskAssigneeIds(task));
   }
 
   if ($('task-description')) {
@@ -3047,10 +3070,8 @@ function buildTaskPayload() {
       ?.value ||
     '';
 
-  const assignedTo =
-    $('task-assigned-to')
-      ?.value ||
-    '';
+  const assigneeIds = getSelectedAssignees();
+  const assignedTo = assigneeIds[0] || ''; 
 
   if (!title) {
     throw new Error(
@@ -3243,6 +3264,8 @@ function buildTaskPayload() {
 
     [TASK_FIELDS.assignedTo]:
       assignedTo,
+
+    [TASK_FIELDS.assigneeIds]: assigneeIds,
 
     [TASK_FIELDS.dueDate]:
       dueDate,
@@ -4554,8 +4577,7 @@ function runNotificationCheck() {
         task.status ===
           'pending' &&
 
-        task.assignedTo ===
-          state.user.id &&
+        taskAssigneeIds(task).includes(state.user.id) &&
 
         taskOccursOnDate(
           task,
@@ -4655,6 +4677,7 @@ function getNotificationStorageKey(
 ) {
   return (
     'jambalance_task_notice_' +
+    state.user.id + '_' +
     task.id +
     '_' +
     toISODate(date)
