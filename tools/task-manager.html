@@ -1375,6 +1375,13 @@
     .assignee-choices { display:flex; flex-direction:column; gap:8px; max-height:200px; overflow:auto; padding:10px; border:1px solid #ddd; border-radius:10px; }
   .assignee-choice { display:flex; align-items:center; gap:10px; cursor:pointer; padding:4px; }
   .assignee-choice input { width:18px; height:18px; flex-shrink:0; accent-color:#f99303; }
+  .calendar-day, .week-cell, .week-day-head { cursor:pointer; }
+  .calendar-day:focus-visible, .week-cell:focus-visible, .week-day-head:focus-visible { outline:2px solid var(--brand); outline-offset:-2px; }
+  .calendar-day:focus-within .day-add, .week-cell:hover .day-add, .week-cell:focus-within .day-add { opacity:1; }
+  button.task-more { border:0; background:transparent; text-align:left; padding:4px; cursor:pointer; }
+  .client-task-count { display:inline-block; margin-left:4px; padding:0 4px; border-radius:4px; background:rgba(0,0,0,.06); }
+  .selected-client-heading { display:flex; flex-wrap:wrap; align-items:center; gap:8px; margin-bottom:12px; }
+  .selected-client-heading strong { overflow-wrap:anywhere; }
 </style>
 </head>
 
@@ -2387,3 +2394,4 @@
 
 </body>
 </html>
+
