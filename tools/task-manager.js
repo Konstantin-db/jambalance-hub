@@ -109,6 +109,7 @@ const state = {
 
   cursorDate: startOfDay(new Date()),
   selectedDate: startOfDay(new Date()),
+  selectedClientKey: null,
 
   editingTaskId: null,
 
@@ -1559,6 +1560,10 @@ function renderMonthView() {
           ${today ? 'today' : ''}
           ${selected ? 'selected' : ''}"
         data-date="${iso}"
+        data-select-date="${iso}"
+        tabindex="0"
+        role="group"
+        aria-label="${escapeHtml(formatDateLong(date))}"
       >
 
         <div class="day-head">
@@ -1587,7 +1592,7 @@ function renderMonthView() {
         </div>
 
         <div class="day-tasks">
-          ${buildMonthTaskChips(tasks)}
+          ${buildMonthTaskChips(tasks, iso)}
         </div>
 
       </div>
@@ -1610,71 +1615,46 @@ function renderMonthView() {
    19. TASK CHIPS
    ============================================================ */
 
-function buildMonthTaskChips(
-  tasks
-) {
-  const max =
-    TASK_MANAGER_CONFIG
-      .calendar
-      .maxMonthTasksVisible;
+function taskClientKey(task) {
+  if (task.clientId) return 'id:' + task.clientId;
+  const name = String(getTaskClientName(task) || '').trim().replace(/\s+/g, ' ').toLocaleLowerCase('ru');
+  return name ? 'name:' + name : 'none:';
+}
 
-  const visible =
-    tasks.slice(
-      0,
-      max
-    );
-
-  let html =
-    visible
-      .map(
-        buildTaskChip
-      )
-      .join('');
-
-  if (
-    tasks.length >
-    max
-  ) {
-    html += `
-      <div class="task-more">
-        ещё ${tasks.length - max}
-      </div>
-    `;
+function groupTasksByClient(tasks) {
+  const groups = new Map();
+  for (const task of tasks) {
+    const key = taskClientKey(task);
+    if (!groups.has(key)) groups.set(key, {
+      key, name: getTaskClientName(task) || 'Без клиента', tasks: []
+    });
+    groups.get(key).tasks.push(task);
   }
+  return [...groups.values()];
+}
 
+function buildMonthTaskChips(tasks, iso) {
+  const groups = groupTasksByClient(tasks);
+  const max = TASK_MANAGER_CONFIG.calendar.maxMonthTasksVisible;
+  let html = groups.slice(0, max).map(group => buildClientChip(group, iso)).join('');
+  if (groups.length > max) html += `
+    <button type="button" class="task-more" data-select-date="${iso}">
+      Ещё клиентов: ${groups.length - max}
+    </button>`;
   return html;
 }
 
-
-function buildTaskChip(task) {
-  const type =
-    TASK_TYPES[
-      task.type
-    ] ||
-    TASK_TYPES.other;
-
-  const time =
-    task.time
-      ? `${formatTime(task.time)} `
-      : '';
-
+function buildClientChip(group, iso, week = false) {
+  const done = group.tasks.every(task => task.status === 'done');
+  const sameType = group.tasks.every(task => task.type === group.tasks[0].type);
+  const color = sameType ? (TASK_TYPES[group.tasks[0].type] || TASK_TYPES.other).color : '#f99303';
   return `
-    <button
-      type="button"
-      class="task-chip
-        ${
-          task.status === 'done'
-            ? 'done'
-            : ''
-        }"
-      data-task-id="${escapeHtml(task.id)}"
-      style="--task-color:${type.color};"
-      title="${escapeHtml(task.title)}"
-    >
-      ${escapeHtml(time)}
-      ${escapeHtml(task.title)}
-    </button>
-  `;
+    <button type="button" class="task-chip ${week ? 'week-task' : ''} ${done ? 'done' : ''}"
+      data-client-key="${escapeHtml(group.key)}" data-client-date="${iso}"
+      style="--task-color:${color};"
+      title="${escapeHtml(group.name)} — задач: ${group.tasks.length}">
+      ${escapeHtml(group.name)} <span class="client-task-count">${group.tasks.length}</span>
+    </button>`;
 }
 
 
@@ -1715,6 +1695,8 @@ function renderWeekView() {
 
     html += `
       <div
+        data-select-date="${toISODate(date)}" tabindex="0" role="group"
+        aria-label="${escapeHtml(formatDateLong(date))}"
         class="week-day-head
           ${
             sameDay(
@@ -1812,16 +1794,11 @@ function renderWeekView() {
       html += `
         <div
           class="week-cell"
-          data-new-task-date="${iso}"
-          data-new-task-hour="${hour}"
+          data-select-date="${iso}" tabindex="0" role="group"
+          aria-label="${escapeHtml(formatDateLong(date))}, ${hour}:00"
         >
-          ${
-            tasks
-              .map(
-                buildWeekTask
-              )
-              .join('')
-          }
+          <button type="button" class="day-add" data-new-task-date="${iso}" data-new-task-hour="${hour}" title="Новая задача" aria-label="Новая задача в ${hour}:00">+</button>
+          ${groupTasksByClient(tasks).map(group => buildClientChip(group, iso, true)).join('')}
         </div>
       `;
     }
@@ -1837,31 +1814,6 @@ function renderWeekView() {
   bindCalendarTaskEvents(
     root
   );
-}
-
-
-function buildWeekTask(task) {
-  const type =
-    TASK_TYPES[
-      task.type
-    ] ||
-    TASK_TYPES.other;
-
-  return `
-    <div
-      class="week-task"
-      data-task-id="${escapeHtml(task.id)}"
-      style="--task-color:${type.color};"
-      title="${escapeHtml(task.title)}"
-    >
-      ${
-        task.time
-          ? `${escapeHtml(formatTime(task.time))} `
-          : ''
-      }
-      ${escapeHtml(task.title)}
-    </div>
-  `;
 }
 
 
@@ -2069,23 +2021,20 @@ function buildMiniMonth(
 function bindCalendarTaskEvents(
   root
 ) {
-  $all(
-    '[data-task-id]',
-    root
-  ).forEach(
-    element => {
-      element.addEventListener(
-        'click',
-        event => {
-          event.stopPropagation();
-
-          openTaskModal(
-            element.dataset.taskId
-          );
-        }
-      );
-    }
-  );
+  $all('[data-client-key]', root).forEach(element => {
+    element.addEventListener('click', event => {
+      event.stopPropagation();
+      const date = fromISODate(element.dataset.clientDate);
+      if (date) selectDate(date, element.dataset.clientKey);
+    });
+  });
+  $all('[data-select-date][tabindex]', root).forEach(element => {
+    element.addEventListener('keydown', event => {
+      if (event.target !== element || !['Enter', ' '].includes(event.key)) return;
+      event.preventDefault();
+      element.click();
+    });
+  });
 
   $all(
     '[data-select-date]',
@@ -2149,7 +2098,8 @@ function bindCalendarTaskEvents(
    25. ВЫБРАННЫЙ ДЕНЬ
    ============================================================ */
 
-function selectDate(date) {
+function selectDate(date, clientKey = null) {
+  state.selectedClientKey = clientKey;
   state.selectedDate =
     startOfDay(date);
 
@@ -2182,46 +2132,25 @@ function renderSelectedDay() {
       )
     );
 
-  const tasks =
-    getTasksForDate(
-      state.selectedDate
-    );
-
-  if (!tasks.length) {
-    box.innerHTML = `
-      <div class="summary-empty">
-        На этот день задач нет.
+  const dayTasks = getTasksForDate(state.selectedDate);
+  const tasks = state.selectedClientKey === null ? dayTasks
+    : dayTasks.filter(task => taskClientKey(task) === state.selectedClientKey);
+  const clientTask = state.tasks.find(task => taskClientKey(task) === state.selectedClientKey);
+  const clientName = clientTask ? getTaskClientName(clientTask) || 'Без клиента' : 'Клиент';
+  const heading = state.selectedClientKey === null ? '' : `
+    <div class="selected-client-heading">
+      <strong>${escapeHtml(clientName)}</strong>
+      <button class="btn btn-sm" type="button" id="show-all-day-tasks">Все задачи дня</button>
+    </div>`;
+  box.innerHTML = heading + (tasks.length
+    ? tasks.map(buildSummaryTask).join('')
+    : `<div class="summary-empty">
+        ${state.selectedClientKey === null ? 'На этот день задач нет.' : 'У клиента нет задач на этот день с выбранными фильтрами.'}
         <br><br>
-
-        <button
-          class="btn btn-primary btn-sm"
-          type="button"
-          id="sidebar-add-task"
-        >
-          + Добавить задачу
-        </button>
-      </div>
-    `;
-
-    $('sidebar-add-task')
-      ?.addEventListener(
-        'click',
-        () =>
-          openTaskModal(
-            null,
-            state.selectedDate
-          )
-      );
-
-    return;
-  }
-
-  box.innerHTML =
-    tasks
-      .map(
-        buildSummaryTask
-      )
-      .join('');
+        <button class="btn btn-primary btn-sm" type="button" id="sidebar-add-task">+ Добавить задачу</button>
+      </div>`);
+  $('show-all-day-tasks')?.addEventListener('click', () => selectDate(state.selectedDate));
+  $('sidebar-add-task')?.addEventListener('click', () => openTaskModal(null, state.selectedDate));
 
   $all(
     '[data-summary-task-id]',
@@ -4406,6 +4335,7 @@ async function moveCalendar(
 
 
 async function goToday() {
+  state.selectedClientKey = null;
   state.cursorDate =
     startOfDay(
       new Date()
@@ -5692,3 +5622,4 @@ document.addEventListener(
   'DOMContentLoaded',
   initTaskManager
 );
+
