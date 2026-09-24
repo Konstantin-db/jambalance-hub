@@ -2222,7 +2222,7 @@ function buildSummaryTask(task) {
 
         ${
           client
-            ? ` • ${escapeHtml(client)}`
+            ? ` • <span class="summary-task-client">${escapeHtml(client)}</span>`
             : ''
         }
 
