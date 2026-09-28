@@ -1,0 +1,59 @@
+<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Квартальные чек-листы — ДжемБаланс</title>
+  <link rel="icon" href="../favicon.png">
+  <style>
+    :root{font-family:Inter,Arial,sans-serif;color:#202733;background:#f5f6f8;line-height:1.45}
+    *{box-sizing:border-box}body{margin:0}button,input,select{font:inherit}button{cursor:pointer}
+    header{background:#fff;border-bottom:1px solid #e5e7eb;padding:16px max(20px,calc((100vw - 1200px)/2));display:flex;align-items:center;gap:16px;flex-wrap:wrap}
+    header h1{font-size:21px;margin:0}header small{display:block;color:#68717e;font-size:12px}
+    a{color:#a75b00}header a{text-decoration:none;color:#404b58;font-size:14px}
+    main{max-width:1200px;margin:24px auto;padding:0 20px 48px}
+    .tabs{display:flex;gap:8px;margin-bottom:20px}.tab{border:1px solid #ddd;background:white;border-radius:10px;padding:10px 16px;font-weight:700}.tab.active{background:#f99303;border-color:#f99303;color:#242424}
+    .layout{display:grid;grid-template-columns:320px minmax(0,1fr);gap:20px;align-items:start}
+    .card{background:#fff;border:1px solid #e1e4e8;border-radius:16px;padding:20px;box-shadow:0 3px 16px #2733490a}
+    h2{font-size:18px;margin:0 0 14px}h3{font-size:15px;margin:20px 0 8px}
+    label{display:block;font-size:13px;font-weight:700;margin:12px 0 5px}
+    select,input[type=text],input[type=number]{width:100%;border:1px solid #cbd0d6;border-radius:9px;padding:10px;background:white;color:#202733}
+    input:focus,select:focus,button:focus-visible{outline:2px solid #f99303;outline-offset:2px}
+    .row{display:flex;gap:8px;align-items:center}.row>*{min-width:0}.row input{flex:1}
+    .btn{border:1px solid #d8dde2;border-radius:9px;background:white;padding:9px 12px;font-weight:650;color:#303946}
+    .btn.primary{background:#f99303;border-color:#f99303;color:#212121}.btn:disabled{opacity:.5;cursor:not-allowed}
+    .muted{color:#667085;font-size:13px}.error{color:#a12020}.notice{padding:12px 14px;border-radius:10px;background:#fff3db;margin-bottom:16px}
+    .list{display:flex;flex-direction:column;gap:10px}.list-item{width:100%;text-align:left;border:1px solid #e1e4e8;background:white;border-radius:10px;padding:12px}
+    .list-item.active{border-color:#f99303;background:#fff8eb}.list-item strong{display:block;overflow-wrap:anywhere}.progress{height:7px;background:#ebeef1;border-radius:9px;margin-top:8px;overflow:hidden}.progress i{display:block;height:100%;background:#f99303}
+    .item{border:1px solid #e4e6e9;border-radius:10px;margin:8px 0;padding:9px 10px}.item.child{margin-left:28px;border-left:3px solid #f9c773}
+    .item-line{display:flex;align-items:center;gap:8px}.item-line .title{flex:1;overflow-wrap:anywhere}.item-line .done{text-decoration:line-through;color:#667085}
+    .item-line input[type=checkbox]{width:19px;height:19px;accent-color:#f99303;flex:none}.small{font-size:12px;color:#667085;margin:4px 0 0 27px}
+    .icon-btn{border:0;background:transparent;color:#6c7581;padding:4px 6px}.icon-btn:hover{color:#a75b00}
+    .form-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px}.empty{padding:25px;text-align:center;border:1px dashed #cdd2d8;border-radius:12px;color:#667085}
+    #message:empty{display:none}#message{margin-bottom:15px;padding:10px;border-radius:9px;background:#fff0e6}
+    [hidden]{display:none!important}@media(max-width:760px){.layout{grid-template-columns:1fr}.form-grid{grid-template-columns:1fr}.item.child{margin-left:14px}header{padding:14px 20px}}
+  </style>
+</head>
+<body>
+<header><a href="../index.html">← На главную</a><a href="task-manager.html">К календарю задач</a><div><h1>Квартальные чек-листы</h1><small>Задачи по клиентам без привязки к дате</small></div></header>
+<main>
+  <div id="message" role="alert"></div>
+  <div class="tabs"><button class="tab active" data-tab="checklists">По клиентам</button><button class="tab" data-tab="templates">Шаблоны</button></div>
+  <section id="checklists-view" class="layout">
+    <aside class="card">
+      <h2>Отчётный период</h2>
+      <div class="form-grid"><div><label for="year">Год</label><input id="year" type="number" min="2000" max="2100"></div><div><label for="quarter">Квартал</label><select id="quarter"><option value="1">I</option><option value="2">II</option><option value="3">III</option><option value="4">IV</option></select></div></div>
+      <label for="client-search">Найти клиента</label><input id="client-search" type="text" placeholder="Название или ИНН">
+      <p id="client-count" class="muted"></p><div id="client-list" class="list"></div>
+    </aside>
+    <section class="card"><h2 id="checklist-heading">Выберите клиента</h2><div id="checklist-content" class="empty">Выберите клиента слева, чтобы увидеть задачи на квартал.</div></section>
+  </section>
+  <section id="templates-view" class="layout" hidden>
+    <aside class="card"><h2>Шаблоны</h2><div id="template-list" class="list"></div><h3>Новый шаблон</h3><form id="new-template-form" class="row"><input id="new-template-name" type="text" maxlength="120" required placeholder="Название шаблона"><button class="btn primary">Создать</button></form></aside>
+    <section class="card"><h2 id="template-heading">Выберите шаблон</h2><div id="template-content" class="empty">Выберите шаблон слева. Изменения шаблона повлияют на новые списки; прежние кварталы сохранятся.</div></section>
+  </section>
+</main>
+<script src="./supabase.umd.js"></script>
+<script src="./quarterly-checklists.js"></script>
+</body>
+</html>
