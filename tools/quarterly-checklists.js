@@ -83,7 +83,7 @@ function renderChecklist() {
   box.innerHTML=`<p class="muted">Основа: ${escapeHtml(list.template_name)} · выполнено ${done} из ${items.length}. Изменения здесь относятся только к этому клиенту и кварталу.</p>
     <div class="progress"><i style="width:${progress(items)}%"></i></div><div class="item-list" data-mode="checklist">${itemTree(items,'checklist')}</div>
     <h3>Новый пункт</h3><form class="row add-root"><input type="text" maxlength="300" required placeholder="Что нужно сделать"><button class="btn primary">Добавить</button></form>
-    <p><button class="btn" id="refresh-checklist" type="button">Обновить отметки коллег</button></p>`;
+    <p class="row"><button class="btn" id="refresh-checklist" type="button">Обновить отметки коллег</button><button class="btn" id="remove-client-checklist" type="button" title="Удалить список только у этого клиента за выбранный квартал">Удалить шаблон</button></p>`;
 }
 function renderTemplates() {
   $('template-list').innerHTML=state.templates.map(t=>`<button class="list-item ${state.selectedTemplate===t.id?'active':''}" data-template="${t.id}"><strong>${escapeHtml(t.name)}</strong></button>`).join('') || '<p class="muted">Шаблонов пока нет.</p>';
@@ -158,6 +158,16 @@ document.addEventListener('click', event => {
   const item=event.target.closest('[data-edit-item],[data-delete-item],[data-toggle]');
   if(item){updateUI(()=>handleItemClick(item,item.closest('[data-mode]').dataset.mode));return;}
   if(event.target.id==='refresh-checklist') updateUI(()=>loadQuarter());
+  if(event.target.id==='remove-client-checklist') updateUI(async()=>{
+    const list=currentChecklist();
+    const client=state.clients.find(row=>row.id===state.selectedClient);
+    if(!list || !client)return;
+    if(!confirm(`Удалить список «${list.template_name}» у клиента «${clientName(client)}» за ${period()} вместе со всеми пунктами и отметками? Общий шаблон и списки других клиентов сохранятся.`))return;
+    const removed=check(await db.from('quarterly_checklists').delete().eq('id',list.id).eq('client_id',client.id).eq('year',state.year).eq('quarter',state.quarter).select('id'));
+    if(!removed?.length)throw new Error('Список уже изменён или удалён коллегой. Обновите страницу.');
+    await loadQuarter();
+    message('Список удалён у этого клиента. Можно выбрать другой шаблон.');
+  });
   if(event.target.id==='rename-template') updateUI(async()=>{
     const row=state.templates.find(t=>t.id===state.selectedTemplate);
     const name=prompt('Новое название шаблона:',row.name)?.trim();
