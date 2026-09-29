@@ -1,9 +1,9 @@
 'use strict';
 
-const URL = 'https://fqcltmxiarohfpfnghjn.supabase.co';
+const SUPABASE_URL = 'https://fqcltmxiarohfpfnghjn.supabase.co';
 const KEY = 'sb_publishable_PqjH12Cbf7Fw9CWxvTPHaQ_MYYq7HQT';
 const $ = id => document.getElementById(id);
-const db = window.supabase.createClient(URL, KEY, {auth:{persistSession:true,autoRefreshToken:true}});
+const db = window.supabase.createClient(SUPABASE_URL, KEY, {auth:{persistSession:true,autoRefreshToken:true}});
 const state = {user:null, clients:[], templates:[], checklists:[], items:[], selectedClient:null, selectedTemplate:null, year:0, quarter:0, busy:false};
 
 function escapeHtml(value) {
