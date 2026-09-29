@@ -75,7 +75,7 @@ function renderChecklist() {
   const list=currentChecklist();
   if (!list) {
     box.innerHTML=`<p class="muted">Списка на этот квартал пока нет. Выберите шаблон: его пункты можно будет менять для этого клиента отдельно.</p>
-      <form id="create-checklist"><label for="template-select">Шаблон</label><select id="template-select" required><option value="">Выберите шаблон</option>${state.templates.map(t=>`<option value="${t.id}">${escapeHtml(t.name)}</option>`).join('')}</select><p><button class="btn primary" ${state.templates.length?'':'disabled'}>Создать список</button></p></form>
+      <form id="create-checklist"><label for="template-select">Шаблон</label><select id="template-select"><option value="">Выберите шаблон</option>${state.templates.map(t=>`<option value="${t.id}">${escapeHtml(t.name)}</option>`).join('')}</select><p><button class="btn primary" ${state.templates.length?'':'disabled'}>Создать список</button></p></form>
       ${state.templates.length?'':'<p class="muted">Сначала создайте шаблон на соседней вкладке.</p>'}`;
     return;
   }
@@ -177,9 +177,13 @@ document.addEventListener('submit',event=>{
   updateUI(async()=>{
     if(form.id==='create-checklist'){
       const templateId=$('template-select').value;
-      if(!templateId)throw new Error('Выберите шаблон.');
+      if(!templateId)throw new Error('Выберите шаблон. Затем нажмите «Создать список».');
+      const button=form.querySelector('button');
+      button.disabled=true;button.textContent='Создаём список…';
+      message('Создаём список для выбранного клиента…');
       check(await db.rpc('create_quarterly_checklist',{p_client_id:state.selectedClient,p_year:state.year,p_quarter:state.quarter,p_template_id:templateId}));
       await loadQuarter();
+      message('Список создан. Теперь можно отмечать и редактировать его пункты.');
     }else if(form.id==='new-template-form'){
       const name=$('new-template-name').value.trim();
       if(!name)return;
