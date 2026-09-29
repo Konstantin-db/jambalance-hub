@@ -1141,10 +1141,14 @@ async function loadTasks() {
           normalizeTask
         );
 
-    await loadAttachmentsForCurrentTasks();
-
     renderCalendar();
     renderSelectedDay();
+
+    // Вложения не должны удерживать календарь за экраном загрузки.
+    // Их запрос может быть медленным, а список задач уже получен.
+    loadAttachmentsForCurrentTasks()
+      .then(() => renderSelectedDay())
+      .catch(error => console.warn('Вложения не загрузились:', error));
 
   } finally {
     setLoading(false);
