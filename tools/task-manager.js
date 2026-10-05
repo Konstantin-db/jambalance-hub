@@ -112,6 +112,7 @@ const state = {
   selectedClientKey: null,
 
   editingTaskId: null,
+  editingOccurrenceDate: null,
 
   pendingFiles: [],
   removedAttachmentIds: new Set(),
@@ -1021,6 +1022,13 @@ function normalizeTask(row) {
         ]
       ),
 
+    repeatConfig:
+      normalizeRecurrenceConfig(
+        row[
+          TASK_FIELDS.repeatConfig
+        ]
+      ),
+
     repeatWeekday:
       row[
         TASK_FIELDS
@@ -1085,6 +1093,26 @@ function normalizeTask(row) {
     raw:
       row
   };
+}
+
+
+function normalizeRecurrenceConfig(value) {
+  if (value && typeof value === 'object' && !Array.isArray(value)) {
+    return value;
+  }
+
+  if (typeof value === 'string') {
+    try {
+      const parsed = JSON.parse(value);
+      return parsed && typeof parsed === 'object' && !Array.isArray(parsed)
+        ? parsed
+        : {};
+    } catch (_) {
+      return {};
+    }
+  }
+
+  return {};
 }
 
 
@@ -1337,18 +1365,32 @@ function taskOccursEveryNMonths(
 }
 
 
+function taskOccurrenceStatus(task, date) {
+  const overrides =
+    task.repeatConfig?.occurrence_statuses || {};
+
+  const override =
+    overrides[toISODate(date)];
+
+  return typeof override === 'string'
+    ? override
+    : override?.status || task.status;
+}
+
+
 function getTasksForDate(date) {
   return getFilteredTasks()
-    .filter(
-      task =>
-        taskOccursOnDate(
-          task,
-          date
-        )
+    .filter(task => taskOccursOnDate(task, date))
+    .map(task => ({
+      ...task,
+      status: taskOccurrenceStatus(task, date),
+      occurrenceDate: toISODate(date)
+    }))
+    .filter(task =>
+      !state.filters.status ||
+      task.status === state.filters.status
     )
-    .sort(
-      compareTasks
-    );
+    .sort(compareTasks);
 }
 
 
@@ -1393,14 +1435,6 @@ function getFilteredTasks() {
       if (
         state.filters.assignee &&
         !taskAssigneeIds(task).includes(state.filters.assignee)
-      ) {
-        return false;
-      }
-
-      if (
-        state.filters.status &&
-        task.status !==
-          state.filters.status
       ) {
         return false;
       }
@@ -2548,6 +2582,7 @@ async function openTaskModal(
 
   state.editingTaskId =
     taskId || null;
+  state.editingOccurrenceDate = null;
 
   if (taskId) {
     const task =
@@ -2566,7 +2601,25 @@ async function openTaskModal(
       return;
     }
 
+    const candidateDate = startOfDay(date || state.selectedDate || new Date());
+    if (
+      normalizeRecurrenceType(task.repeatType) !== 'once' &&
+      taskOccursOnDate(task, candidateDate)
+    ) {
+      state.editingOccurrenceDate = toISODate(candidateDate);
+    }
+
     fillTaskForm(task);
+
+    if (
+      state.editingOccurrenceDate &&
+      $('task-status')
+    ) {
+      $('task-status').value = taskOccurrenceStatus(
+        task,
+        fromISODate(state.editingOccurrenceDate)
+      );
+    }
 
     if ($('task-modal-title')) {
       $('task-modal-title')
@@ -3217,7 +3270,9 @@ function buildTaskPayload() {
       repeatType,
 
     [TASK_FIELDS.repeatConfig]:
-      {},
+      state.editingTaskId
+        ? state.tasks.find(task => task.id === state.editingTaskId)?.repeatConfig || {}
+        : {},
 
     [TASK_FIELDS.repeatWeekday]:
       repeatWeekday,
@@ -3284,6 +3339,40 @@ async function saveTask() {
 
     const payload =
       buildTaskPayload();
+
+    const originalTask = state.editingTaskId
+      ? state.tasks.find(task => task.id === state.editingTaskId)
+      : null;
+
+    if (
+      originalTask &&
+      state.editingOccurrenceDate &&
+      normalizeRecurrenceType(originalTask.repeatType) !== 'once' &&
+      payload[TASK_FIELDS.repeatType] !== 'once'
+    ) {
+      const occurrenceDate = fromISODate(state.editingOccurrenceDate);
+
+      if (taskOccursOnDate(originalTask, occurrenceDate)) {
+        const config = normalizeRecurrenceConfig(originalTask.repeatConfig);
+        const occurrenceStatuses = {
+          ...(config.occurrence_statuses || {})
+        };
+        const occurrenceStatus = payload[TASK_FIELDS.status];
+
+        if (occurrenceStatus === originalTask.status) {
+          delete occurrenceStatuses[state.editingOccurrenceDate];
+        } else {
+          occurrenceStatuses[state.editingOccurrenceDate] = occurrenceStatus;
+        }
+
+        payload[TASK_FIELDS.repeatConfig] = {
+          ...config,
+          occurrence_statuses: occurrenceStatuses
+        };
+        payload[TASK_FIELDS.status] = originalTask.status;
+        payload[TASK_FIELDS.completedAt] = originalTask.completedAt;
+      }
+    }
 
     let savedTask;
 
@@ -3377,6 +3466,7 @@ async function saveTask() {
 
     state.editingTaskId =
       null;
+    state.editingOccurrenceDate = null;
 
     await loadTasks();
 
@@ -4680,7 +4770,8 @@ function showTaskNotification(
       window.focus();
 
       openTaskModal(
-        task.id
+        task.id,
+        today
       );
 
       notification.close();
