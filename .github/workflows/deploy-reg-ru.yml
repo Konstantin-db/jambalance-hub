@@ -34,17 +34,12 @@ jobs:
             exit 1
           fi
 
-      - name: Inspect REG.RU FTPS certificate chain
-        continue-on-error: true
-        run: |
-          openssl s_client -starttls ftp -connect hub.jam-balance.ru:21 -servername hub.jam-balance.ru -showcerts </dev/null 2>&1 | sed -n '1,100p'
-
       - name: Upload site over encrypted FTPS
         uses: SamKirkland/FTP-Deploy-Action@110f9186c050f71550953127052e77650219c287 # v4.4.0
         env:
-          NODE_OPTIONS: --use-system-ca
+          NODE_EXTRA_CA_CERTS: ${{ github.workspace }}/.github/certs/globalsign-gcc-r6-alphassl-ca-2025.pem
         with:
-          server: hub.jam-balance.ru
+          server: server81.hosting.reg.ru
           username: u3551193_jamdeploy
           password: ${{ secrets.REG_RU_FTP_PASSWORD }}
           protocol: ftps
