@@ -39,13 +39,13 @@ jobs:
         uses: SamKirkland/FTP-Deploy-Action@110f9186c050f71550953127052e77650219c287 # v4.4.0
         with:
           server: server81.hosting.reg.ru
-          username: u3551193
+          username: u3551193_jamdeploy
           password: ${{ secrets.REG_RU_FTP_PASSWORD }}
           protocol: ftps
           port: 21
           security: strict
           local-dir: ./
-          server-dir: www/hub.jambalance.ru/
+          server-dir: ./
           dangerous-clean-slate: false
           exclude: |
             **/.git*
