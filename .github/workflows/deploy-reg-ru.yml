@@ -5,7 +5,6 @@ on:
     branches:
       - main
     paths-ignore:
-      - ".github/**"
       - "DEPLOYMENT.md"
       - "supabase/**"
   workflow_dispatch:
@@ -38,7 +37,7 @@ jobs:
       - name: Upload site over encrypted FTPS
         uses: SamKirkland/FTP-Deploy-Action@110f9186c050f71550953127052e77650219c287 # v4.4.0
         with:
-          server: server81.hosting.reg.ru
+          server: hub.jam-balance.ru
           username: u3551193_jamdeploy
           password: ${{ secrets.REG_RU_FTP_PASSWORD }}
           protocol: ftps
