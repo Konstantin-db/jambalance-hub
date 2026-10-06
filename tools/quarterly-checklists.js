@@ -102,10 +102,199 @@ function renderTemplate() {
   if (!template) {box.className='empty';box.textContent='Выберите шаблон слева. Его изменения затронут только новые списки.';return;}
   box.className='';
   box.innerHTML=`<p class="muted">Редактирование шаблона не меняет уже созданные квартальные списки.</p>
-    <div class="row"><button class="btn" id="rename-template">Переименовать</button><button class="btn" id="delete-template">Удалить шаблон</button></div>
+    <div class="row"><button class="btn" id="copy-template" type="button">Скопировать шаблон</button><button class="btn" id="rename-template" type="button">Переименовать</button><button class="btn" id="delete-template" type="button">Удалить шаблон</button></div>
     <div class="item-list" data-mode="template">${itemTree(state.templateItems||[],'template')}</div>
     <h3>Новый пункт шаблона</h3><form class="row add-root"><input type="text" maxlength="300" required placeholder="Название задачи"><button class="btn primary">Добавить</button></form>`;
 }
+function suggestedCopyName(templateName) {
+  const existing = new Set(
+    state.templates.map(template =>
+      template.name.trim().toLocaleLowerCase('ru')
+    )
+  );
+
+  let suffix = ' — копия';
+  let candidate = `${templateName.slice(0, 120 - suffix.length)}${suffix}`;
+  let number = 2;
+
+  while (existing.has(candidate.toLocaleLowerCase('ru'))) {
+    suffix = ` — копия ${number++}`;
+    candidate = `${templateName.slice(0, 120 - suffix.length)}${suffix}`;
+  }
+
+  return candidate;
+}
+
+async function copyTemplate() {
+  const source =
+    state.templates.find(template =>
+      template.id === state.selectedTemplate
+    );
+
+  if (!source) return;
+
+  const name = prompt(
+    'Название копии шаблона:',
+    suggestedCopyName(source.name)
+  )?.trim();
+
+  if (!name) return;
+
+  if (name.length > 120) {
+    throw new Error('Название шаблона должно быть не длиннее 120 символов.');
+  }
+
+  const duplicate =
+    state.templates.some(template =>
+      template.name.trim().toLocaleLowerCase('ru') ===
+      name.toLocaleLowerCase('ru')
+    );
+
+  if (duplicate) {
+    throw new Error('Шаблон с таким названием уже есть. Укажите другое название.');
+  }
+
+  let created;
+
+  try {
+    created = check(
+      await db
+        .from('quarterly_templates')
+        .insert({
+          name,
+          created_by: state.user.id
+        })
+        .select('id')
+        .single()
+    );
+  } catch (error) {
+    if (error?.code === '23505') {
+      throw new Error('Шаблон с таким названием уже есть. Укажите другое название.');
+    }
+
+    throw error;
+  }
+
+  const newTemplateId =
+    created?.id;
+
+  if (!newTemplateId) {
+    throw new Error('Не удалось создать копию шаблона.');
+  }
+
+  const copiedItems = [];
+
+  try {
+    const sourceItems =
+      state.templateItems || [];
+
+    const roots =
+      sourceItems.filter(item => !item.parent_id);
+
+    const copiedParents =
+      new Map();
+
+    for (const parent of roots) {
+      const newParent = check(
+        await db
+          .from('quarterly_template_items')
+          .insert({
+            template_id: newTemplateId,
+            parent_id: null,
+            title: parent.title,
+            sort_order: parent.sort_order
+          })
+          .select('id')
+          .single()
+      );
+
+      if (!newParent?.id) {
+        throw new Error('Не удалось скопировать пункт шаблона.');
+      }
+
+      copiedParents.set(parent.id, newParent.id);
+      copiedItems.push({
+        id: newParent.id,
+        template_id: newTemplateId,
+        parent_id: null,
+        title: parent.title,
+        sort_order: parent.sort_order
+      });
+
+      const children =
+        sourceItems.filter(item =>
+          item.parent_id === parent.id
+        );
+
+      for (const child of children) {
+        const newChild = check(
+          await db
+            .from('quarterly_template_items')
+            .insert({
+              template_id: newTemplateId,
+              parent_id: newParent.id,
+              title: child.title,
+              sort_order: child.sort_order
+            })
+            .select('id')
+            .single()
+        );
+
+        if (!newChild?.id) {
+          throw new Error('Не удалось скопировать подпункт шаблона.');
+        }
+
+        copiedItems.push({
+          id: newChild.id,
+          template_id: newTemplateId,
+          parent_id: newParent.id,
+          title: child.title,
+          sort_order: child.sort_order
+        });
+      }
+    }
+
+    if (copiedItems.length !== sourceItems.length) {
+      throw new Error('В шаблоне найдены пункты с некорректной вложенностью.');
+    }
+  } catch (error) {
+    const cleanup =
+      await db
+        .from('quarterly_templates')
+        .delete()
+        .eq('id', newTemplateId);
+
+    if (cleanup.error) {
+      console.error('Не удалось удалить неполную копию шаблона:', cleanup.error);
+    }
+
+    throw error;
+  }
+
+  state.templates = [
+    ...state.templates,
+    {
+      id: newTemplateId,
+      name,
+      created_by: state.user.id
+    }
+  ].sort((a, b) =>
+    a.name.localeCompare(b.name, 'ru')
+  );
+
+  state.selectedTemplate =
+    newTemplateId;
+
+  state.templateItems =
+    copiedItems;
+
+  renderTemplates();
+
+  message(
+    `Создана копия «${name}». Её можно редактировать отдельно.`
+  );
+}
+
 async function updateUI(action) {
   if (state.busy) return;
   state.busy=true; message('');
@@ -168,6 +357,7 @@ document.addEventListener('click', event => {
     await loadQuarter();
     message('Список удалён у этого клиента. Можно выбрать другой шаблон.');
   });
+  if(event.target.closest('#copy-template')) updateUI(copyTemplate);
   if(event.target.id==='rename-template') updateUI(async()=>{
     const row=state.templates.find(t=>t.id===state.selectedTemplate);
     const name=prompt('Новое название шаблона:',row.name)?.trim();
