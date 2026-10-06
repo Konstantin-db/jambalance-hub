@@ -473,6 +473,80 @@
   }
 
 
+  async function copyClientField(inputId, label) {
+    const input =
+      $(inputId);
+
+    const value =
+      input?.value?.trim();
+
+    if (!value) {
+      toast(
+        `${label}: поле пустое`,
+        'warn'
+      );
+
+      return;
+    }
+
+    let copied = false;
+
+    try {
+      if (
+        navigator.clipboard &&
+        window.isSecureContext
+      ) {
+        await navigator.clipboard.writeText(value);
+        copied = true;
+      }
+    } catch {
+      // Try the compatibility fallback below.
+    }
+
+    if (!copied) {
+      const temporaryInput =
+        document.createElement('textarea');
+
+      temporaryInput.value =
+        value;
+
+      temporaryInput.setAttribute(
+        'readonly',
+        ''
+      );
+
+      temporaryInput.style.position =
+        'fixed';
+
+      temporaryInput.style.opacity =
+        '0';
+
+      temporaryInput.style.pointerEvents =
+        'none';
+
+      document.body.appendChild(
+        temporaryInput
+      );
+
+      temporaryInput.select();
+
+      try {
+        copied =
+          document.execCommand('copy');
+      } finally {
+        temporaryInput.remove();
+      }
+    }
+
+    toast(
+      copied
+        ? `${label} скопирован в буфер обмена`
+        : 'Не удалось скопировать в буфер обмена',
+      copied ? 'ok' : 'err'
+    );
+  }
+
+
   /* ============================================================
      ERROR
      ============================================================ */
@@ -7430,6 +7504,24 @@
      ============================================================ */
 
   function bindEvents() {
+    $all('[data-copy-input]').forEach(
+      button => {
+        button.addEventListener(
+          'click',
+          async event => {
+            event.preventDefault();
+            event.stopPropagation();
+
+            await copyClientField(
+              button.dataset.copyInput,
+              button.dataset.copyLabel
+            );
+          }
+        );
+      }
+    );
+
+
     $('btn-new-client')
       ?.addEventListener(
         'click',

@@ -692,6 +692,52 @@
       letter-spacing: 0.035em;
     }
 
+    .field-label-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 6px;
+      margin-bottom: 6px;
+    }
+
+    .field-label-row .field-label {
+      margin-bottom: 0;
+    }
+
+    .copy-field-btn {
+      width: 24px;
+      height: 24px;
+      flex: 0 0 auto;
+      display: inline-grid;
+      place-items: center;
+      padding: 0;
+      border: 1px solid transparent;
+      border-radius: 6px;
+      background: transparent;
+      color: var(--ink-muted);
+      transition:
+        background var(--transition),
+        border-color var(--transition),
+        color var(--transition);
+    }
+
+    .copy-field-btn .icon {
+      width: 14px;
+      height: 14px;
+    }
+
+    .copy-field-btn:hover,
+    .copy-field-btn:focus-visible {
+      border-color: #ffe0b5;
+      background: var(--brand-soft);
+      color: var(--brand-dark);
+    }
+
+    .copy-field-btn:focus-visible {
+      outline: 2px solid rgba(249, 147, 3, 0.35);
+      outline-offset: 2px;
+    }
+
     .req {
       color: var(--danger);
     }
@@ -2963,12 +3009,28 @@
 
             <div class="field">
 
-              <label
-                class="field-label"
-                for="client-inn"
+              <div class="field-label-row">
+                <label
+                  class="field-label"
+                  for="client-inn"
+                >
+                  ИНН
+                </label>
+
+              <button
+                class="copy-field-btn"
+                type="button"
+                data-copy-input="client-inn"
+                data-copy-label="ИНН"
+                title="Скопировать в буфер обмена"
+                aria-label="Скопировать ИНН в буфер обмена"
               >
-                ИНН
-              </label>
+                <svg class="icon" viewBox="0 0 24 24" aria-hidden="true">
+                  <rect x="8" y="8" width="12" height="12" rx="2"></rect>
+                  <path d="M16 8V5a2 2 0 0 0-2-2H5a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h3"></path>
+                </svg>
+              </button>
+              </div>
 
               <input
                 class="input mono"
@@ -2983,12 +3045,28 @@
 
             <div class="field">
 
-              <label
-                class="field-label"
-                for="client-kpp"
+              <div class="field-label-row">
+                <label
+                  class="field-label"
+                  for="client-kpp"
+                >
+                  КПП
+                </label>
+
+              <button
+                class="copy-field-btn"
+                type="button"
+                data-copy-input="client-kpp"
+                data-copy-label="КПП"
+                title="Скопировать в буфер обмена"
+                aria-label="Скопировать КПП в буфер обмена"
               >
-                КПП
-              </label>
+                <svg class="icon" viewBox="0 0 24 24" aria-hidden="true">
+                  <rect x="8" y="8" width="12" height="12" rx="2"></rect>
+                  <path d="M16 8V5a2 2 0 0 0-2-2H5a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h3"></path>
+                </svg>
+              </button>
+              </div>
 
               <input
                 class="input mono"
@@ -3003,12 +3081,28 @@
 
             <div class="field">
 
-              <label
-                class="field-label"
-                for="client-ogrn"
+              <div class="field-label-row">
+                <label
+                  class="field-label"
+                  for="client-ogrn"
+                >
+                  ОГРН / ОГРНИП
+                </label>
+
+              <button
+                class="copy-field-btn"
+                type="button"
+                data-copy-input="client-ogrn"
+                data-copy-label="ОГРН / ОГРНИП"
+                title="Скопировать в буфер обмена"
+                aria-label="Скопировать ОГРН / ОГРНИП в буфер обмена"
               >
-                ОГРН / ОГРНИП
-              </label>
+                <svg class="icon" viewBox="0 0 24 24" aria-hidden="true">
+                  <rect x="8" y="8" width="12" height="12" rx="2"></rect>
+                  <path d="M16 8V5a2 2 0 0 0-2-2H5a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h3"></path>
+                </svg>
+              </button>
+              </div>
 
               <input
                 class="input mono"
@@ -3026,12 +3120,28 @@
 
             <div class="field">
 
-              <label
-                class="field-label"
-                for="client-phone"
+              <div class="field-label-row">
+                <label
+                  class="field-label"
+                  for="client-phone"
+                >
+                  Телефон
+                </label>
+
+              <button
+                class="copy-field-btn"
+                type="button"
+                data-copy-input="client-phone"
+                data-copy-label="Телефон"
+                title="Скопировать в буфер обмена"
+                aria-label="Скопировать Телефон в буфер обмена"
               >
-                Телефон
-              </label>
+                <svg class="icon" viewBox="0 0 24 24" aria-hidden="true">
+                  <rect x="8" y="8" width="12" height="12" rx="2"></rect>
+                  <path d="M16 8V5a2 2 0 0 0-2-2H5a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h3"></path>
+                </svg>
+              </button>
+              </div>
 
               <input
                 class="input"
@@ -3045,12 +3155,28 @@
 
             <div class="field">
 
-              <label
-                class="field-label"
-                for="client-email"
+              <div class="field-label-row">
+                <label
+                  class="field-label"
+                  for="client-email"
+                >
+                  E-mail
+                </label>
+
+              <button
+                class="copy-field-btn"
+                type="button"
+                data-copy-input="client-email"
+                data-copy-label="E-mail"
+                title="Скопировать в буфер обмена"
+                aria-label="Скопировать E-mail в буфер обмена"
               >
-                E-mail
-              </label>
+                <svg class="icon" viewBox="0 0 24 24" aria-hidden="true">
+                  <rect x="8" y="8" width="12" height="12" rx="2"></rect>
+                  <path d="M16 8V5a2 2 0 0 0-2-2H5a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h3"></path>
+                </svg>
+              </button>
+              </div>
 
               <input
                 class="input"
@@ -5665,7 +5791,7 @@
        ========================================================= -->
 
   <script
-    src="clients.js"
+    src="clients.js?v=copy-client-fields-20261006"
     defer
   ></script>
 
