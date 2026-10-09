@@ -304,6 +304,48 @@
       gap: 12px;
     }
 
+    .overdue-alert {
+      border: 2px solid #b42318; border-radius: 14px; padding: 14px;
+      background: #fff0ef; color: #7a1510; box-shadow: 0 8px 24px rgba(180, 35, 24, .16);
+    }
+    .overdue-alert[hidden] { display: none; }
+    .overdue-alert-heading { display: flex; align-items: center; gap: 12px; }
+    .overdue-alert-icon {
+      display: grid; place-items: center; flex: 0 0 40px;
+      width: 40px; height: 40px; border-radius: 50%;
+      color: #fff; background: #b42318; font-size: 26px; font-weight: 900;
+    }
+    .overdue-alert-title { font-size: 18px; font-weight: 900; line-height: 1.2; }
+    .overdue-alert-copy { margin-top: 3px; font-size: 13px; font-weight: 700; }
+    .overdue-alert-permission {
+      margin: 12px 0; padding: 9px 11px; border-radius: 8px;
+      background: #ffe0dc; font-size: 12px; font-weight: 700; line-height: 1.45;
+    }
+    .overdue-alert-list { display: grid; gap: 7px; max-height: 280px; overflow: auto; padding-right: 3px; }
+    .overdue-alert-item {
+      width: 100%; display: flex; align-items: center; gap: 9px;
+      border: 1px solid #f0aaa4; border-radius: 9px; padding: 9px 10px;
+      background: #fff; color: #57110d; text-align: left; cursor: pointer;
+    }
+    .overdue-alert-item:hover { border-color: #b42318; background: #fff8f7; }
+    .overdue-alert-item-mark { color: #b42318; font-size: 16px; font-weight: 900; }
+    .overdue-alert-item-content { min-width: 0; flex: 1; display: grid; gap: 2px; }
+    .overdue-alert-item-content strong { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 12px; }
+    .overdue-alert-item-content small { color: #8f3a34; font-size: 10px; line-height: 1.35; }
+    .overdue-alert-open { flex: 0 0 auto; color: #b42318; font-size: 11px; font-weight: 800; }
+    .task-chip.overdue, .week-task.overdue {
+      background: #b42318; color: #fff; border-left: 4px solid #7a1510;
+      box-shadow: 0 0 0 1px rgba(122, 21, 16, .2);
+    }
+    .task-chip.overdue:hover, .week-task.overdue:hover { filter: brightness(.9); }
+    .task-chip.overdue .client-task-count { color: #fff; background: rgba(255, 255, 255, .2); }
+    .summary-task.overdue { border-color: #b42318 !important; background: #fff0ef; box-shadow: inset 4px 0 0 #b42318; }
+    .summary-task.overdue:hover { border-color: #7a1510 !important; background: #ffe0dc; }
+    .overdue-task-badge {
+      align-self: flex-start; border-radius: 5px; padding: 3px 6px;
+      background: #b42318; color: #fff; font-size: 10px; font-weight: 900; letter-spacing: .02em;
+    }
+
     .calendar-toolbar-left,
     .calendar-toolbar-right {
       display: flex;
@@ -1466,6 +1508,8 @@
          ======================================================= -->
     <section class="calendar-pane">
 
+      <section class="overdue-alert" id="overdue-task-alert" role="alert" aria-live="assertive" hidden></section>
+
       <div class="calendar-toolbar">
 
         <div class="calendar-toolbar-left">
@@ -2399,7 +2443,7 @@
 <!-- ===========================================================
      ЛОГИКА ЗАДАЧНИКА
      =========================================================== -->
-<script src="./task-manager.js?v=20261005-1"></script>
+<script src="./task-manager.js?v=20261009-1"></script>
 
 </body>
 </html>

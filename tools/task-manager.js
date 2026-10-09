@@ -133,6 +133,8 @@ const state = {
 
   notificationTimer: null,
   realtimeChannel: null,
+  overdueOccurrences: null,
+  overdueOccurrencesDate: '',
 
   initialized: false
 };
@@ -1168,6 +1170,8 @@ async function loadTasks() {
         .map(
           normalizeTask
         );
+    state.overdueOccurrences = null;
+    state.overdueOccurrencesDate = '';
 
     renderCalendar();
     renderSelectedDay();
@@ -1378,6 +1382,83 @@ function taskOccurrenceStatus(task, date) {
 }
 
 
+function isTaskOverdue(task, referenceDate = new Date()) {
+  const dueDate = fromISODate(task.occurrenceDate || task.date);
+  return Boolean(task.status === 'pending' && dueDate && dueDate.getTime() < startOfDay(referenceDate).getTime());
+}
+
+function getOverdueOccurrences(referenceDate = new Date()) {
+  const today = startOfDay(referenceDate);
+  const todayISO = toISODate(today);
+  if (state.overdueOccurrences && state.overdueOccurrencesDate === todayISO) return state.overdueOccurrences;
+  const yesterday = addDays(today, -1);
+  const overdue = [];
+  for (const task of state.tasks) {
+    let cursor = fromISODate(task.date);
+    if (!cursor || cursor.getTime() > yesterday.getTime()) continue;
+    let end = yesterday;
+    if (task.repeatUntil) {
+      const repeatUntil = fromISODate(task.repeatUntil);
+      if (repeatUntil && repeatUntil.getTime() < end.getTime()) end = repeatUntil;
+    }
+    while (cursor.getTime() <= end.getTime()) {
+      if (taskOccursOnDate(task, cursor) && taskOccurrenceStatus(task, cursor) === 'pending') {
+        overdue.push({ ...task, status: 'pending', occurrenceDate: toISODate(cursor) });
+      }
+      cursor = addDays(cursor, 1);
+    }
+  }
+  overdue.sort((a, b) => a.occurrenceDate.localeCompare(b.occurrenceDate) || compareTasks(a, b));
+  state.overdueOccurrences = overdue;
+  state.overdueOccurrencesDate = todayISO;
+  return overdue;
+}
+
+
+function renderOverdueAlert() {
+  const box = $('overdue-task-alert');
+  if (!box) return;
+
+  const overdue = getOverdueOccurrences();
+  box.hidden = overdue.length === 0;
+  if (!overdue.length) {
+    box.innerHTML = '';
+    return;
+  }
+
+  const count = overdue.length;
+  const title = count === 1 ? 'Просрочена 1 задача' : count < 5 ? 'Просрочено ' + count + ' задачи' : 'Просрочено ' + count + ' задач';
+
+  box.innerHTML = [
+    '<div class="overdue-alert-heading">',
+    '<span class="overdue-alert-icon" aria-hidden="true">!</span><div>',
+    '<div class="overdue-alert-title">' + title + '</div>',
+    '<div class="overdue-alert-copy">Срок уже прошёл. Откройте задачу и отметьте выполнение или перенесите дату.</div>',
+    '</div></div>',
+    '<div class="overdue-alert-permission">Чтобы каждый сотрудник получал системное уведомление, включите уведомления браузера через значок колокольчика вверху.</div>',
+    '<div class="overdue-alert-list">',
+    overdue.map(task => {
+      const assignees = taskAssigneeIds(task).map(id => profileDisplayName(findProfile(id)) || 'Сотрудник недоступен').join(', ');
+      const details = [formatDateLong(fromISODate(task.occurrenceDate)), getTaskClientName(task), assignees].filter(Boolean).join(' · ');
+      return [
+        '<button class="overdue-alert-item" type="button"',
+        ' data-overdue-task-id="' + escapeHtml(task.id) + '"',
+        ' data-overdue-task-date="' + escapeHtml(task.occurrenceDate) + '"',
+        ' aria-label="Просрочено: ' + escapeHtml(task.title) + '. ' + escapeHtml(details) + '">',
+        '<span class="overdue-alert-item-mark" aria-hidden="true">⚠</span>',
+        '<span class="overdue-alert-item-content"><strong>' + escapeHtml(task.title) + '</strong><small>' + escapeHtml(details) + '</small></span>',
+        '<span class="overdue-alert-open">Открыть</span></button>'
+      ].join('');
+    }).join(''),
+    '</div>'
+  ].join('');
+
+  $all('[data-overdue-task-id]', box).forEach(button => {
+    button.addEventListener('click', () => openTaskModal(button.dataset.overdueTaskId, fromISODate(button.dataset.overdueTaskDate)));
+  });
+}
+
+
 function getTasksForDate(date) {
   return getFilteredTasks()
     .filter(task => taskOccursOnDate(task, date))
@@ -1450,6 +1531,7 @@ function getFilteredTasks() {
    ============================================================ */
 
 function renderCalendar() {
+  renderOverdueAlert();
   renderCalendarPeriodTitle();
 
   switch (state.view) {
@@ -1684,14 +1766,15 @@ function buildMonthTaskChips(tasks, iso) {
 
 function buildClientChip(group, iso, week = false) {
   const done = group.tasks.every(task => task.status === 'done');
+  const overdue = group.tasks.some(task => isTaskOverdue(task));
   const sameType = group.tasks.every(task => task.type === group.tasks[0].type);
   const color = sameType ? (TASK_TYPES[group.tasks[0].type] || TASK_TYPES.other).color : '#f99303';
   return `
-    <button type="button" class="task-chip ${week ? 'week-task' : ''} ${done ? 'done' : ''}"
+    <button type="button" class="task-chip ${week ? 'week-task' : ''} ${done ? 'done' : ''} ${overdue ? 'overdue' : ''}"
       data-client-key="${escapeHtml(group.key)}" data-client-date="${iso}"
       style="--task-color:${color};"
-      title="${escapeHtml(group.name)} — задач: ${group.tasks.length}">
-      ${escapeHtml(group.name)} <span class="client-task-count">${group.tasks.length}</span>
+      title="${overdue ? 'ПРОСРОЧЕНО · ' : ''}${escapeHtml(group.name)} — задач: ${group.tasks.length}">
+      ${overdue ? '⚠ ПРОСРОЧЕНО · ' : ''}${escapeHtml(group.name)} <span class="client-task-count">${group.tasks.length}</span>
     </button>`;
 }
 
@@ -2199,8 +2282,8 @@ function renderSelectedDay() {
         'click',
         () => {
           openTaskModal(
-            element.dataset
-              .summaryTaskId
+            element.dataset.summaryTaskId,
+            fromISODate(element.dataset.summaryTaskDate)
           );
         }
       );
@@ -2210,6 +2293,7 @@ function renderSelectedDay() {
 
 
 function buildSummaryTask(task) {
+  const overdue = isTaskOverdue(task);
   const type =
     TASK_TYPES[
       task.type
@@ -2227,8 +2311,9 @@ function buildSummaryTask(task) {
 
   return `
     <div
-      class="summary-task"
+      class="summary-task ${overdue ? 'overdue' : ''}"
       data-summary-task-id="${escapeHtml(task.id)}"
+      data-summary-task-date="${escapeHtml(task.occurrenceDate || task.date)}"
       style="
         border-left:
           3px solid
@@ -2253,6 +2338,8 @@ function buildSummaryTask(task) {
         </div>
 
       </div>
+
+      ${overdue ? '<div class="overdue-task-badge">⚠ ПРОСРОЧЕНО · ' + escapeHtml(formatDateLong(fromISODate(task.occurrenceDate || task.date))) + '</div>' : ''}
 
       <div class="summary-task-meta">
 
@@ -4577,6 +4664,8 @@ function startNotificationWatcher() {
 
 
 function runNotificationCheck() {
+  renderOverdueAlert();
+
   if (
     !(
       'Notification' in
@@ -4692,6 +4781,46 @@ function runNotificationCheck() {
       '1'
     );
   }
+
+  notifyOverdueTasks(getOverdueOccurrences(today), today);
+}
+
+
+function notifyOverdueTasks(tasks, today) {
+  if (!tasks.length) return;
+
+  const storageKey = 'jambalance_overdue_notice_' + state.user.id + '_' + toISODate(today);
+  try {
+    if (localStorage.getItem(storageKey)) return;
+  } catch (error) {
+    if (sessionStorage.getItem(storageKey)) return;
+  }
+
+  const firstTask = tasks[0];
+  const preview = tasks.slice(0, 3).map(task => task.title).join(' • ');
+  const remaining = tasks.length > 3 ? ' и ещё ' + (tasks.length - 3) : '';
+
+  try {
+    const notification = new Notification('⚠ Просрочено задач: ' + tasks.length, {
+      body: preview + remaining + '. Откройте Задачник и разберите просрочки.',
+      tag: 'jambalance-overdue-' + state.user.id + '-' + toISODate(today),
+      renotify: false
+    });
+
+    notification.onclick = () => {
+      window.focus();
+      openTaskModal(firstTask.id, fromISODate(firstTask.occurrenceDate));
+      notification.close();
+    };
+
+    try {
+      localStorage.setItem(storageKey, '1');
+    } catch (error) {
+      sessionStorage.setItem(storageKey, '1');
+    }
+  } catch (error) {
+    console.warn('Не удалось показать уведомление о просрочках:', error);
+  }
 }
 
 
@@ -4771,7 +4900,7 @@ function showTaskNotification(
 
       openTaskModal(
         task.id,
-        today
+        fromISODate(task.occurrenceDate || toISODate(new Date()))
       );
 
       notification.close();
