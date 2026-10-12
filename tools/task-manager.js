@@ -54,7 +54,7 @@
    ============================================================ */
 
 const SUPABASE_URL =
-  'https://fqcltmxiarohfpfnghjn.supabase.co';
+  'https://api.jam-balance.ru';
 
 const SUPABASE_PUBLISHABLE_KEY =
   'sb_publishable_PqjH12Cbf7Fw9CWxvTPHaQ_MYYq7HQT';
