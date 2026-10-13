@@ -1139,8 +1139,8 @@ function normalizeRecurrenceType(value) {
    Позже при необходимости сделаем серверную оптимизацию.
    ============================================================ */
 
-async function loadTasks() {
-  setLoading(true);
+async function loadTasks({ silent = false } = {}) {
+  if (!silent) setLoading(true);
 
   try {
     const {
@@ -1183,7 +1183,7 @@ async function loadTasks() {
       .catch(error => console.warn('Вложения не загрузились:', error));
 
   } finally {
-    setLoading(false);
+    if (!silent) setLoading(false);
   }
 }
 
