@@ -54,7 +54,7 @@
    ============================================================ */
 
 const SUPABASE_URL =
-  'https://fqcltmxiarohfpfnghjn.supabase.co';
+  'https://hub.jam-balance.ru/supabase-proxy.php';
 
 const SUPABASE_PUBLISHABLE_KEY =
   'sb_publishable_PqjH12Cbf7Fw9CWxvTPHaQ_MYYq7HQT';
@@ -4913,79 +4913,30 @@ function showTaskNotification(
    ============================================================ */
 
 function startRealtime() {
-  if (
-    !state.supabase
-      ?.channel
-  ) {
-    return;
+  if (state.refreshTimer) {
+    clearInterval(state.refreshTimer);
   }
 
-  if (
-    state.realtimeChannel
-  ) {
-    state.supabase
-      .removeChannel(
-        state.realtimeChannel
-      );
+  let refreshing = false;
+  const refreshTasks = async () => {
+    if (refreshing || document.hidden || !navigator.onLine || !state.user) {
+      return;
+    }
 
-    state.realtimeChannel =
-      null;
-  }
+    refreshing = true;
+    try {
+      await loadTasks({ silent: true });
+    } catch (error) {
+      console.warn('Не удалось обновить задачи:', error);
+    } finally {
+      refreshing = false;
+    }
+  };
 
-  try {
-    state.realtimeChannel =
-      state.supabase
-        .channel(
-          'jambalance-task-manager'
-        )
-        .on(
-          'postgres_changes',
-          {
-            event: '*',
-            schema: 'public',
-            table:
-              TASK_MANAGER_CONFIG
-                .tables
-                .tasks
-          },
-          debounceAsync(
-            async () => {
-              await loadTasks();
-            },
-            350
-          )
-        )
-        .on(
-          'postgres_changes',
-          {
-            event: '*',
-            schema: 'public',
-            table:
-              TASK_MANAGER_CONFIG
-                .tables
-                .attachments
-          },
-          debounceAsync(
-            async () => {
-              await loadAttachmentsForCurrentTasks();
-
-              if (
-                state.editingTaskId
-              ) {
-                renderPendingFiles();
-              }
-            },
-            350
-          )
-        )
-        .subscribe();
-
-  } catch (error) {
-    console.warn(
-      'Realtime не запущен:',
-      error
-    );
-  }
+  state.refreshTimer = window.setInterval(refreshTasks, 60 * 1000);
+  document.addEventListener('visibilitychange', () => {
+    if (!document.hidden) refreshTasks();
+  });
 }
 
 

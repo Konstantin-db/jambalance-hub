@@ -1,7 +1,7 @@
 (() => {
 'use strict';
 
-const SUPABASE_URL = 'https://fqcltmxiarohfpfnghjn.supabase.co';
+const SUPABASE_URL = 'https://hub.jam-balance.ru/supabase-proxy.php';
 const SUPABASE_PUBLISHABLE_KEY = 'sb_publishable_PqjH12Cbf7Fw9CWxvTPHaQ_MYYq7HQT';
 const TABLES = {clients:'clients', taxSystems:'client_tax_systems', banks:'client_bank_accounts', contacts:'client_contacts', documents:'client_documents'};
 const LEGACY_STORAGE_KEY = 'jambalance_contract_center_v4_dops';

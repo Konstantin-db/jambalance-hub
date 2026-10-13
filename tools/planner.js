@@ -20,7 +20,7 @@
    ============================================================ */
 
 const SUPABASE_URL =
-  'https://fqcltmxiarohfpfnghjn.supabase.co';
+  'https://hub.jam-balance.ru/supabase-proxy.php';
 
 const SUPABASE_PUBLISHABLE_KEY =
   'sb_publishable_PqjH12Cbf7Fw9CWxvTPHaQ_MYYq7HQT';
@@ -6361,102 +6361,7 @@ function skipLegacyMigration() {
    ============================================================ */
 
 function subscribeToRealtime() {
-  if (
-    realtimeChannel
-  ) {
-    supabaseClient
-      .removeChannel(
-        realtimeChannel
-      );
-  }
-
-  if (
-    profilesRealtimeChannel
-  ) {
-    supabaseClient
-      .removeChannel(
-        profilesRealtimeChannel
-      );
-  }
-
-  if (
-    filesRealtimeChannel
-  ) {
-    supabaseClient
-      .removeChannel(
-        filesRealtimeChannel
-      );
-  }
-
-  realtimeChannel =
-    supabaseClient
-      .channel(
-        'planner-v25'
-      )
-      .on(
-        'postgres_changes',
-        {
-          event: '*',
-          schema: 'public',
-          table:
-            'planner_leads'
-        },
-        () => {
-          loadLeads({
-            silent: true
-          });
-        }
-      )
-      .subscribe();
-
-  profilesRealtimeChannel =
-    supabaseClient
-      .channel(
-        'profiles-v25'
-      )
-      .on(
-        'postgres_changes',
-        {
-          event: '*',
-          schema: 'public',
-          table:
-            'profiles'
-        },
-        async () => {
-          try {
-            await loadProfiles();
-
-            render();
-          } catch (error) {
-            console.warn(
-              'Profiles realtime:',
-              error
-            );
-          }
-        }
-      )
-      .subscribe();
-
-  filesRealtimeChannel =
-    supabaseClient
-      .channel(
-        'files-v25'
-      )
-      .on(
-        'postgres_changes',
-        {
-          event: '*',
-          schema: 'public',
-          table:
-            'crm_files'
-        },
-        () => {
-          loadLeads({
-            silent: true
-          });
-        }
-      )
-      .subscribe();
+  // PHP hosting cannot relay WebSockets. startPeriodicTasks refreshes data over REST.
 }
 
 
