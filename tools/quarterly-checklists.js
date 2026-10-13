@@ -406,12 +406,23 @@ document.addEventListener('change',event=>{
 });
 $('client-search').addEventListener('input',renderClients);
 
+async function getVerifiedAuthUser(auth) {
+  let result = await auth.getUser();
+  if (result.error) {
+    const refreshed = await auth.refreshSession();
+    if (!refreshed.error && refreshed.data?.session?.access_token) {
+      result = await auth.getUser(refreshed.data.session.access_token);
+    }
+  }
+  if (result.error) throw result.error;
+  return result.data?.user || null;
+}
+
 async function init(){
   const now=new Date();state.year=now.getFullYear();state.quarter=Math.floor(now.getMonth()/3)+1;
   $('year').value=state.year;$('quarter').value=state.quarter;
   try{
-    const {data,error}=await db.auth.getUser();if(error||!data?.user){location.replace('../index.html');return;}
-    state.user=data.user;
+    state.user=await getVerifiedAuthUser(db.auth);if(!state.user){location.replace('../index.html');return;}
     const profile=check(await db.from('profiles').select('id,is_active').eq('id',state.user.id).maybeSingle());
     if(!profile?.is_active)throw new Error('Учётная запись сотрудника неактивна.');
     await loadBase();await loadQuarter();

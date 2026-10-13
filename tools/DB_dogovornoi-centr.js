@@ -1426,13 +1426,23 @@ function bindContractCenterEvents(){
   document.querySelectorAll('.tab').forEach(tab=>tab.onclick=()=>setActiveView(tab.dataset.view));
 }
 
+async function getVerifiedAuthUser(auth) {
+  let result = await auth.getUser();
+  if (result.error) {
+    const refreshed = await auth.refreshSession();
+    if (!refreshed.error && refreshed.data?.session?.access_token) {
+      result = await auth.getUser(refreshed.data.session.access_token);
+    }
+  }
+  if (result.error) throw result.error;
+  return result.data?.user || null;
+}
+
 async function initContractCenter(){
   try{
     if(!window.supabase?.createClient) throw new Error('Не загрузилась библиотека Supabase. Обновите страницу.');
     state.supabase=window.supabase.createClient(SUPABASE_URL,SUPABASE_PUBLISHABLE_KEY);
-    const {data,error}=await state.supabase.auth.getSession();
-    if(error) throw error;
-    state.user=data.session?.user||null;
+    state.user=await getVerifiedAuthUser(state.supabase.auth);
     if(!state.user) throw new Error('Сначала войдите в Рабочую станцию на главной странице.');
     await loadRemoteData();
     renderClientOptions();

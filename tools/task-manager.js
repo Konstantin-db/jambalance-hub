@@ -791,27 +791,22 @@ async function resolveSupabaseClient() {
    ============================================================ */
 
 async function loadCurrentUser() {
-  const {
-    data,
-    error
-  } =
-    await state.supabase.auth
-      .getUser();
-
-  if (error) {
-    throw error;
-  }
-
-  if (!data?.user) {
-    throw new Error(
-      'Пользователь не авторизован в Рабочей станции.'
-    );
-  }
-
-  state.user =
-    data.user;
+  const user = await getVerifiedAuthUser(state.supabase.auth);
+  if (!user) throw new Error('Пользователь не авторизован в Рабочей станции.');
+  state.user = user;
 }
 
+async function getVerifiedAuthUser(auth) {
+  let result = await auth.getUser();
+  if (result.error) {
+    const refreshed = await auth.refreshSession();
+    if (!refreshed.error && refreshed.data?.session?.access_token) {
+      result = await auth.getUser(refreshed.data.session.access_token);
+    }
+  }
+  if (result.error) throw result.error;
+  return result.data?.user || null;
+}
 
 async function loadCurrentProfile() {
   if (!state.user) {

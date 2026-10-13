@@ -1386,34 +1386,26 @@ function createSupabaseClient() {
    ============================================================ */
 
 async function ensureAuthenticated() {
-  setLoadingText(
-    'Проверяем авторизацию…'
-  );
-
-  const {
-    data,
-    error
-  } =
-    await supabaseClient
-      .auth
-      .getSession();
-
-  if (error) {
-    throw error;
-  }
-
-  if (
-    !data?.session?.user
-  ) {
+  setLoadingText('Проверяем авторизацию…');
+  const user = await getVerifiedAuthUser(supabaseClient.auth);
+  if (!user) {
     redirectToLogin();
-
     return false;
   }
-
-  currentUser =
-    data.session.user;
-
+  currentUser = user;
   return true;
+}
+
+async function getVerifiedAuthUser(auth) {
+  let result = await auth.getUser();
+  if (result.error) {
+    const refreshed = await auth.refreshSession();
+    if (!refreshed.error && refreshed.data?.session?.access_token) {
+      result = await auth.getUser(refreshed.data.session.access_token);
+    }
+  }
+  if (result.error) throw result.error;
+  return result.data?.user || null;
 }
 
 async function loadCurrentProfile() {

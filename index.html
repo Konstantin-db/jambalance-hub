@@ -2293,46 +2293,37 @@
        ========================================================= */
 
     async function checkSession() {
-      setLoadingText(
-        'Проверяем авторизацию…'
-      );
-
-      const {
-        data,
-        error
-      } =
-        await supabaseClient
-          .auth
-          .getSession();
-
-      if (error) {
-        throw error;
+      setLoadingText('Проверяем авторизацию…');
+      let user = null;
+      try {
+        user = await getVerifiedAuthUser(supabaseClient.auth);
+      } catch (error) {
+        console.warn('Сохранённая сессия не прошла проверку:', error);
       }
-
-      if (!data?.session?.user) {
+      if (!user) {
         showLoginScreen();
         return;
       }
-
-      currentUser =
-        data.session.user;
-
-      setLoadingText(
-        'Загружаем профиль сотрудника…'
-      );
-
-      const profileLoaded =
-        await loadProfile();
-
-      if (!profileLoaded) {
-        return;
-      }
-
+      currentUser = user;
+      setLoadingText('Загружаем профиль сотрудника…');
+      const profileLoaded = await loadProfile();
+      if (!profileLoaded) return;
       showApplication();
     }
 
+    async function getVerifiedAuthUser(auth) {
+      let result = await auth.getUser();
+      if (result.error) {
+        const refreshed = await auth.refreshSession();
+        if (!refreshed.error && refreshed.data?.session?.access_token) {
+          result = await auth.getUser(refreshed.data.session.access_token);
+        }
+      }
+      if (result.error) throw result.error;
+      return result.data?.user || null;
+    }
 
-    async function handleLogin(event) {
+        async function handleLogin(event) {
       event.preventDefault();
 
       showAuthError('');
