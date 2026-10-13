@@ -54,8 +54,6 @@ jobs:
             **/.github/**
             **/supabase/**
             supabase/**
-            **/.htaccess
-            .htaccess
             **/.well-known/**
             .well-known/**
             DEPLOYMENT.md
