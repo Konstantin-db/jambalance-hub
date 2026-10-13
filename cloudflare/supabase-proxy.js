@@ -89,7 +89,10 @@ export default {
       const target = new URL("/auth/v1/health", SUPABASE_ORIGIN);
       const probe = await fetch(target.toString(), {
         method: "GET",
-        headers: { "cache-control": "no-cache" }
+        headers: {
+          "apikey": "sb_publishable_PqjH12Cbf7Fw9CWxvTPHaQ_MYYq7HQT",
+          "cache-control": "no-cache"
+        }
       });
 
       return new Response(probe.body, {
