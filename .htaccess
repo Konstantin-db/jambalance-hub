@@ -1,0 +1,4 @@
+# Preserve the user bearer token for the Supabase PHP proxy on Apache FastCGI.
+<Files "supabase-proxy.php">
+    CGIPassAuth On
+</Files>
