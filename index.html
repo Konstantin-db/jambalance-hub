@@ -1381,6 +1381,25 @@
       </section>
 
 
+      <!-- ПАНЕЛЬ «НА СЕГОДНЯ» -->
+      <section class="todayPanel" id="todayPanel" aria-labelledby="todayTitle">
+        <header class="todayHeader">
+          <div>
+            <p class="todayEyebrow">План на день</p>
+            <h2 class="todayTitle" id="todayTitle">На сегодня</h2>
+            <p class="todayDate" id="todayDate"></p>
+          </div>
+          <button class="todayRefresh" id="todayRefresh" type="button">↻ Обновить</button>
+        </header>
+        <div class="todayStats" id="todayStats">
+          <div class="todayStat"><span class="todayStatLabel">На сегодня</span><strong class="todayStatValue">—</strong></div>
+          <div class="todayStat isLate"><span class="todayStatLabel">Просрочено</span><strong class="todayStatValue">—</strong></div>
+          <div class="todayStat"><span class="todayStatLabel">Чек-листы · выполнено</span><strong class="todayStatValue">—</strong></div>
+        </div>
+        <div id="todayContent"><div class="todayLoading">Загружаю задачи и чек-листы…</div></div>
+      </section>
+
+
       <!-- =====================================================
            ВНУТРЕННИЕ ИНСТРУМЕНТЫ
            ===================================================== -->
