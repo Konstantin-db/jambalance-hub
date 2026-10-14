@@ -198,16 +198,17 @@
     if (!input || !resultRoot) return;
 
     const term = cleanTerm(input.value);
+    const currentRequest = ++requestNumber;
     if (term.length < 2) {
       resultRoot.innerHTML = '<div class="globalSearchEmpty">Введите не меньше двух символов.</div>';
       resultRoot.hidden = false;
+      input.setAttribute('aria-expanded', 'true');
       return;
     }
     if (!db || !document.getElementById('appShell')?.classList.contains('show')) return;
-
-    const currentRequest = ++requestNumber;
     resultRoot.innerHTML = '<div class="globalSearchLoading"><span class="globalSearchSpinner"></span>Ищу в Рабочей Станции…</div>';
     resultRoot.hidden = false;
+    input.setAttribute('aria-expanded', 'true');
 
     const queries = await Promise.all([
       searchClients(db, term).then(function (data) { return { key: 'clients', data: data }; }).catch(function (error) { return { key: 'clients', error: error }; }),
@@ -273,6 +274,7 @@
       if (event.key === 'Escape') {
         input.value = '';
         results.hidden = true;
+        input.setAttribute('aria-expanded', 'false');
         requestNumber += 1;
       }
       if (event.key === 'Enter' && !results.hidden) {
@@ -290,12 +292,14 @@
       }
       if (event.key === 'Escape' && document.activeElement !== input) {
         results.hidden = true;
+        input.setAttribute('aria-expanded', 'false');
       }
     });
 
     document.addEventListener('click', function (event) {
       if (!event.target.closest('#' + ROOT_ID) && !event.target.closest('#' + RESULTS_ID)) {
         results.hidden = true;
+        input.setAttribute('aria-expanded', 'false');
       }
     });
 
