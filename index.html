@@ -1381,6 +1381,19 @@
       </section>
 
 
+      <!-- ПОИСК ПО РАБОЧЕЙ СТАНЦИИ -->
+      <section class="globalSearchSection" id="globalSearch" aria-label="Поиск по Рабочей Станции">
+        <div class="globalSearchBox">
+          <span class="globalSearchIcon" aria-hidden="true">⌕</span>
+          <input class="globalSearchInput" id="globalSearchInput" type="search" autocomplete="off"
+            placeholder="Клиент, ИНН, задача, договор или чек-лист…"
+            aria-label="Поиск по Рабочей Станции" aria-controls="globalSearchResults" aria-expanded="false">
+          <kbd class="globalSearchShortcut">Ctrl K</kbd>
+        </div>
+        <div class="globalSearchResults" id="globalSearchResults" role="region" aria-live="polite" hidden></div>
+      </section>
+
+
       <!-- ПАНЕЛЬ «НА СЕГОДНЯ» -->
       <section class="todayPanel" id="todayPanel" aria-labelledby="todayTitle">
         <header class="todayHeader">
@@ -1977,6 +1990,7 @@
   ></script>
 
   <script src="./tools/today-dashboard.js"></script>
+  <script src="./tools/global-search.js"></script>
 
 
   <script>
