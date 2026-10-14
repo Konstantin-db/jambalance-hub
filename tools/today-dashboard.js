@@ -73,8 +73,9 @@
 
     const type = task.recurrence_type || 'once';
     if (type === 'weekly') {
-      const weekday = Number.isInteger(Number(task.recurrence_weekday))
-        ? Number(task.recurrence_weekday) : first.getDay();
+      const weekdayValue = task.recurrence_weekday;
+      const weekday = weekdayValue !== null && weekdayValue !== undefined && weekdayValue !== '' && Number.isInteger(Number(weekdayValue))
+        ? Number(weekdayValue) : first.getDay();
       return target.getDay() === weekday;
     }
 
@@ -346,12 +347,16 @@
     if (refresh) refresh.addEventListener('click', function () { loadDashboard(true); });
 
     const observer = new MutationObserver(function () {
-      if (app.classList.contains('show')) loadDashboard(false);
+      if (app.classList.contains('show')) {
+        loadDashboard(true);
+      } else {
+        lastLoadedAt = 0;
+        const content = document.getElementById('todayContent');
+        if (content) content.innerHTML = '<div class="todayLoading">Загружаю задачи и чек-листы…</div>';
+      }
     });
     observer.observe(app, { attributes: true, attributeFilter: ['class'] });
-    if (app.classList.contains('show')) loadDashboard(false);
-
-    if (window.supabaseClient && app.classList.contains('show')) loadDashboard(true);
+    if (app.classList.contains('show')) loadDashboard(true);
   }
 
   if (document.readyState === 'loading') {
