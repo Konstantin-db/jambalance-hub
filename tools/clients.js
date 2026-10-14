@@ -4117,10 +4117,14 @@
       { label: 'Скидки и условия', value: getValue('client-discounts') }
     ]);
 
+    const primaryContact = state.currentClientContacts.find(item => item.is_primary) || state.currentClientContacts[0];
     $('client-overview-contacts').innerHTML = clientProfileRows([
       { label: 'Телефон', value: getValue('client-phone') || client.phone },
       { label: 'E-mail', value: getValue('client-email') || client.email },
-      { label: 'Связь предпочтительный', value: selectedText('client-communication-method') },
+      { label: 'Предпочтительный канал', value: selectedText('client-communication-method') },
+      { label: 'Основное контактное лицо', value: primaryContact ? [primaryContact.full_name, primaryContact.position].filter(Boolean).join(' · ') : '' },
+      { label: 'Телефон контактного лица', value: primaryContact?.phone },
+      { label: 'E-mail контактного лица', value: primaryContact?.email },
       { label: 'Юридический адрес', value: getValue('client-legal-address') },
       { label: 'Фактический адрес', value: getValue('client-actual-address') },
       { label: 'Место работы', value: getValue('client-location') },
@@ -4133,8 +4137,8 @@
     $('client-overview-reporting').innerHTML = reports.length
       ? reports.slice(0, 4).map(report => `
           <div class="client-profile-entry">
-            <div class="client-profile-entry-title">${escapeHtml(report.report_kind || report.report_type || 'Отчётность')}</div>
-            <div class="client-profile-entry-meta">${escapeHtml([report.report_period, formatDate(report.due_date), reportDisplayStatus(report).text].filter(Boolean).join(' · '))}</div>
+            <div class="client-profile-entry-title">${escapeHtml(report.report_kind || 'Отчётность')}</div>
+            <div class="client-profile-entry-meta">${escapeHtml([report.report_year, report.report_period, formatDate(report.due_date), reportDisplayStatus(report).text].filter(Boolean).join(' · '))}</div>
           </div>
         `).join('')
       : '<div class="client-profile-empty">Записи об отчётности не добавлены.</div>';
