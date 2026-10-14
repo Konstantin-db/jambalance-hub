@@ -2043,6 +2043,131 @@
         grid-column: 1 / -1;
       }
     }
+
+    .profile-intro {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 14px;
+      border-top: 3px solid var(--brand);
+      margin-bottom: 12px;
+    }
+
+    .client-profile-grid {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      align-items: start;
+      gap: 12px;
+    }
+
+    .client-profile-section {
+      min-width: 0;
+    }
+
+    .client-profile-content {
+      display: grid;
+      gap: 0;
+    }
+
+    .client-profile-row {
+      display: grid;
+      grid-template-columns: minmax(100px, 0.8fr) minmax(0, 1.2fr);
+      gap: 12px;
+      padding: 9px 0;
+      border-top: 1px solid #edf0f4;
+    }
+
+    .client-profile-row:first-child {
+      border-top: 0;
+      padding-top: 0;
+    }
+
+    .client-profile-label {
+      color: var(--ink-muted);
+      font-size: 11px;
+      font-weight: 700;
+    }
+
+    .client-profile-value {
+      min-width: 0;
+      color: var(--ink);
+      font-size: 12px;
+      font-weight: 700;
+      overflow-wrap: anywhere;
+    }
+
+    .client-profile-value a {
+      color: #a85b00;
+      text-decoration: underline;
+      text-underline-offset: 2px;
+    }
+
+    .client-profile-list {
+      display: grid;
+      gap: 8px;
+    }
+
+    .client-profile-entry {
+      padding: 10px 11px;
+      border: 1px solid var(--line);
+      border-radius: 10px;
+      background: var(--surface-soft);
+    }
+
+    .client-profile-entry-title {
+      font-size: 12px;
+      font-weight: 800;
+      line-height: 1.4;
+      overflow-wrap: anywhere;
+    }
+
+    .client-profile-entry-meta {
+      margin-top: 4px;
+      color: var(--ink-soft);
+      font-size: 11px;
+      line-height: 1.45;
+    }
+
+    .client-profile-empty {
+      padding: 10px 0;
+      color: var(--ink-muted);
+      font-size: 12px;
+    }
+
+    .client-profile-link {
+      display: inline-flex;
+      margin-top: 10px;
+      color: #a85b00;
+      font-size: 11px;
+      font-weight: 800;
+    }
+
+    .client-profile-notes {
+      grid-column: 1 / -1;
+    }
+
+    .client-profile-notes-body {
+      color: var(--ink-soft);
+      font-size: 12px;
+      white-space: pre-wrap;
+      overflow-wrap: anywhere;
+    }
+
+    @media (max-width: 720px) {
+      .client-profile-grid {
+        grid-template-columns: 1fr;
+      }
+
+      .client-profile-notes {
+        grid-column: auto;
+      }
+
+      .profile-intro {
+        align-items: flex-start;
+        flex-direction: column;
+      }
+    }
+
   </style>
 </head>
 
@@ -2804,6 +2929,14 @@
       <button
         class="drawer-tab active"
         type="button"
+        data-client-tab="overview"
+      >
+        Обзор
+      </button>
+
+      <button
+        class="drawer-tab"
+        type="button"
         data-client-tab="main"
       >
         Основное
@@ -2884,11 +3017,107 @@
 
 
       <!-- =====================================================
-           TAB: MAIN
+           TAB: OVERVIEW
            ===================================================== -->
 
       <section
         class="drawer-pane active"
+        data-client-pane="overview"
+      >
+        <div class="form-section profile-intro">
+          <div>
+            <div class="form-section-title">Профиль клиента</div>
+            <div class="form-section-note" id="client-overview-subtitle">
+              Основная информация и текущие дела в одном месте
+            </div>
+          </div>
+          <button class="btn btn-secondary btn-sm" type="button" id="btn-edit-client">
+            Редактировать данные
+          </button>
+        </div>
+
+        <div class="client-profile-grid">
+          <section class="form-section client-profile-section">
+            <div class="form-section-head">
+              <div>
+                <div class="form-section-title">Основное</div>
+                <div class="form-section-note">Реквизиты, статус и ответственный</div>
+              </div>
+            </div>
+            <div class="client-profile-content" id="client-overview-identity"></div>
+          </section>
+
+          <section class="form-section client-profile-section">
+            <div class="form-section-head">
+              <div>
+                <div class="form-section-title">Обслуживание</div>
+                <div class="form-section-note">Условия работы и налоговый режим</div>
+              </div>
+            </div>
+            <div class="client-profile-content" id="client-overview-service"></div>
+          </section>
+
+          <section class="form-section client-profile-section">
+            <div class="form-section-head">
+              <div>
+                <div class="form-section-title">Контакты</div>
+                <div class="form-section-note">Основные контакты клиента и команды</div>
+              </div>
+            </div>
+            <div class="client-profile-content" id="client-overview-contacts"></div>
+          </section>
+
+          <section class="form-section client-profile-section">
+            <div class="form-section-head">
+              <div>
+                <div class="form-section-title">Отчётность</div>
+                <div class="form-section-note">Сроки и последние статусы</div>
+              </div>
+            </div>
+            <div class="client-profile-content" id="client-overview-reporting"></div>
+          </section>
+
+          <section class="form-section client-profile-section">
+            <div class="form-section-head">
+              <div>
+                <div class="form-section-title">Задачи</div>
+                <div class="form-section-note">Связанные задачи из Задачника</div>
+              </div>
+            </div>
+            <div class="client-profile-list" id="client-overview-tasks"></div>
+            <a class="client-profile-link" href="./task-manager.html" target="_blank" rel="noopener noreferrer">Открыть Задачник →</a>
+          </section>
+
+          <section class="form-section client-profile-section">
+            <div class="form-section-head">
+              <div>
+                <div class="form-section-title">Документы</div>
+                <div class="form-section-note">Договоры и записи Договорного центра</div>
+              </div>
+            </div>
+            <div class="client-profile-list" id="client-overview-documents"></div>
+            <a class="client-profile-link" href="./DB_dogovornoi-centr.html" target="_blank" rel="noopener noreferrer">Открыть Договорной центр →</a>
+          </section>
+
+          <section class="form-section client-profile-section client-profile-notes">
+            <div class="form-section-head">
+              <div>
+                <div class="form-section-title">Примечания</div>
+                <div class="form-section-note">Внутренний контекст по клиенту</div>
+              </div>
+            </div>
+            <div class="client-profile-notes-body" id="client-overview-notes"></div>
+          </section>
+        </div>
+      </section>
+
+
+      <!-- =====================================================
+           TAB: MAIN
+           ===================================================== -->
+
+      <section
+        class="drawer-pane"
         data-client-pane="main"
       >
 
