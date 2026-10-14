@@ -107,6 +107,10 @@
     currentClientBanks: [],
     currentClientReports: [],
     currentClientCommunication: [],
+    currentClientTasks: [],
+    currentClientTaskLoadError: false,
+    currentClientDocuments: [],
+    currentClientDocumentLoadError: false,
 
     currentSecrets: [],
     currentSecretAudit: [],
@@ -2923,6 +2927,10 @@
     state.currentClientBanks = [];
     state.currentClientReports = [];
     state.currentClientCommunication = [];
+    state.currentClientTasks = [];
+    state.currentClientTaskLoadError = false;
+    state.currentClientDocuments = [];
+    state.currentClientDocumentLoadError = false;
 
     state.currentSecrets = [];
     state.currentSecretAudit = [];
@@ -3082,6 +3090,8 @@
     fillClientForm(client);
 
     openDrawer();
+    switchClientTab('overview');
+    renderClientOverview(client);
 
 
     try {
@@ -3972,12 +3982,18 @@
     state.currentClientCommunication =
       communication.data || [];
 
+    await loadClientWork(
+      state.clients.find(item => item.id === clientId) || { id: clientId }
+    );
 
     renderCurrentActivities();
     renderContacts();
     renderBankAccounts();
     renderReports();
     renderCommunication();
+    renderClientOverview(
+      state.clients.find(item => item.id === clientId) || { id: clientId }
+    );
 
 
     if (isManager()) {
@@ -3987,6 +4003,178 @@
       renderSecretsAccessDenied();
       renderAuditAccessDenied();
     }
+  }
+
+
+
+  /* ============================================================
+     CLIENT PROFILE OVERVIEW
+     ============================================================ */
+
+  async function loadClientWork(client) {
+    const names = Array.from(new Set([
+      client.client_name,
+      client.short_name
+    ].map(value => String(value || '').trim()).filter(Boolean)));
+
+    const taskRequests = names.flatMap(name => [
+      ['client_name', name],
+      ['client_name_manual', name]
+    ]);
+
+    const taskResponses = await Promise.all(
+      taskRequests.map(async ([field, value]) => {
+        try {
+          return await state.supabase
+            .from('tasks')
+            .select('id,title,status,due_date,due_time,client_name,client_name_manual')
+            .eq(field, value)
+            .limit(20);
+        } catch (error) {
+          return { data: [], error };
+        }
+      })
+    );
+
+    const taskSuccesses = taskResponses.filter(result => !result.error);
+    state.currentClientTaskLoadError =
+      taskResponses.length > 0 && taskSuccesses.length === 0;
+    state.currentClientTasks = Array.from(new Map(
+      taskSuccesses.flatMap(result => result.data || [])
+        .map(task => [task.id || [task.title, task.due_date, task.client_name].join('|'), task])
+    ).values());
+
+    try {
+      const documents = await state.supabase
+        .from(CONFIG.tables.documents)
+        .select('id,client_id,client_name,client_inn,document_number,doc_type_label,doc_date,status,record_type')
+        .eq('client_id', client.id)
+        .order('doc_date', { ascending: false })
+        .limit(8);
+
+      state.currentClientDocumentLoadError = Boolean(documents.error);
+      state.currentClientDocuments = documents.data || [];
+    } catch (error) {
+      state.currentClientDocumentLoadError = true;
+      state.currentClientDocuments = [];
+    }
+  }
+
+
+  function clientProfileRows(entries) {
+    return entries
+      .filter(entry => entry && entry.value)
+      .map(entry => `
+        <div class="client-profile-row">
+          <div class="client-profile-label">${escapeHtml(entry.label)}</div>
+          <div class="client-profile-value">${escapeHtml(entry.value)}</div>
+        </div>
+      `)
+      .join('') || '<div class="client-profile-empty">Нет данных</div>';
+  }
+
+
+  function renderClientOverview(client) {
+    if (!client || client.id !== state.currentClientId) return;
+
+    const getValue = id => $(id)?.value?.trim() || '';
+    const selectedText = id => {
+      const control = $(id);
+      return control?.selectedOptions?.[0]?.textContent?.trim() || '';
+    };
+    const fullName = getValue('client-name') || client.client_name || 'Клиент';
+    $('client-overview-subtitle').textContent =
+      [getValue('client-inn') || client.inn ? 'ИНН ' + (getValue('client-inn') || client.inn) : '',
+       selectedText('client-status') === 'Активный' ? 'На обслуживании' : selectedText('client-status') || '']
+        .filter(Boolean).join(' · ') || 'Основная информация и текущие дела в одном месте';
+
+    $('drawer-client-title').textContent = fullName;
+    $('drawer-client-subtitle').textContent =
+      [getValue('client-org-form') || client.org_form, getValue('client-inn') || client.inn ? 'ИНН ' + (getValue('client-inn') || client.inn) : '']
+        .filter(Boolean).join(' · ');
+
+    $('client-overview-identity').innerHTML = clientProfileRows([
+      { label: 'Статус', value: selectedText('client-status') },
+      { label: 'Форма', value: getValue('client-org-form') || client.org_form },
+      { label: 'ИНН', value: getValue('client-inn') || client.inn },
+      { label: 'КПП', value: getValue('client-kpp') || client.kpp },
+      { label: 'ОГРН', value: getValue('client-ogrn') || client.ogrn },
+      { label: 'Группа', value: getClientGroup(client.client_group_id)?.group_name },
+      { label: 'Ответственный', value: selectedText('client-responsible') },
+      { label: 'Папка', value: getValue('client-folder-url') ? 'Ссылка добавлена — откройте кнопку «Папка» выше' : '' }
+    ]);
+
+    const taxSystems = taxSystemsTextForClient(client);
+    const activity = activityTextForClient(client);
+    $('client-overview-service').innerHTML = clientProfileRows([
+      { label: 'Договор', value: getValue('client-contract-number') },
+      { label: 'Дата договора', value: formatDate(getValue('client-contract-date')) },
+      { label: 'Стоимость', value: getValue('client-service-price') ? formatMoney(getValue('client-service-price')) : '' },
+      { label: 'Формат', value: getValue('client-cooperation-format') },
+      { label: 'Система налогообложения', value: taxSystems || selectedText('client-tax-systems-list') },
+      { label: 'Сфера деятельности', value: activity },
+      { label: 'НДС', value: $('client-vat-enabled')?.checked ? 'Да' + (getValue('client-vat-rate') ? ' · ' + getValue('client-vat-rate') + '%' : '') : '' },
+      { label: 'Скидки и условия', value: getValue('client-discounts') }
+    ]);
+
+    $('client-overview-contacts').innerHTML = clientProfileRows([
+      { label: 'Телефон', value: getValue('client-phone') || client.phone },
+      { label: 'E-mail', value: getValue('client-email') || client.email },
+      { label: 'Связь предпочтительный', value: selectedText('client-communication-method') },
+      { label: 'Юридический адрес', value: getValue('client-legal-address') },
+      { label: 'Фактический адрес', value: getValue('client-actual-address') },
+      { label: 'Место работы', value: getValue('client-location') },
+      { label: 'Доп. контакты', value: state.currentClientContacts.length ? String(state.currentClientContacts.length) + ' · подробнее во вкладке «Контакты»' : '' }
+    ]);
+
+    const reports = [...state.currentClientReports].sort((a, b) =>
+      String(b.due_date || '').localeCompare(String(a.due_date || ''))
+    );
+    $('client-overview-reporting').innerHTML = reports.length
+      ? reports.slice(0, 4).map(report => `
+          <div class="client-profile-entry">
+            <div class="client-profile-entry-title">${escapeHtml(report.report_kind || report.report_type || 'Отчётность')}</div>
+            <div class="client-profile-entry-meta">${escapeHtml([report.report_period, formatDate(report.due_date), reportDisplayStatus(report).text].filter(Boolean).join(' · '))}</div>
+          </div>
+        `).join('')
+      : '<div class="client-profile-empty">Записи об отчётности не добавлены.</div>';
+
+    const taskRows = [...state.currentClientTasks].sort((a, b) => {
+      const aDone = a.status === 'done' ? 1 : 0;
+      const bDone = b.status === 'done' ? 1 : 0;
+      return aDone - bDone || String(a.due_date || '9999').localeCompare(String(b.due_date || '9999'));
+    });
+    $('client-overview-tasks').innerHTML = state.currentClientTaskLoadError
+      ? '<div class="client-profile-empty">Не удалось загрузить задачи. Их можно посмотреть в Задачнике.</div>'
+      : taskRows.length
+        ? taskRows.slice(0, 6).map(task => {
+            const isDone = task.status === 'done';
+            const isOverdue = !isDone && task.due_date && String(task.due_date).slice(0, 10) < todayDate();
+            const meta = [
+              task.due_date ? formatDate(task.due_date) : '',
+              task.due_time ? String(task.due_time).slice(0, 5) : '',
+              isDone ? 'Выполнена' : (isOverdue ? 'Просрочена' : 'Открыта')
+            ].filter(Boolean).join(' · ');
+            return `<div class="client-profile-entry">
+              <div class="client-profile-entry-title">${escapeHtml(task.title || 'Без названия')}</div>
+              <div class="client-profile-entry-meta">${escapeHtml(meta)}</div>
+            </div>`;
+          }).join('')
+        : '<div class="client-profile-empty">Связанных задач пока нет.</div>';
+
+    $('client-overview-documents').innerHTML = state.currentClientDocumentLoadError
+      ? '<div class="client-profile-empty">Не удалось загрузить документы. Их можно посмотреть в Договорном центре.</div>'
+      : state.currentClientDocuments.length
+        ? state.currentClientDocuments.slice(0, 6).map(doc => `
+            <div class="client-profile-entry">
+              <div class="client-profile-entry-title">${escapeHtml([doc.doc_type_label || 'Документ', doc.document_number ? '№ ' + doc.document_number : ''].filter(Boolean).join(' · '))}</div>
+              <div class="client-profile-entry-meta">${escapeHtml([formatDate(doc.doc_date), doc.status].filter(Boolean).join(' · '))}</div>
+            </div>
+          `).join('')
+        : '<div class="client-profile-empty">Документы не найдены.</div>';
+
+    const notes = getValue('client-notes');
+    $('client-overview-notes').textContent = notes || 'Примечаний пока нет.';
   }
 
 
@@ -4215,6 +4403,16 @@
       }
     );
 
+
+    const overview = name === 'overview';
+    setHidden($('btn-save-client'), overview);
+    setHidden($('btn-delete-client'), overview || !state.currentClientId);
+
+    if (overview && state.currentClientId) {
+      renderClientOverview(
+        state.clients.find(item => item.id === state.currentClientId)
+      );
+    }
 
     if (
       name === 'secrets' &&
@@ -7571,6 +7769,13 @@
       ?.addEventListener(
         'click',
         saveClient
+      );
+
+
+    $('btn-edit-client')
+      ?.addEventListener(
+        'click',
+        () => switchClientTab('main')
       );
 
 
