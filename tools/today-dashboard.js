@@ -37,7 +37,7 @@
   }
 
   function checklistHeader(period) {
-    return '<div class="todaySubhead"><h3>Чек-листы за ' + quarterLabel(period) + '</h3>' +
+    return '<div class="todaySubhead todayChecklistHead"><h3>Чек-листы</h3>' +
       '<div class="todayChecklistControls">' +
       '<select class="todayQuarterSelect" id="todayQuarterSelect" aria-label="Выбрать квартал для чек-листов">' +
       quarterOptions(period) +
@@ -308,7 +308,7 @@
       '.todayProgress{height:6px;margin-top:6px;overflow:hidden;border-radius:99px;background:#edf0f3}.todayProgress i{display:block;height:100%;border-radius:inherit;background:#f99303}' +
       '.todayLoading{padding:13px;color:#748094;font-size:11px}.todayError{padding:11px;border:1px solid #efc7c3;border-radius:11px;color:#8b3c35;background:#fff5f4;font-size:11px}' +
       '@media(max-width:760px){.todayColumns{grid-template-columns:1fr}.todayStats{gap:7px}.todayStat{padding:10px}.todayStatValue{font-size:19px}}' +
-      '@media(max-width:480px){.todayPanel{padding:15px;border-radius:17px}.todayHeader{align-items:flex-start}.todayTitle{font-size:20px}.todayDate{font-size:11px}.todayRefresh{font-size:10px;padding:7px 9px}.todayStats{grid-template-columns:repeat(3,minmax(0,1fr))}.todayStatLabel{font-size:9px}.todayStatValue{font-size:18px}.todayTaskMeta{max-width:85px;text-align:right;white-space:normal}}';
+      '@media(max-width:480px){.todayPanel{padding:15px;border-radius:17px}.todayHeader{align-items:flex-start}.todayTitle{font-size:20px}.todayDate{font-size:11px}.todayRefresh{font-size:10px;padding:7px 9px}.todayStats{grid-template-columns:repeat(3,minmax(0,1fr))}.todayStatLabel{font-size:9px}.todayStatValue{font-size:18px}.todayTaskMeta{max-width:85px;text-align:right;white-space:normal}.todayChecklistHead{align-items:flex-start;flex-direction:column}.todayChecklistControls{width:100%;justify-content:space-between}.todayQuarterSelect{max-width:none;flex:1}}';
     document.head.appendChild(style);
   }
 
