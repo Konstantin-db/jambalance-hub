@@ -7,6 +7,43 @@
   const PANEL_ID = 'todayPanel';
   let loading = false;
   let lastLoadedAt = 0;
+  let selectedChecklistPeriod = null;
+
+  const QUARTER_NAMES = ['I', 'II', 'III', 'IV'];
+
+  function defaultChecklistPeriod(today) {
+    const year = today.getFullYear();
+    const month = today.getMonth() + 1;
+    const day = today.getDate();
+    if (month === 10 && day <= 25) {
+      return { year: year, quarter: 3 };
+    }
+    return { year: year, quarter: Math.floor(today.getMonth() / 3) + 1 };
+  }
+
+  function quarterLabel(period) {
+    return (QUARTER_NAMES[period.quarter - 1] || period.quarter) +
+      ' квартал ' + period.year;
+  }
+
+  function quarterOptions(period) {
+    return QUARTER_NAMES.map(function (name, index) {
+      const quarter = index + 1;
+      const value = period.year + '-' + quarter;
+      return '<option value="' + value + '"' +
+        (quarter === period.quarter ? ' selected' : '') + '>' +
+        name + ' квартал ' + period.year + '</option>';
+    }).join('');
+  }
+
+  function checklistHeader(period) {
+    return '<div class="todaySubhead"><h3>Чек-листы за ' + quarterLabel(period) + '</h3>' +
+      '<div class="todayChecklistControls">' +
+      '<select class="todayQuarterSelect" id="todayQuarterSelect" aria-label="Выбрать квартал для чек-листов">' +
+      quarterOptions(period) +
+      '</select><a class="todayTextLink" href="' + CHECKLIST_URL + '">Все списки →</a>' +
+      '</div></div>';
+  }
 
   function escapeHtml(value) {
     return String(value == null ? '' : value).replace(/[&<>"']/g, function (char) {
@@ -217,18 +254,18 @@
     }).sort(function (a, b) { return a.client.localeCompare(b.client, 'ru'); });
   }
 
-  function renderChecklistSummary(lists, error) {
+  function renderChecklistSummary(lists, error, period) {
+    const header = checklistHeader(period);
     if (error) {
-      return '<section class="todayListSection"><div class="todaySubhead"><h3>Квартальные чек-листы</h3></div>' +
-        '<p class="todayEmpty">Не удалось загрузить чек-листы. Их можно открыть отдельно.</p></section>';
+      return '<section class="todayListSection">' + header +
+        '<p class="todayEmpty">Не удалось загрузить чек-листы. Попробуйте обновить панель.</p></section>';
     }
     if (!lists.length) {
-      return '<section class="todayListSection"><div class="todaySubhead"><h3>Чек-листы за текущий квартал</h3></div>' +
-        '<p class="todayEmpty">Пока нет созданных списков за этот квартал.</p>' +
+      return '<section class="todayListSection">' + header +
+        '<p class="todayEmpty">Пока нет созданных списков за ' + quarterLabel(period) + '.</p>' +
         '<a class="todayTextLink" href="' + CHECKLIST_URL + '">Открыть чек-листы →</a></section>';
     }
-    return '<section class="todayListSection"><div class="todaySubhead"><h3>Чек-листы за текущий квартал</h3>' +
-      '<a class="todayTextLink" href="' + CHECKLIST_URL + '">Все списки →</a></div>' +
+    return '<section class="todayListSection">' + header +
       lists.slice(0, 5).map(function (list) {
         return '<div class="todayChecklistRow"><div class="todayChecklistTop"><strong>' + escapeHtml(list.client) +
           '</strong><span>' + list.done + ' из ' + list.total + '</span></div>' +
@@ -260,6 +297,7 @@
       '.todaySubhead{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:7px}' +
       '.todaySubhead h3{margin:0;color:#263246;font-size:13px;font-weight:900}' +
       '.todaySubhead>span{display:inline-flex;min-width:22px;height:22px;align-items:center;justify-content:center;padding:0 6px;border-radius:99px;color:#596579;background:#eef1f4;font-size:10px;font-weight:900}' +
+      '.todayChecklistControls{display:flex;align-items:center;gap:9px}.todayQuarterSelect{max-width:155px;height:31px;padding:0 8px;border:1px solid #e2e7ee;border-radius:9px;background:#fff;color:#4b5563;font:inherit;font-size:10px;font-weight:800}.todayQuarterSelect:focus{outline:2px solid rgba(249,147,3,.22);border-color:#f99303}' +
       '.todayTaskRow{display:flex;align-items:center;gap:9px;padding:9px 4px;color:inherit;text-decoration:none;border-radius:10px}.todayTaskRow:hover{background:#f8f9fb}' +
       '.todayTaskMark{width:9px;height:9px;flex:0 0 auto;border:2px solid #f99303;border-radius:50%}.todayTaskMark.isOverdue{border-color:#c83a32;background:#c83a32}' +
       '.todayTaskCopy{display:flex;flex:1;min-width:0;flex-direction:column;gap:3px}.todayTaskCopy strong{overflow:hidden;color:#263246;font-size:11px;text-overflow:ellipsis;white-space:nowrap}.todayTaskCopy small{overflow:hidden;color:#8791a0;font-size:10px;text-overflow:ellipsis;white-space:nowrap}' +
@@ -293,7 +331,10 @@
     try {
       const now = new Date();
       const today = dayStart(now);
-      const quarter = Math.floor(today.getMonth() / 3) + 1;
+      if (!selectedChecklistPeriod || selectedChecklistPeriod.year !== today.getFullYear()) {
+        selectedChecklistPeriod = defaultChecklistPeriod(today);
+      }
+      const checklistPeriod = { year: selectedChecklistPeriod.year, quarter: selectedChecklistPeriod.quarter };
       const tasksResult = await db.from('tasks').select('*');
       if (tasksResult.error) throw tasksResult.error;
 
@@ -301,7 +342,7 @@
       let lists = [];
       let checklistError = false;
       try {
-        lists = await loadChecklists(db, today.getFullYear(), quarter);
+        lists = await loadChecklists(db, checklistPeriod.year, checklistPeriod.quarter);
       } catch (error) {
         console.warn('Не удалось загрузить квартальные чек-листы на главной:', error);
         checklistError = true;
@@ -315,7 +356,7 @@
       document.getElementById('todayStats').innerHTML =
         '<div class="todayStat"><span class="todayStatLabel">На сегодня</span><strong class="todayStatValue">' + periods.dueToday.length + '</strong></div>' +
         '<div class="todayStat isLate"><span class="todayStatLabel">Просрочено</span><strong class="todayStatValue">' + periods.overdue.length + '</strong></div>' +
-        '<div class="todayStat"><span class="todayStatLabel">Чек-листы · выполнено</span><strong class="todayStatValue">' + quarterValue + '</strong></div>';
+        '<div class="todayStat"><span class="todayStatLabel">Чек-листы · ' + QUARTER_NAMES[checklistPeriod.quarter - 1] + ' квартал</span><strong class="todayStatValue">' + quarterValue + '</strong></div>';
 
       document.getElementById('todayContent').innerHTML =
         '<div class="todayColumns"><div class="todayColumn">' +
@@ -324,8 +365,10 @@
         taskList('Ближайшие 7 дней', periods.upcoming, false, 'На ближайшую неделю задач нет.') +
         '<a class="todayTextLink" href="' + TASK_URL + '">Открыть задачник →</a>' +
         '</div><div class="todayColumn">' +
-        renderChecklistSummary(lists, checklistError) +
+        renderChecklistSummary(lists, checklistError, checklistPeriod) +
         '</div></div>';
+
+      bindChecklistControls();
 
       lastLoadedAt = Date.now();
     } catch (error) {
@@ -336,6 +379,20 @@
       loading = false;
       if (refresh) refresh.disabled = false;
     }
+  }
+
+  function bindChecklistControls() {
+    const select = document.getElementById('todayQuarterSelect');
+    if (!select) return;
+    select.addEventListener('change', function () {
+      const parts = select.value.split('-').map(Number);
+      if (parts.length !== 2 || !Number.isFinite(parts[0]) ||
+          !Number.isInteger(parts[1]) || parts[1] < 1 || parts[1] > 4) {
+        return;
+      }
+      selectedChecklistPeriod = { year: parts[0], quarter: parts[1] };
+      loadDashboard(true);
+    });
   }
 
   function initialize() {
