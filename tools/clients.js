@@ -127,7 +127,8 @@
       status: '',
       orgForm: '',
       taxSystem: '',
-      responsible: ''
+      responsible: '',
+      expiry: ''
     },
 
     sort: 'name_asc',
@@ -2180,7 +2181,24 @@
     }
 
 
-    sortClients(list);
+    if (state.filters.expiry) {
+      list = list.filter(client => {
+        if (client.status !== 'active') return false;
+        const expiry = state.filters.expiry === 'ecp'
+          ? getEcpState(client)
+          : getOneCState(client);
+        return expiry.level === 'warning' || expiry.level === 'danger';
+      });
+
+      list.sort((a, b) => {
+        const getDays = client => state.filters.expiry === 'ecp'
+          ? getEcpState(client).days
+          : getOneCState(client).days;
+        return Number(getDays(a)) - Number(getDays(b));
+      });
+    } else {
+      sortClients(list);
+    }
 
     return list;
   }
@@ -2291,6 +2309,7 @@
     const list =
       getVisibleClients();
 
+    renderExpiryFilterNote(list);
 
     if (
       !state.clients.length
@@ -2525,31 +2544,37 @@
     }
 
 
+    const oneC =
+      getOneCState(client);
+
     let warningHtml = '';
 
     if (
       ecp.level === 'warning' ||
       ecp.level === 'danger'
     ) {
-      warningHtml = `
-        <div
-          class="client-warning
-          ${
-            ecp.level === 'danger'
-              ? 'danger'
-              : ''
-          }"
-        >
-          <span class="warning-symbol">
-            !
-          </span>
+      warningHtml += `
+        <div class="client-warning ${ecp.level === 'danger' ? 'danger' : ''}">
+          <span class="warning-symbol">!</span>
+          ${escapeHtml(formatExpiryMessage('ЭЦП', ecp))}
+        </div>
+      `;
+    }
 
-          ${escapeHtml(
-            formatExpiryMessage(
-              'ЭЦП',
-              ecp
-            )
-          )}
+    if (
+      oneC.level === 'warning' ||
+      oneC.level === 'danger'
+    ) {
+      const oneCMessage = oneC.level === 'danger'
+        ? 'Срок действия 1С истёк ' + Math.abs(oneC.days) + ' дн. назад'
+        : oneC.days === 0
+          ? 'Срок действия 1С истекает сегодня'
+          : 'Срок действия 1С истекает через ' + oneC.days + ' дн.';
+
+      warningHtml += `
+        <div class="client-warning ${oneC.level === 'danger' ? 'danger' : ''}">
+          <span class="warning-symbol">!</span>
+          ${escapeHtml(oneCMessage)}
         </div>
       `;
     }
@@ -2862,6 +2887,40 @@
       oneCCard.classList.add(
         'warning'
       );
+    }
+
+    updateExpiryMetricCard(
+      ecpCard,
+      'ecp',
+      'ЭЦП',
+      ecpWarnings.length,
+      'Истекают или уже истекли'
+    );
+    updateExpiryMetricCard(
+      oneCCard,
+      'one_c',
+      'Срок действия 1С',
+      oneCWarnings.length,
+      'Требуют внимания'
+    );
+  }
+
+
+  function updateExpiryMetricCard(card, type, label, count, note) {
+    const active = state.filters.expiry === type;
+    card.classList.toggle('is-active', active);
+    card.setAttribute('aria-pressed', String(active));
+    card.setAttribute(
+      'aria-label',
+      label + ': ' + count + '. ' +
+        (active ? 'Нажмите, чтобы снять фильтр.' : 'Нажмите, чтобы увидеть список клиентов.')
+    );
+
+    const noteElement = card.querySelector('.overview-note');
+    if (noteElement) {
+      noteElement.textContent = active
+        ? 'Фильтр включён · нажмите, чтобы снять'
+        : note + ' · нажмите, чтобы показать';
     }
   }
 
@@ -7667,13 +7726,79 @@
      FILTER EVENTS
      ============================================================ */
 
+  function toggleExpiryFilter(type) {
+    const next = state.filters.expiry === type ? '' : type;
+
+    state.filters = {
+      query: '',
+      status: '',
+      orgForm: '',
+      taxSystem: '',
+      responsible: '',
+      expiry: next
+    };
+
+    $('clients-search').value = '';
+    $('filter-status').value = '';
+    $('filter-org-form').value = '';
+    $('filter-tax-system').value = '';
+    $('filter-responsible').value = '';
+
+    state.viewMode = 'list';
+    $all('[data-clients-view]').forEach(button => {
+      button.classList.toggle(
+        'active',
+        button.dataset.clientsView === 'list'
+      );
+    });
+
+    renderOverview();
+    renderClients();
+
+    if (next) {
+      $('clients-grid')?.scrollIntoView({
+        behavior: 'smooth',
+        block: 'start'
+      });
+    }
+  }
+
+
+  function renderExpiryFilterNote(list) {
+    const note = $('expiry-filter-note');
+    const label = $('expiry-filter-label');
+    if (!note || !label) return;
+
+    const type = state.filters.expiry;
+    note.classList.toggle('hidden', !type);
+    if (!type) {
+      label.textContent = '';
+      return;
+    }
+
+    const heading = type === 'ecp'
+      ? 'ЭЦП истекает или уже истекла'
+      : 'Срок действия 1С истекает или уже истёк';
+    label.textContent = 'Показаны активные клиенты: ' + heading +
+      ' · найдено: ' + list.length;
+  }
+
+
+  function clearExpiryFilter() {
+    state.filters.expiry = '';
+    renderOverview();
+    renderClients();
+  }
+
+
   function resetFilters() {
     state.filters = {
       query: '',
       status: '',
       orgForm: '',
       taxSystem: '',
-      responsible: ''
+      responsible: '',
+      expiry: ''
     };
 
 
@@ -7692,7 +7817,7 @@
     $('filter-responsible').value =
       '';
 
-
+    renderOverview();
     renderClients();
   }
 
@@ -7702,6 +7827,31 @@
      ============================================================ */
 
   function bindEvents() {
+    $('metric-ecp-card')?.addEventListener(
+      'click',
+      () => toggleExpiryFilter('ecp')
+    );
+    $('metric-1c-card')?.addEventListener(
+      'click',
+      () => toggleExpiryFilter('one_c')
+    );
+
+    [
+      ['metric-ecp-card', 'ecp'],
+      ['metric-1c-card', 'one_c']
+    ].forEach(([id, type]) => {
+      $(id)?.addEventListener('keydown', event => {
+        if (event.key !== 'Enter' && event.key !== ' ') return;
+        event.preventDefault();
+        toggleExpiryFilter(type);
+      });
+    });
+
+    $('btn-clear-expiry-filter')?.addEventListener(
+      'click',
+      clearExpiryFilter
+    );
+
     $all('[data-copy-input]').forEach(
       button => {
         button.addEventListener(
