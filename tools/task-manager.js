@@ -100,6 +100,7 @@ const state = {
   profile: null,
 
   profiles: [],
+  taskCreators: [],
   clients: [],
   tasks: [],
 
@@ -1072,6 +1073,10 @@ function normalizeTask(row) {
         TASK_FIELDS.createdBy
       ] || null,
 
+    endDate: row[TASK_FIELDS.dueAt]
+      ? toISODate(new Date(row[TASK_FIELDS.dueAt]))
+      : dueDate,
+
     createdAt:
       row[
         TASK_FIELDS.createdAt
@@ -1165,6 +1170,7 @@ async function loadTasks({ silent = false } = {}) {
         .map(
           normalizeTask
         );
+    await loadTaskCreatorProfiles();
     state.overdueOccurrences = null;
     state.overdueOccurrencesDate = '';
 
@@ -1179,6 +1185,29 @@ async function loadTasks({ silent = false } = {}) {
 
   } finally {
     if (!silent) setLoading(false);
+  }
+}
+
+
+async function loadTaskCreatorProfiles() {
+  const creatorIds = [...new Set(state.tasks.map(task => task.createdBy).filter(Boolean))];
+  const missingIds = creatorIds.filter(id => !state.profiles.some(profile => profile.id === id));
+  if (!missingIds.length) {
+    state.taskCreators = [];
+    return;
+  }
+
+  try {
+    const { data, error } = await state.supabase
+      .from(TASK_MANAGER_CONFIG.tables.profiles)
+      .select('id,full_name,email,position')
+      .in('id', missingIds);
+
+    if (error) throw error;
+    state.taskCreators = data || [];
+  } catch (error) {
+    state.taskCreators = [];
+    console.warn('Не удалось загрузить имена постановщиков задач:', error);
   }
 }
 
@@ -1319,11 +1348,10 @@ function taskOccursOnDate(
 
 
     case 'once':
-    default:
-      return sameDay(
-        taskDate,
-        target
-      );
+    default: {
+      const endDate = fromISODate(task.endDate || task.date) || taskDate;
+      return target.getTime() >= taskDate.getTime() && target.getTime() <= endDate.getTime();
+    }
   }
 }
 
@@ -1378,8 +1406,14 @@ function taskOccurrenceStatus(task, date) {
 
 
 function isTaskOverdue(task, referenceDate = new Date()) {
-  const dueDate = fromISODate(task.occurrenceDate || task.date);
-  return Boolean(task.status === 'pending' && dueDate && dueDate.getTime() < startOfDay(referenceDate).getTime());
+  const occurrenceDate = fromISODate(task.occurrenceDate || task.date);
+  const rangeEnd = fromISODate(task.endDate || task.date);
+  if (!occurrenceDate || !rangeEnd || task.status !== 'pending') return false;
+  if (normalizeRecurrenceType(task.repeatType) === 'once') {
+    if (occurrenceDate.getTime() < rangeEnd.getTime()) return false;
+    return rangeEnd.getTime() < startOfDay(referenceDate).getTime();
+  }
+  return occurrenceDate.getTime() < startOfDay(referenceDate).getTime();
 }
 
 function getOverdueOccurrences(referenceDate = new Date()) {
@@ -1389,6 +1423,14 @@ function getOverdueOccurrences(referenceDate = new Date()) {
   const yesterday = addDays(today, -1);
   const overdue = [];
   for (const task of state.tasks) {
+    if (normalizeRecurrenceType(task.repeatType) === 'once') {
+      const dueDate = fromISODate(task.endDate || task.date);
+      if (dueDate && dueDate.getTime() < today.getTime() && task.status === 'pending') {
+        overdue.push({ ...task, status: 'pending', occurrenceDate: toISODate(dueDate) });
+      }
+      continue;
+    }
+
     let cursor = fromISODate(task.date);
     if (!cursor || cursor.getTime() > yesterday.getTime()) continue;
     let end = yesterday;
@@ -1434,7 +1476,8 @@ function renderOverdueAlert() {
     '<div class="overdue-alert-list">',
     overdue.map(task => {
       const assignees = taskAssigneeIds(task).map(id => profileDisplayName(findProfile(id)) || 'Сотрудник недоступен').join(', ');
-      const details = [formatDateLong(fromISODate(task.occurrenceDate)), getTaskClientName(task), assignees].filter(Boolean).join(' · ');
+      const creator = profileDisplayName(findProfile(task.createdBy)) || (task.createdBy ? 'Сотрудник недоступен' : 'Постановщик не указан');
+      const details = [formatDateLong(fromISODate(task.occurrenceDate)), getTaskClientName(task), assignees, 'Поставил: ' + creator].filter(Boolean).join(' · ');
       return [
         '<button class="overdue-alert-item" type="button"',
         ' data-overdue-task-id="' + escapeHtml(task.id) + '"',
@@ -2298,6 +2341,13 @@ function buildSummaryTask(task) {
   const assigneeNames = taskAssigneeIds(task).map(id =>
     profileDisplayName(findProfile(id)) || 'Сотрудник недоступен'
   ).join(', ');
+  const creatorName = profileDisplayName(findProfile(task.createdBy)) ||
+    (task.createdBy ? 'Сотрудник недоступен' : 'Не указан');
+  const rangeStart = fromISODate(task.date);
+  const rangeEnd = fromISODate(task.endDate || task.date);
+  const dateRange = rangeStart && rangeEnd && !sameDay(rangeStart, rangeEnd)
+    ? `${formatDateLong(rangeStart)} — ${formatDateLong(rangeEnd)}`
+    : '';
 
   const client =
     getTaskClientName(
@@ -2337,6 +2387,9 @@ function buildSummaryTask(task) {
       ${overdue ? '<div class="overdue-task-badge">⚠ ПРОСРОЧЕНО · ' + escapeHtml(formatDateLong(fromISODate(task.occurrenceDate || task.date))) + '</div>' : ''}
 
       <div class="summary-task-meta">
+
+        ${dateRange ? `<div>Срок: ${escapeHtml(dateRange)}</div>` : ''}
+        <div>Поставил: ${escapeHtml(creatorName)}</div>
 
         ${escapeHtml(type.label)}
 
@@ -2403,6 +2456,10 @@ function buildStatusPill(
 function findProfile(id) {
   return (
     state.profiles.find(
+      profile =>
+        profile.id === id
+    ) ||
+    state.taskCreators.find(
       profile =>
         profile.id === id
     ) ||
@@ -2748,10 +2805,10 @@ async function openTaskModal(
       new Date();
 
     if ($('task-date')) {
-      $('task-date').value =
-        toISODate(
-          chosenDate
-        );
+      $('task-date').value = toISODate(chosenDate);
+    }
+    if ($('task-end-date')) {
+      $('task-end-date').value = toISODate(chosenDate);
     }
 
     if (
@@ -2809,10 +2866,10 @@ function resetTaskForm() {
   }
 
   if ($('task-date')) {
-    $('task-date').value =
-      toISODate(
-        new Date()
-      );
+    $('task-date').value = toISODate(new Date());
+  }
+  if ($('task-end-date')) {
+    $('task-end-date').value = toISODate(new Date());
   }
 
   if ($('task-time')) {
@@ -2910,8 +2967,10 @@ function fillTaskForm(task) {
   );
 
   if ($('task-date')) {
-    $('task-date').value =
-      task.date || '';
+    $('task-date').value = task.date || '';
+  }
+  if ($('task-end-date')) {
+    $('task-end-date').value = task.endDate || task.date || '';
   }
 
   if ($('task-time')) {
@@ -3049,6 +3108,16 @@ function setTaskType(type) {
    32. REPEAT FORM
    ============================================================ */
 
+function updateTaskDateRangeFields() {
+  const start = $('task-date')?.value || '';
+  const endInput = $('task-end-date');
+  if (!endInput) return;
+  endInput.min = start;
+  if (start && (!endInput.value || endInput.value < start)) {
+    endInput.value = start;
+  }
+}
+
 function updateRepeatFieldsVisibility() {
   if (!$('task-repeat-type')) {
     return;
@@ -3076,6 +3145,8 @@ function updateRepeatFieldsVisibility() {
     $('repeat-until-field'),
     isOnce
   );
+  setHidden($('task-end-date-field'), !isOnce);
+  updateTaskDateRangeFields();
 
   if (
     type === 'weekly' &&
@@ -3128,10 +3199,8 @@ function buildTaskPayload() {
       .trim() ||
     '';
 
-  const dueDate =
-    $('task-date')
-      ?.value ||
-    '';
+  const dueDate = $('task-date')?.value || '';
+  const requestedEndDate = $('task-end-date')?.value || dueDate;
 
   const dueTime =
     $('task-time')
@@ -3148,9 +3217,13 @@ function buildTaskPayload() {
   }
 
   if (!dueDate) {
-    throw new Error(
-      'Укажите дату задачи.'
-    );
+    throw new Error('Укажите дату начала задачи.');
+  }
+  if (!requestedEndDate) {
+    throw new Error('Укажите срок выполнения задачи.');
+  }
+  if (requestedEndDate < dueDate) {
+    throw new Error('Срок выполнения не может быть раньше даты начала.');
   }
 
   if (!assignedTo) {
@@ -3303,11 +3376,8 @@ function buildTaskPayload() {
       ?.value ||
     'pending';
 
-  const startAt =
-    buildStartAtISO(
-      dueDate,
-      dueTime
-    );
+  const startAt = buildStartAtISO(dueDate, dueTime);
+  const endDate = repeatType === 'once' ? requestedEndDate : dueDate;
 
   const payload = {
     [TASK_FIELDS.title]:
@@ -3344,6 +3414,10 @@ function buildTaskPayload() {
 
     [TASK_FIELDS.startAt]:
       startAt,
+
+    ...(repeatType === 'once'
+      ? { [TASK_FIELDS.dueAt]: buildStartAtISO(endDate, '23:59') }
+      : {}),
 
     [TASK_FIELDS.status]:
       status,
@@ -5293,10 +5367,14 @@ function bindUIEvents() {
       updateRepeatFieldsVisibility
     );
 
+  $('task-end-date')
+    ?.addEventListener('change', updateTaskDateRangeFields);
+
   $('task-date')
     ?.addEventListener(
       'change',
       () => {
+        updateTaskDateRangeFields();
         const repeat =
           $('task-repeat-type')
             ?.value;
