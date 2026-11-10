@@ -1402,14 +1402,22 @@
             <h2 class="todayTitle" id="todayTitle">На сегодня</h2>
             <p class="todayDate" id="todayDate"></p>
           </div>
-          <button class="todayRefresh" id="todayRefresh" type="button">↻ Обновить</button>
+          <div class="todayHeaderActions">
+            <button class="todayCollapse" id="todayCollapse" type="button" aria-expanded="true" aria-controls="todayBody" aria-label="Свернуть планы на день">
+              <span class="todayCollapseIcon" aria-hidden="true">⌃</span>
+              <span class="todayCollapseLabel">Свернуть</span>
+            </button>
+            <button class="todayRefresh" id="todayRefresh" type="button">↻ Обновить</button>
+          </div>
         </header>
-        <div class="todayStats" id="todayStats">
-          <div class="todayStat"><span class="todayStatLabel">На сегодня</span><strong class="todayStatValue">—</strong></div>
-          <div class="todayStat isLate"><span class="todayStatLabel">Просрочено</span><strong class="todayStatValue">—</strong></div>
-          <div class="todayStat"><span class="todayStatLabel">Чек-листы · выполнено</span><strong class="todayStatValue">—</strong></div>
+        <div class="todayBody" id="todayBody">
+          <div class="todayStats" id="todayStats">
+            <div class="todayStat"><span class="todayStatLabel">На сегодня</span><strong class="todayStatValue">—</strong></div>
+            <div class="todayStat isLate"><span class="todayStatLabel">Просрочено</span><strong class="todayStatValue">—</strong></div>
+            <div class="todayStat"><span class="todayStatLabel">Чек-листы · выполнено</span><strong class="todayStatValue">—</strong></div>
+          </div>
+          <div id="todayContent"><div class="todayLoading">Загружаю задачи и чек-листы…</div></div>
         </div>
-        <div id="todayContent"><div class="todayLoading">Загружаю задачи и чек-листы…</div></div>
       </section>
 
 
@@ -1989,7 +1997,7 @@
     src="./tools/supabase.umd.js"
   ></script>
 
-  <script src="./tools/today-dashboard.js"></script>
+  <script src="./tools/today-dashboard.js?v=collapse-20261110"></script>
   <script src="./tools/global-search.js"></script>
 
 

@@ -282,9 +282,13 @@
     style.textContent =
       '.todayPanel{margin:0 0 17px;padding:20px;border:1px solid #e2e7ee;border-top:4px solid #f99303;border-radius:21px;background:#fff;box-shadow:0 12px 34px rgba(30,41,59,.08)}' +
       '.todayHeader{display:flex;align-items:center;justify-content:space-between;gap:14px;margin-bottom:17px}' +
+      '.todayHeaderActions{display:flex;align-items:center;gap:8px;flex:0 0 auto}' +
       '.todayEyebrow{margin:0 0 4px;color:#a85c00;font-size:9px;font-weight:900;letter-spacing:.08em;text-transform:uppercase}' +
       '.todayTitle{margin:0;color:#172033;font-size:22px;font-weight:950}' +
       '.todayDate{margin:5px 0 0;color:#748094;font-size:12px;text-transform:capitalize}' +
+      '.todayCollapse{display:inline-flex;align-items:center;justify-content:center;gap:5px;min-height:36px;padding:7px 11px;border:1px solid #e2e7ee;border-radius:11px;color:#596579;background:#fff;font:inherit;font-size:11px;font-weight:800;cursor:pointer}' +
+      '.todayCollapse:hover{border-color:#efbd75;color:#a85c00;background:#fff8ee}.todayCollapse:focus-visible{outline:2px solid rgba(249,147,3,.35);outline-offset:2px}.todayCollapseIcon{font-size:14px;line-height:1}' +
+      '.todayPanel.isCollapsed .todayHeader{margin-bottom:0}.todayPanel.isCollapsed .todayBody{display:none}' +
       '.todayRefresh{flex:0 0 auto;min-height:36px;padding:7px 11px;border:1px solid #efbd75;border-radius:11px;color:#a85c00;background:#fff;font:inherit;font-size:11px;font-weight:800;cursor:pointer}' +
       '.todayRefresh:hover{background:#fff8ee}.todayRefresh:disabled{opacity:.6;cursor:wait}' +
       '.todayStats{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px;margin-bottom:14px}' +
@@ -308,12 +312,38 @@
       '.todayProgress{height:6px;margin-top:6px;overflow:hidden;border-radius:99px;background:#edf0f3}.todayProgress i{display:block;height:100%;border-radius:inherit;background:#f99303}' +
       '.todayLoading{padding:13px;color:#748094;font-size:11px}.todayError{padding:11px;border:1px solid #efc7c3;border-radius:11px;color:#8b3c35;background:#fff5f4;font-size:11px}' +
       '@media(max-width:760px){.todayColumns{grid-template-columns:1fr}.todayStats{gap:7px}.todayStat{padding:10px}.todayStatValue{font-size:19px}}' +
-      '@media(max-width:480px){.todayPanel{padding:15px;border-radius:17px}.todayHeader{align-items:flex-start}.todayTitle{font-size:20px}.todayDate{font-size:11px}.todayRefresh{font-size:10px;padding:7px 9px}.todayStats{grid-template-columns:repeat(3,minmax(0,1fr))}.todayStatLabel{font-size:9px}.todayStatValue{font-size:18px}.todayTaskMeta{max-width:85px;text-align:right;white-space:normal}.todayChecklistHead{align-items:flex-start;flex-direction:column}.todayChecklistControls{width:100%;justify-content:space-between}.todayQuarterSelect{max-width:none;flex:1}}';
+      '@media(max-width:480px){.todayPanel{padding:15px;border-radius:17px}.todayHeader{align-items:flex-start}.todayTitle{font-size:20px}.todayDate{font-size:11px}.todayCollapse{min-width:36px;padding:7px}.todayCollapseLabel{display:none}.todayRefresh{font-size:10px;padding:7px 9px}.todayStats{grid-template-columns:repeat(3,minmax(0,1fr))}.todayStatLabel{font-size:9px}.todayStatValue{font-size:18px}.todayTaskMeta{max-width:85px;text-align:right;white-space:normal}.todayChecklistHead{align-items:flex-start;flex-direction:column}.todayChecklistControls{width:100%;justify-content:space-between}.todayQuarterSelect{max-width:none;flex:1}}';
     document.head.appendChild(style);
   }
 
   function panel() {
     return document.getElementById(PANEL_ID);
+  }
+
+  function setCollapsed(collapsed) {
+    const root = panel();
+    const button = document.getElementById('todayCollapse');
+    if (!root || !button) return;
+
+    root.classList.toggle('isCollapsed', collapsed);
+    button.setAttribute('aria-expanded', String(!collapsed));
+    button.querySelector('.todayCollapseLabel').textContent = collapsed ? 'Развернуть' : 'Свернуть';
+    button.querySelector('.todayCollapseIcon').textContent = collapsed ? '⌄' : '⌃';
+    button.setAttribute('aria-label', collapsed ? 'Развернуть планы на день' : 'Свернуть планы на день');
+
+    try {
+      localStorage.setItem('jambalance_today_panel_collapsed_v1', collapsed ? '1' : '0');
+    } catch (_) {
+      // The panel still works for this page view when storage is unavailable.
+    }
+  }
+
+  function savedCollapsedState() {
+    try {
+      return localStorage.getItem('jambalance_today_panel_collapsed_v1') === '1';
+    } catch (_) {
+      return false;
+    }
   }
 
   async function loadDashboard(force) {
@@ -399,6 +429,14 @@
     const app = document.getElementById('appShell');
     if (!app || !panel()) return;
     ensureStyles();
+
+    const collapse = document.getElementById('todayCollapse');
+    if (collapse) {
+      setCollapsed(savedCollapsedState());
+      collapse.addEventListener('click', function () {
+        setCollapsed(!panel().classList.contains('isCollapsed'));
+      });
+    }
 
     const refresh = document.getElementById('todayRefresh');
     if (refresh) refresh.addEventListener('click', function () { loadDashboard(true); });
