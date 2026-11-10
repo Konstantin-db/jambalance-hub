@@ -165,6 +165,21 @@
     );
   }
 
+  function setEcpFieldsVisible(enabled) {
+    setHidden(
+      $('ecp-details-field'),
+      !enabled
+    );
+    setHidden(
+      $('ecp-reminder-fields'),
+      !enabled
+    );
+    $('expiry-fields-row')?.classList.toggle(
+      'ecp-disabled',
+      !enabled
+    );
+  }
+
 
   /* ============================================================
      BASIC UTILS
@@ -1937,7 +1952,10 @@
      ============================================================ */
 
   function getEcpState(client) {
-    if (!client.ecp_expires_at) {
+    if (
+      client.ecp_enabled === false ||
+      !client.ecp_expires_at
+    ) {
       return {
         level: 'none',
         days: null
@@ -3059,6 +3077,9 @@
     $('client-edo-enabled').checked =
       false;
 
+    $('client-ecp-enabled').checked =
+      false;
+
     $('client-ecp-reminder-enabled').checked =
       true;
 
@@ -3080,6 +3101,8 @@
       $('edo-identifier-field'),
       true
     );
+
+    setEcpFieldsVisible(false);
 
 
     setHidden(
@@ -3300,6 +3323,16 @@
     $('client-edo-identifier').value =
       client.edo_identifier || '';
 
+    const ecpEnabled =
+      client.ecp_enabled === true ||
+      (
+        client.ecp_enabled == null &&
+        Boolean(client.ecp_expires_at)
+      );
+
+    $('client-ecp-enabled').checked =
+      ecpEnabled;
+
     $('client-ecp-expires').value =
       client.ecp_expires_at || '';
 
@@ -3346,6 +3379,8 @@
       $('edo-identifier-field'),
       !client.edo_enabled
     );
+
+    setEcpFieldsVisible(ecpEnabled);
 
 
     $('drawer-client-title').textContent =
@@ -3513,6 +3548,10 @@
       $('client-edo-enabled')
         .checked;
 
+    const ecpEnabled =
+      $('client-ecp-enabled')
+        .checked;
+
 
     return {
       client_name:
@@ -3650,12 +3689,18 @@
             )
           : null,
 
+      ecp_enabled:
+        ecpEnabled,
+
       ecp_expires_at:
-        nullableText(
-          $('client-ecp-expires').value
-        ),
+        ecpEnabled
+          ? nullableText(
+              $('client-ecp-expires').value
+            )
+          : null,
 
       ecp_reminder_enabled:
+        ecpEnabled &&
         $('client-ecp-reminder-enabled')
           .checked,
 
@@ -7975,6 +8020,16 @@
             !event.target.checked
           );
         }
+      );
+
+
+    $('client-ecp-enabled')
+      ?.addEventListener(
+        'change',
+        event =>
+          setEcpFieldsVisible(
+            event.target.checked
+          )
       );
 
     $('btn-add-tax-system')
