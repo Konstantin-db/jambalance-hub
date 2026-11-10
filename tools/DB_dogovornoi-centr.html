@@ -100,6 +100,14 @@
     .relatedDocTitle{font-weight:700;font-size:13px;color:#3a2b20}
     .relatedDocMeta{font-size:12px;color:var(--muted);margin-top:2px;white-space:normal}
     .relatedDocNote{font-size:12px;color:#5f5146;white-space:normal;max-width:440px}
+    .signedCell{white-space:normal!important;min-width:160px}
+    .signedToggle{display:inline-flex;align-items:center;gap:7px;margin:0;font-size:12px;font-weight:600;color:#51463d;white-space:nowrap;cursor:pointer}
+    .signedToggle input{position:absolute;width:1px;height:1px;opacity:0}
+    .signedTrack{position:relative;display:inline-block;width:34px;height:19px;flex:0 0 34px;border-radius:999px;background:#cfc8c1;transition:background .18s}
+    .signedTrack:after{content:"";position:absolute;left:2px;top:2px;width:15px;height:15px;border-radius:50%;background:white;box-shadow:0 1px 3px rgba(0,0,0,.2);transition:transform .18s}
+    .signedToggle input:checked+.signedTrack{background:var(--ok)}
+    .signedToggle input:checked+.signedTrack:after{transform:translateX(15px)}
+    .signedToggle input:focus-visible+.signedTrack{outline:3px solid rgba(223,143,74,.32);outline-offset:2px}
     .smallBtn{font-size:12px;padding:7px 9px;border-radius:9px}
     .sectionTitle{font-weight:800;color:#2b211a;margin:10px 0 -3px;padding-top:6px;border-top:1px dashed #eadfd5}
     .hidden{display:none!important}
