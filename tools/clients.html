@@ -656,6 +656,10 @@
       margin-top: 12px;
     }
 
+    .field-row > .field + .field {
+      margin-top: 0;
+    }
+
     .field-row {
       display: grid;
       gap: 12px;
@@ -676,6 +680,10 @@
     .field-row.cols-4 {
       grid-template-columns:
         repeat(4, minmax(0, 1fr));
+    }
+
+    .field-row.ecp-disabled #one-c-expires-field {
+      grid-column: 1 / -1;
     }
 
     .field-label {
@@ -4108,95 +4116,61 @@
           </div>
 
 
-          <div class="field-row cols-2">
+          <div class="field">
 
-            <div class="field">
+            <label class="field-label">ЭЦП</label>
 
-              <label
-                class="field-label"
-                for="client-ecp-expires"
-              >
-                ЭЦП действует до
+            <div class="switch-row">
+
+              <div class="switch-label">Используется ЭЦП</div>
+
+              <label class="toggle">
+                <input type="checkbox" id="client-ecp-enabled">
+                <span class="toggle-track"></span>
               </label>
-
-              <input
-                class="input"
-                id="client-ecp-expires"
-                type="date"
-              >
-
-            </div>
-
-
-            <div class="field">
-
-              <label
-                class="field-label"
-                for="client-1c-expires"
-              >
-                1С действует до
-              </label>
-
-              <input
-                class="input"
-                id="client-1c-expires"
-                type="date"
-              >
 
             </div>
 
           </div>
 
 
-          <div class="field-row cols-2">
+          <div class="field-row cols-2" id="expiry-fields-row">
 
-            <div class="field">
-
-              <label class="field-label">
-                Напоминания по ЭЦП
+            <div class="field hidden" id="ecp-details-field">
+              <label class="field-label" for="client-ecp-expires">
+                ЭЦП действует до
               </label>
-
-              <div class="switch-row">
-
-                <div class="switch-label">
-                  Предупреждать заранее
-                </div>
-
-                <label class="toggle">
-
-                  <input
-                    type="checkbox"
-                    id="client-ecp-reminder-enabled"
-                    checked
-                  >
-
-                  <span class="toggle-track"></span>
-
-                </label>
-
-              </div>
-
+              <input class="input" id="client-ecp-expires" type="date">
             </div>
 
+            <div class="field" id="one-c-expires-field">
+              <label class="field-label" for="client-1c-expires">
+                1С действует до
+              </label>
+              <input class="input" id="client-1c-expires" type="date">
+            </div>
+
+          </div>
+
+
+          <div class="field-row cols-2 hidden" id="ecp-reminder-fields">
 
             <div class="field">
+              <label class="field-label">Напоминания по ЭЦП</label>
+              <div class="switch-row">
+                <div class="switch-label">Предупреждать заранее</div>
+                <label class="toggle">
+                  <input type="checkbox" id="client-ecp-reminder-enabled" checked>
+                  <span class="toggle-track"></span>
+                </label>
+              </div>
+            </div>
 
-              <label
-                class="field-label"
-                for="client-ecp-reminder-days"
-              >
+            <div class="field">
+              <label class="field-label" for="client-ecp-reminder-days">
                 За сколько дней
               </label>
-
-              <input
-                class="input"
-                id="client-ecp-reminder-days"
-                type="number"
-                min="0"
-                max="365"
-                value="7"
-              >
-
+              <input class="input" id="client-ecp-reminder-days" type="number" min="0" max="365" value="7">
             </div>
 
           </div>
