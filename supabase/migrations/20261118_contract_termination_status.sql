@@ -23,7 +23,7 @@ begin
     for update skip locked
   loop
     update public.clients
-    set status = 'inactive'
+    set status = 'paused'
     where id = item.client_id;
 
     update public.client_documents
@@ -77,7 +77,7 @@ begin
      and new.end_date <= current_date
      and new.termination_applied_at is null then
     update public.clients
-    set status = 'inactive'
+    set status = 'paused'
     where id = new.client_id;
 
     new.termination_applied_at := now();
