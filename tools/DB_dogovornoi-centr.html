@@ -190,7 +190,7 @@ button:disabled{opacity:.55;cursor:wait}
       </div>
       <div id="addendumBox" class="hidden">
         <div class="row">
-          <div><label>№ допсоглашения</label><input id="agreementNumber" value="1"></div>
+          <div><label id="agreementNumberLabel">№ допсоглашения</label><input id="agreementNumber" value="1"></div>
           <div><label>Дата основного договора</label><input id="parentContractDate" type="date"></div>
         </div>
         <div>
@@ -215,7 +215,7 @@ button:disabled{opacity:.55;cursor:wait}
       <div class="row"><div><label>Подписант Заказчика</label><input id="clientSigner" placeholder="Иванов Иван Иванович"></div><div><label>Должность подписанта</label><input id="clientSignerTitle" placeholder="Генеральный директор / ИП"></div></div>
       <div class="row"><div><label>Основание полномочий</label><input id="clientSignerBasis" value="Устава"></div><div><label>Системы налогообложения</label><input id="taxSystem" placeholder="УСН «Доходы» — 6%"></div></div>
       <div class="row"><div><label>Стоимость</label><input id="price" placeholder="15000"></div><div><label>Период оплаты</label><select id="paymentPeriod"><option value="в месяц">в месяц</option><option value="в квартал">в квартал</option><option value="единовременно">единовременно</option></select></div></div>
-      <div class="row"><div><label>Дата начала работ</label><input id="startDate" type="date"></div><div><label>Дата окончания</label><input id="endDate" type="date"></div></div>
+      <div class="row"><div><label>Дата начала работ</label><input id="startDate" type="date"></div><div><label id="endDateLabel">Дата окончания</label><input id="endDate" type="date"></div></div>
       <div id="newPriceBox" class="hidden row"><div><label>Новая стоимость</label><input id="newPrice"></div><div><label>Дата начала новой стоимости</label><input id="newPriceDate" type="date"></div></div>
       <div id="oneOffBox" class="hidden"><div><label>Описание разовой работы</label><textarea id="serviceDescription"></textarea></div><div class="row"><div><label>Срок выполнения</label><input id="serviceDeadline"></div><div><label>Предоплата</label><input id="prepayment" value="100%"></div></div></div>
       <div id="reasonBox" class="hidden"><label>Причина / особые условия</label><textarea id="reason"></textarea></div>
@@ -276,6 +276,6 @@ button:disabled{opacity:.55;cursor:wait}
 </div>
 <div class="toast" id="toast"></div>
 <script src="./supabase.umd.js"></script>
-  <script src="DB_dogovornoi-centr.js?v=contract-regulation-20261110"></script>
+  <script src="DB_dogovornoi-centr-termination-20261118.js"></script>
 </body>
 </html>
