@@ -70,7 +70,7 @@ returns trigger
 language plpgsql
 security definer
 set search_path = public
-as $
+as $$
 begin
   if new.doc_type = 'agreement-termination'
      and new.client_id is not null
@@ -84,7 +84,7 @@ begin
   end if;
   return new;
 end;
-$;
+$$;
 
 revoke all on function public.apply_client_termination_on_document_save() from public, anon, authenticated;
 grant execute on function public.apply_client_termination_on_document_save() to postgres;
