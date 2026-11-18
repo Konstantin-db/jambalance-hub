@@ -59,11 +59,41 @@ begin
 
   perform cron.schedule(
     'apply-client-termination-statuses',
-    '5 0 * * *',
+    '5 * * * *',
     'select public.apply_due_client_terminations()'
   );
 end;
 $$;
+
+create or replace function public.apply_client_termination_on_document_save()
+returns trigger
+language plpgsql
+security definer
+set search_path = public
+as $
+begin
+  if new.doc_type = 'agreement-termination'
+     and new.client_id is not null
+     and new.end_date <= current_date
+     and new.termination_applied_at is null then
+    update public.clients
+    set status = 'inactive'
+    where id = new.client_id;
+
+    new.termination_applied_at := now();
+  end if;
+  return new;
+end;
+$;
+
+revoke all on function public.apply_client_termination_on_document_save() from public, anon, authenticated;
+grant execute on function public.apply_client_termination_on_document_save() to postgres;
+
+drop trigger if exists client_documents_apply_termination_status on public.client_documents;
+create trigger client_documents_apply_termination_status
+before insert or update of doc_type, client_id, end_date
+on public.client_documents
+for each row execute function public.apply_client_termination_on_document_save();
 
 select public.apply_due_client_terminations();
 
