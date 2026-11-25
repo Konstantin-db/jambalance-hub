@@ -1346,7 +1346,7 @@ async function persistMissingClientDetails(clientId,snapshot){
 
   const accountNumber=String(snapshot.clientAccount??'').trim();
   if(accountNumber){
-    const existingBank=state.banks.find(item=>String(item.account_number||'').replace(/\\s/g,'')===accountNumber.replace(/\\s/g,''));
+    const existingBank=state.banks.find(item=>String(item.account_number||'').replace(/\s/g,'')===accountNumber.replace(/\s/g,''));
     const bankValues={
       bank_name:String(snapshot.clientBank??'').trim(),
       bik:String(snapshot.clientBik??'').trim(),
@@ -1382,7 +1382,6 @@ async function persistMissingClientDetails(clientId,snapshot){
       if(!String(existingContact.phone||'').trim()&&snapshot.clientPhone) contactPatch.phone=String(snapshot.clientPhone).trim();
       if(!String(existingContact.email||'').trim()&&snapshot.clientEmail) contactPatch.email=String(snapshot.clientEmail).trim();
       if(Object.keys(contactPatch).length){
-        contactPatch.updated_by=state.user.id;
         const {error}=await state.supabase.from(TABLES.contacts).update(contactPatch).eq('id',existingContact.id);
         if(error) throw error;
         Object.assign(existingContact,contactPatch);
