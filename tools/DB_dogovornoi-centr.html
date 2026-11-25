@@ -171,6 +171,7 @@ button:disabled{opacity:.55;cursor:wait}
       <div class="client-picker">
         <div>
           <label>Клиент из Рабочей станции</label>
+          <input id="clientSearch" type="search" placeholder="Поиск клиента по названию или ИНН" autocomplete="off">
           <select id="clientSelect"><option value="">— выбрать клиента —</option></select>
         </div>
         <button class="ghost" type="button" id="openClientBtn">Карточка</button>
@@ -195,6 +196,7 @@ button:disabled{opacity:.55;cursor:wait}
         </div>
         <div>
           <label>Основной договор</label>
+          <input id="parentContractSearch" type="search" placeholder="Поиск договора или клиента" autocomplete="off">
           <select id="parentContractSelect"></select>
           <div class="hint">При выборе договора будут перенесены все сохранённые реквизиты клиента.</div>
         </div>
@@ -276,6 +278,6 @@ button:disabled{opacity:.55;cursor:wait}
 </div>
 <div class="toast" id="toast"></div>
 <script src="./supabase.umd.js"></script>
-  <script src="DB_dogovornoi-centr-termination-20261125-r2.js"></script>
+  <script src="DB_dogovornoi-centr-termination-20261125-r3.js"></script>
 </body>
 </html>
